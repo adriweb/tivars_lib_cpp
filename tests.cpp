@@ -15,7 +15,6 @@ using namespace tivars;
 
 int main(int argc, char** argv)
 {
-    /*
     TH_0x05::initTokens();
 
     string test = "Disp 42:Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I\nEnd";
@@ -27,12 +26,12 @@ int main(int argc, char** argv)
     {
         cout << "i=" << i << " : " << testData[i] << endl;
     }
-    */
 
-    vector<uint> testData = TH_0x00::makeDataFromString("45.2", {});
-    for (int i = 0; i < testData.size(); ++i)
+
+    vector<uint> testData2 = TH_0x00::makeDataFromString("45.2", {});
+    for (int i = 0; i < testData2.size(); ++i)
     {
-        cout << "i=" << i << " : " << testData[i] << endl;
+        cout << "i=" << i << " : " << testData2[i] << endl;
     }
 
     return 0;

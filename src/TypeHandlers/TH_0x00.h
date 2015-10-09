@@ -5,8 +5,8 @@
  * License: MIT
  */
 
-#ifndef TH_0x05_H
-#define TH_0x05_H
+#ifndef TH_0x00_H
+#define TH_0x00_H
 
 #include "ITIVarTypeHandler.h"
 
