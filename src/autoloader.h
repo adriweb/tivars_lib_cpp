@@ -5,7 +5,8 @@
  * License: MIT
  */
 
-#pragma once
+#ifndef AUTOLOADER_H
+#define AUTOLOADER_H
 
 #include <iostream>
 #include <cstdio>
@@ -28,3 +29,5 @@ typedef std::unordered_map<std::string, uint>   options_t;
 */
 
 // Put all the files to include here.
+
+#endif

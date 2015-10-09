@@ -5,7 +5,8 @@
  * License: MIT
  */
 
-#pragma once
+#ifndef ITIVARTYPEHANDLER_H
+#define ITIVARTYPEHANDLER_H
 
 #include "../autoloader.h"
 
@@ -18,3 +19,5 @@ namespace tivars
         static std::string makeStringFromData(const data_t& data, const options_t options);
     };
 }
+
+#endif

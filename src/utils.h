@@ -5,6 +5,9 @@
  * License: MIT
  */
 
+#ifndef UTILS_H
+#define UTILS_H
+
 #include <unordered_map>
 #include <vector>
 #include <string>
@@ -32,3 +35,5 @@ std::string str_repeat(const std::string& str, unsigned int times);
 void ParseCSV(const std::string& csvSource, std::vector<std::vector<std::string>>& lines);
 
 bool is_numeric(const std::string& str);
+
+#endif

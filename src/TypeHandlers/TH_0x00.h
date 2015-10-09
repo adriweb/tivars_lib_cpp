@@ -5,7 +5,8 @@
  * License: MIT
  */
 
-#pragma once
+#ifndef TH_0x05_H
+#define TH_0x05_H
 
 #include "ITIVarTypeHandler.h"
 
@@ -23,4 +24,5 @@ namespace tivars
 
     };
 }
-        
+
+#endif
