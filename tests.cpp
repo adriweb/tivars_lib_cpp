@@ -9,26 +9,40 @@
 
 #include "src/TypeHandlers/TH_0x00.h"
 #include "src/TypeHandlers/TH_0x05.h"
+#include "src/TIVarTypes.h"
+#include "src/TIModels.h"
 
 using namespace std;
 using namespace tivars;
 
 int main(int argc, char** argv)
 {
+    /* Init Stuff */
+
+    TIModels::initTIModelsArray();
+    TIVarTypes::initTIVarTypesArray();
     TH_0x05::initTokens();
 
-    string test = "Disp 42:Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I\nEnd";
-    cout << TH_0x05::reindentCodeString(test) << endl;
 
+    /* Tests */
 
-    vector<uint> testData = TH_0x05::makeDataFromString("Disp 42:Pause", {});
+    cout << "id for name 'ExactRealPi' (should be 32) : " << endl;
+    cout << TIVarTypes::getIDFromName("ExactRealPi") << endl;
+    cout << endl;
+
+    string test = "Disp 42:Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
+    cout << "Indented code:" << endl << TH_0x05::reindentCodeString(test) << endl;
+
+    cout << "Raw data for Program == 'Disp 42:Pause':" << endl;
+    data_t testData = TH_0x05::makeDataFromString("Disp 42:Pause", {});
     for (int i = 0; i < testData.size(); ++i)
     {
         cout << "i=" << i << " : " << testData[i] << endl;
     }
+    cout << endl;
 
-
-    vector<uint> testData2 = TH_0x00::makeDataFromString("45.2", {});
+    cout << "Raw data for Real == 45.2:" << endl;
+    data_t testData2 = TH_0x00::makeDataFromString("45.2", {});
     for (int i = 0; i < testData2.size(); ++i)
     {
         cout << "i=" << i << " : " << testData2[i] << endl;
