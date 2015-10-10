@@ -5,10 +5,11 @@
  * License: MIT
  */
 
-#include <regex>
 #include "TIVarFile.h"
 #include "utils.h"
 #include "TIModels.h"
+#include <regex>
+#include <numeric>
 
 using namespace std;
 
@@ -90,7 +91,7 @@ namespace tivars
         std::copy(constBytes, constBytes + 2, varFile.varEntry.constBytes);
         varFile.varEntry.data_length  = 0; // will have to be overwritten later
         varFile.varEntry.typeID       = (uchar) type.getId();
-        string varname = str_pad(name, 8, "\0");
+        string varname = str_pad(newName, 8, "\0");
         std::copy(varname.begin(), varname.end(), varFile.varEntry.varname);
         varFile.varEntry.version      = (calcFlags >= TIFeatureFlags::hasFlash) ? (uchar)0 : (uchar)-1;
         varFile.varEntry.archivedFlag = (calcFlags >= TIFeatureFlags::hasFlash) ? (uchar)0 : (uchar)-1; // TODO: check when that needs to be 1.
@@ -171,17 +172,17 @@ namespace tivars
         }
     }
 
-    // TODO
     uint16_t TIVarFile::computeChecksumFromInstanceData()
     {
         uint16_t sum = 0;
-        /*
-        sum += array_sum(this->varEntry.constBytes);
+        sum += std::accumulate(this->varEntry.constBytes, this->varEntry.constBytes + 2, 0);
         sum += 2 * ((this->varEntry.data_length & 0xFF) + ((this->varEntry.data_length >> 8) & 0xFF));
         sum += this->varEntry.typeID + (int)this->varEntry.version + (int)this->varEntry.archivedFlag;
-        sum += array_sum(array_map("ord", str_split(this->varEntry.varname)));
-        sum += array_sum(this->varEntry.data);
-        */
+        sum += std::accumulate(this->varEntry.varname, this->varEntry.varname + 8, 0);
+        for (uint16_t i=0; i<this->varEntry.data_length; i++)
+        {
+            sum += this->varEntry.data[i];
+        }
         return (uint16_t) (sum & 0xFFFF);
     }
 

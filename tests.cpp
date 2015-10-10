@@ -62,8 +62,11 @@ int main(int argc, char** argv)
         cout << (uint)testData2[i] << endl;
     }
 
-    auto goodTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("ExactComplexFrac"), "Bla", TIModel::createFromName("83PCE"));
-    auto badTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("ExactComplexFrac"), "Bla", TIModel::createFromName("84+"));
+
+    auto goodTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("Program"), "Bla", TIModel::createFromName("83PCE"));
+    goodTypeForCalc.setContentFromData(testData);
+
+    //auto badTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("ExactComplexFrac"), "Bla", TIModel::createFromName("84+"));
 
 
     return 0;
