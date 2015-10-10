@@ -16,7 +16,7 @@ namespace tivars
     
     data_t TH_0x00::makeDataFromString(const string& str, const options_t options)
     {
-        vector<uint> data(9);
+        data_t data(9);
 
         if (str == "" || !is_numeric(str))
         {
@@ -29,7 +29,7 @@ namespace tivars
         number *= pow(10.0, -exponent);
         char tmp[20];
         sprintf(tmp, "%0.14f", number);
-        string newStr = regex_replace(tmp, regex("[-\\.]"), "");
+        string newStr = stripchars(tmp, "-.");
 
         uint flags = 0;
         flags |= (number < 0) ? (1 << 7) : 0;
@@ -53,7 +53,7 @@ namespace tivars
         }
         uint flags      = data[0];
         bool isNegative = (flags >> 7 == 1);
-//      isUndef    = (flags  & 1 == 1); // if true, "used for initial sequence values"
+//      bool isUndef    = (flags  & 1 == 1); // if true, "used for initial sequence values"
         uint exponent   = data[1] - 0x80;
         string number   = "";
         for (uint i = 2; i < 9; i++)

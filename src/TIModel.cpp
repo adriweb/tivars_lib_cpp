@@ -1,4 +1,3 @@
-
 /*
  * Part of tivars_lib_cpp
  * (C) 2015 Adrien 'Adriweb' Bertrand
@@ -6,105 +5,82 @@
  * License: MIT
  */
 
-namespace tivars;
+#include "TIModel.h"
+#include "TIModels.h"
 
-class TIModel
+using namespace std;
+
+namespace tivars
 {
-    private $orderID = -1;
-    private $name    = 'Unknown';
-    private $flags   = 0;
-    private $sig     = '';
-
-    /**
-     * @return string
-     */
-    public function getName()
+    
+    bool TIModel::supportsType(TIVarType& type)
     {
-        return $this->name;
-    }
-
-    /**
-     * @return int
-     */
-    public function getFlags()
-    {
-        return $this->flags;
-    }
-
-    /**
-     * @return string
-     */
-    public function getSig()
-    {
-        return $this->sig;
-    }
-
-
-    public function supportsType(TIVarType $type)
-    {
-        $exts = $type->getExts();
-        return isset($exts[$this->orderID]) && $exts[$this->orderID] !== null;
+        const vector<string>& exts = type.getExts();
+        return this->orderID >= 0 && this->orderID < exts.size() && exts[this->orderID] != "";
     }
 
     /*** "Constructors" ***/
 
     /**
-     * @param   int     $flags  The version compatibliity flags
+     * @param   int     flags  The version compatibliity flags
      * @return  TIModel
      * @throws  \Exception
      */
-    public static function createFromFlags($flags = -1)
+    TIModel TIModel::createFromFlags(uint flags)
     {
-        if (TIModels::isValidFlags($flags))
+        if (TIModels::isValidFlags(flags))
         {
-            $instance = new self();
-            $instance->flags = $flags;
-            $instance->orderID = TIModels::getDefaultOrderIDFromFlags($flags);
-            $instance->sig = TIModels::getSignatureFromFlags($flags);
-            $instance->name = TIModels::getDefaultNameFromFlags($flags);
-            return $instance;
-        } else {
-            throw new \Exception("Invalid version ID");
+            TIModel model;
+            model.flags = flags;
+            model.orderID = TIModels::getDefaulOrderIDFromFlags(flags);
+            model.sig = TIModels::getSignatureFromFlags(flags);
+            model.name = TIModels::getDefaultNameFromFlags(flags);
+            return model;
+        } else
+        {
+            throw invalid_argument("Invalid version ID");
         }
     }
 
     /**
-     * @param   string  $name   The version name
+     * @param   string  name   The version name
      * @return  TIModel
      * @throws  \Exception
      */
-    public static function createFromName($name = '')
+    TIModel TIModel::createFromName(string name)
     {
-        if (TIModels::isValidName($name))
+        if (TIModels::isValidName(name))
         {
-            $instance = new self();
-            $instance->name = $name;
-            $instance->orderID = TIModels::getOrderIDFromName($name);
-            $instance->flags = TIModels::getFlagsFromName($name);
-            $instance->sig = TIModels::getSignatureFromName($name);
-            return $instance;
-        } else {
-            throw new \Exception("Invalid version name");
+            TIModel model;
+            model.name = name;
+            model.orderID = TIModels::getOrderIDFromName(name);
+            model.flags = TIModels::getFlagsFromName(name);
+            model.sig = TIModels::getSignatureFromName(name);
+            return model;
+        } else
+        {
+            throw invalid_argument("Invalid version name");
         }
     }
 
     /**
-     * @param   string  $sig    The signature (magic bytes)
+     * @param   string  sig    The signature (magic bytes)
      * @return  TIModel
      * @throws  \Exception
      */
-    public static function createFromSignature($sig = '')
+    TIModel TIModel::createFromSignature(string sig)
     {
-        if (TIModels::isValidSignature($sig))
+        if (TIModels::isValidSignature(sig))
         {
-            $instance = new self();
-            $instance->sig = $sig;
-            $instance->orderID = TIModels::getDefaultOrderIDFromSignature($sig);
-            $instance->flags = TIModels::getMinFlagsFromSignature($sig);
-            $instance->name = TIModels::getDefaultNameFromSignature($sig);
-            return $instance;
-        } else {
-            throw new \Exception("Invalid version signature");
+            TIModel model;
+            model.sig = sig;
+            model.orderID = TIModels::getDefaultOrderIDFromSignature(sig);
+            model.flags = TIModels::getMinFlagsFromSignature(sig);
+            model.name = TIModels::getDefaultNameFromSignature(sig);
+            return model;
+        } else
+        {
+            throw new invalid_argument("Invalid version signature");
         }
     }
 

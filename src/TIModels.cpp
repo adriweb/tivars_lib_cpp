@@ -1,4 +1,3 @@
-
 /*
  * Part of tivars_lib_cpp
  * (C) 2015 Adrien 'Adriweb' Bertrand
@@ -6,164 +5,176 @@
  * License: MIT
  */
 
-namespace tivars;
+#include "TIModels.h"
+#include "utils.h"
 
-abstract class TIFeatureFlags
-{
-    const has82things  = 0b00000001; // (1 << 0);
-    const hasComplex   = 0b00000010; // (1 << 1);
-    const hasFlash     = 0b00000100; // (1 << 2);
-    const hasApps      = 0b00001000; // (1 << 3);
-    const hasClock     = 0b00010000; // (1 << 4);
-    const hasColorLCD  = 0b00100000; // (1 << 5);
-    const hasEZ80CPU   = 0b01000000; // (1 << 6);
-    const hasExactMath = 0b10000000; // (1 << 7);
-}
+using namespace std;
 
-abstract class TIModels
+namespace tivars
 {
-    private static $models = [];
+
+    enum TIFeatureFlags
+    {
+        has82things  = 0b00000001, // (1 << 0);
+        hasComplex   = 0b00000010, // (1 << 1);
+        hasFlash     = 0b00000100, // (1 << 2);
+        hasApps      = 0b00001000, // (1 << 3);
+        hasClock     = 0b00010000, // (1 << 4);
+        hasColorLCD  = 0b00100000, // (1 << 5);
+        hasEZ80CPU   = 0b01000000, // (1 << 6);
+        hasExactMath = 0b10000000, // (1 << 7);
+    };
+
+    unordered_map<string, TIModel>  models;
 
     /**
      *  Make and insert the associative arrays for the model.
      *
-     * @param int|null  $orderID The orderID (for the extensions association)
-     * @param int       $flags   The flags determining available features
-     * @param string    $name    The name of the calc using this model
-     * @param string    $sig     The signature (magic bytes) used for this model
+     * @param int|null  orderID The orderID (for the extensions association)
+     * @param int       flags   The flags determining available features
+     * @param string    name    The name of the calc using this model
+     * @param string    sig     The signature (magic bytes) used for this model
      */
-    private static function insertModel($orderID, $flags, $name, $sig)
+    void TIModels::insertModel(int orderID, uint flags, const string name, const string sig)
     {
-        if (!isset(self::$models[$name]))
-            self::$models[$name]  = ['orderID' => $orderID, 'flags' => $flags, 'sig' => $sig];
+        TIModel model(orderID, name, flags, sig);
 
-        if (!isset(self::$models[$flags]))
-            self::$models[$flags] = ['orderID' => $orderID, 'name' => $name, 'sig' => $sig];
+        if (!is_in_umap_string_TIModel(models, name))
+            models[name] = model;
 
-        if (!isset(self::$models[$sig]))
-            self::$models[$sig]   = ['orderID' => $orderID, 'flags' => $flags, 'name' => $name];
+        string flags_str = to_string(flags);
+        if (!is_in_umap_string_TIModel(models, flags_str))
+            models[flags_str] = model;
+
+        if (!is_in_umap_string_TIModel(models, sig))
+            models[sig] = model;
     }
 
     // TODO : Research actual compatibility flags/"versions" from libtifiles, and maybe even TI ?
-    public static function initTIModelsArray()
+    void TIModels::initTIModelsArray()
     {
-        $flags82     = 0            | TIFeatureFlags::has82things;
-        $flags83     = $flags82     | TIFeatureFlags::hasComplex;
-        $flags82a    = $flags83     | TIFeatureFlags::hasFlash;
-        $flags83p    = $flags82a    | TIFeatureFlags::hasApps;
-        $flags84p    = $flags83p    | TIFeatureFlags::hasClock;
-        $flags84pcse = $flags84p    | TIFeatureFlags::hasColorLCD;
-        $flags84pce  = $flags84pcse | TIFeatureFlags::hasEZ80CPU;
-        $flags83pce  = $flags84pce  | TIFeatureFlags::hasExactMath;
+        uint flags82     = 0           | TIFeatureFlags::has82things;
+        uint flags83     = flags82     | TIFeatureFlags::hasComplex;
+        uint flags82a    = flags83     | TIFeatureFlags::hasFlash;
+        uint flags83p    = flags82a    | TIFeatureFlags::hasApps;
+        uint flags84p    = flags83p    | TIFeatureFlags::hasClock;
+        uint flags84pcse = flags84p    | TIFeatureFlags::hasColorLCD;
+        uint flags84pce  = flags84pcse | TIFeatureFlags::hasEZ80CPU;
+        uint flags83pce  = flags84pce  | TIFeatureFlags::hasExactMath;
 
-        self::insertModel(-1,   0,            'Unknown', '');
-        self::insertModel(0,    $flags82,     '82',      '**TI82**');
-        self::insertModel(1,    $flags83,     '83',      '**TI83**');
-        self::insertModel(2,    $flags82a,    '82A',     '**TI83F*');
-        self::insertModel(3,    $flags83p,    '82+',     '**TI83F*');
-        self::insertModel(3,    $flags83p,    '83+',     '**TI83F*');
-        self::insertModel(3,    $flags84p,    '84+',     '**TI83F*');
-        self::insertModel(4,    $flags84pcse, '84+CSE',  '**TI83F*');
-        self::insertModel(5,    $flags84pce,  '84+CE',   '**TI83F*');
-        self::insertModel(6,    $flags83pce,  '83PCE',   '**TI83F*');
+        insertModel(-1, 0,           "Unknown", "");
+        insertModel(0,  flags82,     "82",      "**TI82**");
+        insertModel(1,  flags83,     "83",      "**TI83**");
+        insertModel(2,  flags82a,    "82A",     "**TI83F*");
+        insertModel(3,  flags83p,    "82+",     "**TI83F*");
+        insertModel(3,  flags83p,    "83+",     "**TI83F*");
+        insertModel(3,  flags84p,    "84+",     "**TI83F*");
+        insertModel(4,  flags84pcse, "84+CSE",  "**TI83F*");
+        insertModel(5,  flags84pce,  "84+CE",   "**TI83F*");
+        insertModel(6,  flags83pce,  "83PCE",   "**TI83F*");
     }
 
     /**
-     * @param   int     $flags  The model flags
+     * @param   int     flags  The model flags
      * @return  string          The model name for those flags
      */
-    public static function getDefaultNameFromFlags($flags = 0)
+    string TIModels::getDefaultNameFromFlags(uint flags)
     {
-        return self::isValidFlags($flags) ? self::$models[$flags]['name'] : 'Unknown';
+        string flags_str = to_string(flags);
+        return isValidFlags(flags) ? models[flags_str].getName() : "Unknown";
     }
 
     /**
-     * @param   string  $name   The model name
+     * @param   string  name   The model name
      * @return  int             The model flags for that name
      */
-    public static function getFlagsFromName($name = '')
+    uint TIModels::getFlagsFromName(string name)
     {
-        return self::isValidName($name) ? self::$models[$name]['flags'] : 0;
+        return isValidName(name) ? models[name].getFlags() : 0;
     }
 
     /**
-     * @param   int     $flags  The model flags
+     * @param   int     flags  The model flags
      * @return  string          The signature for those flags
      */
-    public static function getSignatureFromFlags($flags = 0)
+    string TIModels::getSignatureFromFlags(uint flags)
     {
-        return self::isValidFlags($flags) ? self::$models[$flags]['sig'] : '';
+        string flags_str = to_string(flags);
+        return isValidFlags(flags) ? models[flags_str].getSig() : "";
     }
 
     /**
-     * @param   string  $name
+     * @param   string  name
      * @return  string          The signature for that name
      */
-    public static function getSignatureFromName($name = '')
+    string TIModels::getSignatureFromName(string name)
     {
-        return self::isValidName($name) ? self::$models[$name]['sig'] : '';
+        return isValidName(name) ? models[name].getSig() : "";
     }
 
     /**
-     * @param   string  $sig    The signature
+     * @param   string  sig    The signature
      * @return  string          The default calc name whose file formats use that signature
      */
-    public static function getDefaultNameFromSignature($sig = '')
+    string TIModels::getDefaultNameFromSignature(string sig)
     {
-        return self::isValidSignature($sig) ? self::$models[$sig]['name'] : '';
+        return isValidSignature(sig) ? models[sig].getName() : "";
     }
 
     /**
-     * @param   string  $sig    The signature
+     * @param   string  sig    The signature
      * @return  int             The default calc order ID whose file formats use that signature
      */
-    public static function getDefaultOrderIDFromSignature($sig = '')
+    int TIModels::getDefaultOrderIDFromSignature(string sig)
     {
-        return self::isValidSignature($sig) ? self::$models[$sig]['orderID'] : -1;
+        return isValidSignature(sig) ? models[sig].getOrderId() : -1;
     }
 
     /**
-     * @param   string  $name
+     * @param   string  name
      * @return  int             The default calc order ID whose file formats use that signature
      */
-    public static function getOrderIDFromName($name = '')
+    int TIModels::getOrderIDFromName(string name)
     {
-        return self::isValidName($name) ? self::$models[$name]['orderID'] : -1;
+        return isValidName(name) ? models[name].getOrderId() : -1;
     }
 
     /**
-     * @param   int     $flags  The model flags
+     * @param   int     flags  The model flags
      * @return  int             The default calc order ID whose file formats use that signature
      */
-    public static function getDefaulOrderIDFromFlags($flags = 0)
+    int TIModels::getDefaulOrderIDFromFlags(uint flags)
     {
-        return self::isValidFlags($flags) ? self::$models[$flags]['orderID'] : -1;
+        string flags_str = to_string(flags);
+        return isValidFlags(flags) ? models[flags_str].getOrderId() : -1;
     }
 
     /**
-     * @param   string  $sig    The signature
+     * @param   string  sig    The signature
      * @return  string          The minimum compatibility flags for that signaure
      */
-    public static function getMinFlagsFromSignature($sig = '')
+    uint TIModels::getMinFlagsFromSignature(string sig)
     {
-        return self::isValidSignature($sig) ? self::$models[$sig]['flags'] : 0;
+        return isValidSignature(sig) ? models[sig].getFlags() : 0;
     }
 
 
-    public static function isValidFlags($flags = 0)
+    bool TIModels::isValidFlags(uint flags)
     {
-        return ($flags !== 0 && isset(self::$models[$flags]));
+        string flags_str = to_string(flags);
+        return (flags != 0 && is_in_umap_string_TIModel(models, flags_str));
     }
 
-    public static function isValidName($name = '')
+    bool TIModels::isValidName(string name)
     {
-        return ($name !== '' && isset(self::$models[$name]));
+        return (name != "" && is_in_umap_string_TIModel(models, name));
     }
 
-    public static function isValidSignature($sig = '')
+    bool TIModels::isValidSignature(string sig)
     {
-        return ($sig !== '' && isset(self::$models[$sig]));
+        return (sig != "" && is_in_umap_string_TIModel(models, sig));
     }
-}
 
-TIModels::initTIModelsArray();
+};
+
+// TIModels::initTIModelsArray();

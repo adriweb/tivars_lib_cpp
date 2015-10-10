@@ -11,10 +11,15 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include "TIModel.h"
+#include "TIVarType.h"
 
 bool is_in_vector_uint(const std::vector<unsigned int>& v, unsigned int element);
 bool is_in_vector_string(const std::vector<std::string>& v, std::string element);
 bool is_in_umap_string_uint(const std::unordered_map<std::string, unsigned int>& m, const std::string element);
+
+bool is_in_umap_string_TIModel(const std::unordered_map<std::string, tivars::TIModel>& m, const std::string element);
+bool is_in_umap_string_TIVarType(const std::unordered_map<std::string, tivars::TIVarType>& m, const std::string element);
 
 bool has_option(const std::unordered_map<std::string, unsigned int>& m, const std::string element);
 
@@ -35,5 +40,7 @@ std::string str_repeat(const std::string& str, unsigned int times);
 void ParseCSV(const std::string& csvSource, std::vector<std::vector<std::string>>& lines);
 
 bool is_numeric(const std::string& str);
+
+std::string stripchars(std::string str, const std::string& chars);
 
 #endif

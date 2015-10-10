@@ -6,10 +6,7 @@
  */
 
 #include "utils.h"
-#include <vector>
-#include <string>
 #include <sstream>
-#include <unordered_map>
 #include <iomanip>
 #include <regex>
 
@@ -30,6 +27,16 @@ bool is_in_umap_string_uint(const unordered_map<string, unsigned int>& m, const 
     return m.find(element) != m.end();
 }
 
+bool is_in_umap_string_TIModel(const std::unordered_map<std::string, tivars::TIModel>& m, const std::string element)
+{
+    return m.find(element) != m.end();
+}
+
+bool is_in_umap_string_TIVarType(const std::unordered_map<std::string, tivars::TIVarType>& m, const std::string element)
+{
+    return m.find(element) != m.end();
+}
+
 bool has_option(const unordered_map<string, unsigned int>& m, const string element)
 {
     return m.find(element) != m.end();
@@ -43,7 +50,7 @@ unsigned int hexdec(const string& str)
 std::string dechex(unsigned int i)
 {
     std::stringstream stream;
-    stream << "0x" << std::setfill('0') << std::setw((int) (sizeof(unsigned int)*2)) << std::hex << i;
+    stream << "0x" << std::setfill('0') << std::setw((int) (sizeof(unsigned int) * 2)) << std::hex << i;
     return stream.str();
 }
 
@@ -52,7 +59,7 @@ vector<string> explode(const string& str, char delim)
     vector<string> result;
     istringstream iss(str);
 
-    for (string token; getline(iss, token, delim); )
+    for (string token; getline(iss, token, delim);)
     {
         result.push_back(move(token));
     }
@@ -84,7 +91,7 @@ string str_repeat(const string& str, unsigned int times)
 {
     string result;
     result.reserve(times * str.length()); // avoid repeated reallocation
-    for (unsigned int i = 0; i<times; i++)
+    for (unsigned int i = 0; i < times; i++)
     {
         result += str;
     }
@@ -161,4 +168,11 @@ void ParseCSV(const string& csvSource, vector<vector<string>>& lines)
 bool is_numeric(const std::string& str)
 {
     return std::regex_match(str, std::regex("[(-|+)|][0-9]*\\.?[0-9]+"));
+}
+
+// From http://rosettacode.org/wiki/Strip_a_set_of_characters_from_a_string#C.2B.2B
+std::string stripchars(std::string str, const std::string& chars)
+{
+    str.erase(std::remove_if(str.begin(), str.end(), [&](char c){ return chars.find(c) != std::string::npos; }), str.end());
+    return str;
 }

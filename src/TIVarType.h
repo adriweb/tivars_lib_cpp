@@ -20,8 +20,14 @@ namespace tivars
 
     public:
 
-        TIVarType();
-        ~TIVarType();
+        TIVarType()
+        {}
+
+        TIVarType(int id, std::string name, std::vector<std::string> exts, ITIVarTypeHandler* typeHandler) : id(id), name(name), exts(exts), typeHandler(typeHandler)
+        {}
+
+        ~TIVarType()
+        {}
 
         /* Getters */
         int getId() { return this->id; }
@@ -29,29 +35,11 @@ namespace tivars
         std::vector<std::string> getExts() { return this->exts; }
         ITIVarTypeHandler* getTypeHandler() { return this->typeHandler; }
 
+        static ITIVarTypeHandler* determineTypeHandler(int typeID);
 
         /*** "Constructors" ***/
-        /**
-         * @param   int     flags  The version compatibliity flags
-         * @return  TIModel
-         * @throws  \Exception
-         */
-        static TIModel createFromFlags(uint flags);
-
-        /**
-         * @param   string  name   The version name
-         * @return  TIModel
-         * @throws  \Exception
-         */
-        static TIModel createFromName(std::string name);
-
-        /**
-         * @param   string  sig    The signature (magic bytes)
-         * @return  TIModel
-         * @throws  \Exception
-         */
-        static TIModel createFromSignature(std::string sig);
-
+        static TIVarType createFromID(uint id);
+        static TIVarType createFromName(std::string name);
 
     private:
         int id = -1;

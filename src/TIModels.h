@@ -22,64 +22,64 @@ namespace tivars
 
         static void initTIModelsArray();
 
-        std::string getDefaultNameFromFlags(uint flags);
+        static std::string getDefaultNameFromFlags(uint flags);
 
         /**
          * @param   std::string  name   The model name
          * @return  int             The model flags for that name
          */
-        std::string getFlagsFromName(std::string name);
+        static uint getFlagsFromName(std::string name);
 
         /**
          * @param   int     flags  The model flags
          * @return  std::string          The signature for those flags
          */
-        std::string getSignatureFromFlags(uint flags);
+        static std::string getSignatureFromFlags(uint flags);
 
         /**
          * @param   std::string  name
          * @return  std::string          The signature for that name
          */
-        std::string getSignatureFromName(std::string name);
+        static std::string getSignatureFromName(std::string name);
         /**
          * @param   std::string  sig    The signature
          * @return  std::string          The default calc name whose file formats use that signature
          */
-        std::string getDefaultNameFromSignature(std::string sig);
+        static std::string getDefaultNameFromSignature(std::string sig);
 
         /**
          * @param   std::string  sig    The signature
          * @return  int             The default calc order ID whose file formats use that signature
          */
-        int getDefaultOrderIDFromSignature(std::string sig);
+        static int getDefaultOrderIDFromSignature(std::string sig);
 
         /**
          * @param   std::string  name
          * @return  int             The default calc order ID whose file formats use that signature
          */
-        int getOrderIDFromName(std::string name);
+        static int getOrderIDFromName(std::string name);
 
         /**
          * @param   int     flags  The model flags
          * @return  int             The default calc order ID whose file formats use that signature
          */
-        int getDefaulOrderIDFromFlags(uint flags);
+        static int getDefaulOrderIDFromFlags(uint flags);
 
         /**
          * @param   std::string  sig    The signature
          * @return  std::string          The minimum compatibility flags for that signaure
          */
-        uint getMinFlagsFromSignature(std::string sig);
+        static uint getMinFlagsFromSignature(std::string sig);
 
 
-        bool isValidFlags(uint flags);
+        static bool isValidFlags(uint flags);
 
-        bool isValidName(std::string name);
+        static bool isValidName(std::string name);
 
-        bool isValidSignature(std::string sig);
+        static bool isValidSignature(std::string sig);
 
     private:
-        void insertModel(int orderID, uint flags, const std::string name, const std::string sig);
+        static void insertModel(int orderID, uint flags, const std::string name, const std::string sig);
 
     };
 

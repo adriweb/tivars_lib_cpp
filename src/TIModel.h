@@ -20,6 +20,9 @@ namespace tivars
 
     public:
 
+        TIModel()
+        {}
+
         TIModel(int orderId, std::string name, uint flags, std::string sig) : orderID(orderId), name(name), flags(flags), sig(sig)
         {}
 
