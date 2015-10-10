@@ -15,6 +15,9 @@ namespace tivars
     class BinaryFile
     {
     public:
+        BinaryFile()
+        {}
+
         BinaryFile(const std::string filePath);
 
         ~BinaryFile()

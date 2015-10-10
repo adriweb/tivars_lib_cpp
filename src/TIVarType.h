@@ -30,10 +30,10 @@ namespace tivars
         {}
 
         /* Getters */
-        int getId() { return this->id; }
-        std::string getName() { return this->name; }
-        std::vector<std::string> getExts() { return this->exts; }
-        ITIVarTypeHandler* getTypeHandler() { return this->typeHandler; }
+        const int& getId() const { return this->id; }
+        const std::string& getName() const { return this->name; }
+        const std::vector<std::string>& getExts() const { return this->exts; }
+        const ITIVarTypeHandler* getTypeHandler() const { return this->typeHandler; }
 
         static ITIVarTypeHandler* determineTypeHandler(int typeID);
 

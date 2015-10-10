@@ -13,6 +13,7 @@
 #include "src/TIVarTypes.h"
 #include "src/TIModels.h"
 #include "src/BinaryFile.h"
+#include "src/TIVarFile.h"
 
 using namespace std;
 using namespace tivars;
@@ -25,12 +26,13 @@ int main(int argc, char** argv)
     TIVarTypes::initTIVarTypesArray();
     TH_0x05::initTokens();
 
-    BinaryFile bf("/Users/adriweb/Documents/tivars_lib_cpp/testData/Complex.8xc");
-    data_t someData = bf.get_raw_bytes(10);
-
-    string teststrbytes = bf.get_string_bytes(20);
 
     /* Tests */
+
+    BinaryFile bf("/Users/adriweb/Documents/tivars_lib_cpp/testData/Complex.8xc");
+    data_t someData = bf.get_raw_bytes(11);
+    string teststrbytes = bf.get_string_bytes(42);
+
 
     assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
 
@@ -39,22 +41,29 @@ int main(int argc, char** argv)
     cout << "Indented code:" << endl << TH_0x05::reindentCodeString(test) << endl;
 
 
+    string strFromData = TH_0x05::makeStringFromData({7, 0, 187, 106, 95, 65, 66, 67, 68}, {});
+    cout << "string from data: " << endl << strFromData << endl;
+    cout << endl;
 
+
+    cout << "data from string: " << endl;
     data_t testData = TH_0x05::makeDataFromString("Asm(prgmABCD", {});
     for (int i = 0; i < testData.size(); ++i)
     {
-        cout << "i=" << i << " : " << (uint)testData[i] << endl;
+        cout << (uint)testData[i] << endl;
     }
     cout << endl;
-
 
 
     cout << "Raw data for Real == 45.2:" << endl;
     data_t testData2 = TH_0x00::makeDataFromString("45.2", {});
     for (int i = 0; i < testData2.size(); ++i)
     {
-        cout << "i=" << i << " : " << (uint)testData2[i] << endl;
+        cout << (uint)testData2[i] << endl;
     }
+
+    auto goodTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("ExactComplexFrac"), "Bla", TIModel::createFromName("83PCE"));
+    auto badTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("ExactComplexFrac"), "Bla", TIModel::createFromName("84+"));
 
 
     return 0;

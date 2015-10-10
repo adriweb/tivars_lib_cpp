@@ -5,8 +5,6 @@
  * License: MIT
  */
 
-#pragma once
-
 #include "ITIVarTypeHandler.h"
 
 namespace tivars
@@ -18,12 +16,12 @@ namespace tivars
 
         static data_t makeDataFromString(const std::string& str, const options_t options)
         {
-            std::cerr << "This type is not supported / implemented (yet?)";
+            throw std::runtime_error("This type is not supported / implemented (yet?)");
         }
 
         static std::string makeStringFromData(const data_t& data, const options_t options)
         {
-            std::cerr << "This type is not supported / implemented (yet?)";
+            throw std::runtime_error("This type is not supported / implemented (yet?)");
         }
 
     };

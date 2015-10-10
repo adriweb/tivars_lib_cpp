@@ -27,14 +27,14 @@ namespace tivars
                 this->file = fopen(filePath.c_str(), "rb+");
                 if (!this->file)
                 {
-                    throw "Can't open the input file";
+                    throw runtime_error("Can't open the input file");
                 }
                 this->filePath = filePath;
                 fseek(this->file, 0L, SEEK_END);
                 this->fileSize = (size_t) ftell(this->file);
                 fseek(this->file, 0L, SEEK_SET);
             } else {
-                throw "No such file";
+                throw runtime_error("No such file");
             }
         } else {
             throw new invalid_argument("No file path given");
@@ -62,7 +62,7 @@ namespace tivars
                 throw new invalid_argument("Invalid number of bytes to read");
             }
         } else {
-            throw "No file loaded";
+            throw runtime_error("No file loaded");
         }
     }
 
@@ -86,7 +86,7 @@ namespace tivars
                 throw invalid_argument("Invalid number of bytes to read");
             }
         } else {
-            throw "No file loaded";
+            throw runtime_error("No file loaded");
         }
     }
 
@@ -105,7 +105,7 @@ namespace tivars
         {
             return fileSize;
         } else {
-            throw "No file loaded";
+            throw runtime_error("No file loaded");
         }
     }
 }

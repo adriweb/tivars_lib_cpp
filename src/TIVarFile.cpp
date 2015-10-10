@@ -1,4 +1,3 @@
-
 /*
  * Part of tivars_lib_cpp
  * (C) 2015 Adrien 'Adriweb' Bertrand
@@ -6,284 +5,264 @@
  * License: MIT
  */
 
-namespace tivars;
+#include <regex>
+#include "TIVarFile.h"
+#include "utils.h"
+#include "TIModels.h"
 
-date_default_timezone_set('UTC');
+using namespace std;
 
-include_once "BinaryFile.php";
-
-class TIVarFile extends BinaryFile
+namespace tivars
 {
-    private $header = [
-        'signature'     => null,
-        'sig_extra'     => null,
-        'comment'       => null,
-        'entries_len'   => null
-    ];
-    private $varEntry = [
-        'constBytes'    => null,
-        'data_length'   => null,
-        'typeID'        => null,
-        'varname'       => null,
-        'version'       => null,
-        'archivedFlag'  => null,
-        'data_length2'  => null,
-        'data'          => null
-    ];
-    /** @var TIVarType */
-    private $type = null;
-    /** @var TIModel */
-    private $calcModel = null;
-    private $computedChecksum = null;
-    private $inFileChecksum = null;
-    private $isFromFile = null;
-
-    // TODO: Handle multiple varEntries
-
 
     /*** Constructors ***/
 
     /**
      * Internal constructor, called from loadFromFile and createNew.
-     * @param   string  $filePath
+     * @param   string  filePath
      * @throws  \Exception
      */
-    protected function __construct($filePath = '')
+    TIVarFile::TIVarFile(const string filePath) : BinaryFile(filePath)
     {
-        if ($filePath !== '')
+        if (filePath != "")
         {
-            $this->isFromFile = true;
-            parent::__construct($filePath);
-            if ($this->fileSize < 76) // bare minimum for header + a var entry
+            this->isFromFile = true;
+            if (this->fileSize < 76) // bare minimum for header + a var entry
             {
-                throw new \Exception("This file is not a valid TI-[e]z80 variable file");
+                throw runtime_error("This file is not a valid TI-[e]z80 variable file");
             }
-            $this->makeHeaderFromFile();
-            $this->makeVarEntryFromFile();
-            $this->computedChecksum = $this->computeChecksumFromFileData();
-            $this->inFileChecksum = $this->getChecksumValueFromFile();
-            $this->type = TIVarType::createFromID($this->varEntry['typeID']);
+            this->makeHeaderFromFile();
+            this->makeVarEntryFromFile();
+            this->computedChecksum = this->computeChecksumFromFileData();
+            this->inFileChecksum = this->getChecksumValueFromFile();
+            this->type = TIVarType::createFromID(this->varEntry.typeID);
         } else {
-            $this->isFromFile = false;
+            this->isFromFile = false;
         }
     }
 
-    public static function loadFromFile($filePath = '')
+    TIVarFile TIVarFile::loadFromFile(const string filePath)
     {
-        if ($filePath !== '')
+        if (filePath != "")
         {
-            return new self($filePath);
+            TIVarFile varFile(filePath);
+            return varFile;
         } else {
-            throw new \Exception("No file path given");
+            throw runtime_error("No file path given");
         }
     }
 
-    public static function createNew(TIVarType $type = null, $name = '', TIModel $version = null)
+    TIVarFile TIVarFile::createNew(const TIVarType& type, const string name, const TIModel& version)
     {
-        if ($type !== null)
+        string newName(name);
+        if (newName == "")
         {
-            if ($name === '')
-            {
-                $name = 'FILE' . ((count($type->getExts()) > 0) ? $type->getExts()[0] : '');
-            }
-            $newName = preg_replace('/[^a-zA-Z0-9]/', '', $name);
-            if ($newName !== $name || strlen($newName) > 8 || $newName === '' || is_numeric($newName[0]))
-            {
-                throw new \Exception("Invalid name given. 8 chars (A-Z, 0-9) max, starting by a letter");
-            }
-            $name = strtoupper(substr($name, 0, 8));
-
-            $instance = new self();
-            $instance->type = $type;
-            $instance->calcModel = ($version !== null) ? $version : TIModel::createFromName('84+'); // default
-
-            if (!$instance->calcModel->supportsType($instance->type))
-            {
-                throw new \Exception('This calculator model (' . $instance->calcModel->getName() . ') does not support the type ' . $instance->type->getName());
-            }
-
-            $instance->header = [
-                'signature'     =>  $instance->calcModel->getSig(),
-                'sig_extra'     =>  [ 0x1A, 0x0A, 0x00 ],
-                'comment'       =>  str_pad("Created by tivars_lib_cpp on " . date("M j, Y"), 42, "\0"),
-                'entries_len'   =>  0 // will have to be overwritten later
-            ];
-            $calcFlags = $instance->calcModel->getFlags();
-            $instance->varEntry = [
-                'constBytes'    =>  [ 0x0D, 0x00 ],
-                'data_length'   =>  0, // will have to be overwritten later
-                'typeID'        =>  $type->getId(),
-                'varname'       =>  str_pad($name, 8, "\0"),
-                'version'       =>  ($calcFlags >= TIFeatureFlags::hasFlash) ? 0 : null,
-                'archivedFlag'  =>  ($calcFlags >= TIFeatureFlags::hasFlash) ? 0 : null, // TODO: check when that needs to be 1.
-                'data_length2'  =>  0, // will have to be overwritten later
-                'data'          =>  [] // will have to be overwritten later
-            ];
-            return $instance;
-        } else {
-            throw new \Exception("No file path given");
+            newName = "FILE" + ((type.getExts().size() > 0) ? type.getExts()[0] : "");
         }
+        newName = regex_replace(newName, regex("[^a-zA-Z0-9]"), "");
+        if (newName != name || newName.length() > 8 || newName == "" || is_numeric(newName.substr(0, 1)))
+        {
+            throw invalid_argument("Invalid name given. 8 chars (A-Z, 0-9) max, starting by a letter");
+        }
+
+        for (auto & c: newName) c = (char) toupper(c);
+
+        TIVarFile varFile;
+        varFile.type = type;
+        varFile.calcModel = version;
+
+        if (!varFile.calcModel.supportsType(varFile.type))
+        {
+            throw runtime_error("This calculator model (" + varFile.calcModel.getName() + ") does not support the type " + varFile.type.getName());
+        }
+
+        string signature = varFile.calcModel.getSig();
+        std::copy(signature.begin(), signature.end(), varFile.header.signature);
+        uchar sig_extra[3] = {0x1A, 0x0A, 0x00};
+        std::copy(sig_extra, sig_extra + 3, varFile.header.sig_extra);
+        string comment = str_pad("Created by tivars_lib_cpp", 42, "\0");
+        std::copy(comment.begin(), comment.end(), varFile.header.comment);
+        varFile.header.entries_len = 0; // will have to be overwritten later
+
+        uint calcFlags = varFile.calcModel.getFlags();
+
+        uchar constBytes[2] = {0x0D, 0x00};
+        std::copy(constBytes, constBytes + 2, varFile.varEntry.constBytes);
+        varFile.varEntry.data_length  = 0; // will have to be overwritten later
+        varFile.varEntry.typeID       = (uchar) type.getId();
+        string varname = str_pad(name, 8, "\0");
+        std::copy(varname.begin(), varname.end(), varFile.varEntry.varname);
+        varFile.varEntry.version      = (calcFlags >= TIFeatureFlags::hasFlash) ? (uchar)0 : (uchar)-1;
+        varFile.varEntry.archivedFlag = (calcFlags >= TIFeatureFlags::hasFlash) ? (uchar)0 : (uchar)-1; // TODO: check when that needs to be 1.
+        varFile.varEntry.data_length2 = 0; // will have to be overwritten later
+
+        return varFile;
     }
 
+    TIVarFile TIVarFile::createNew(const TIVarType& type, const string name)
+    {
+        return createNew(type, name, TIModel::createFromName("84+"));
+    }
+
+    TIVarFile TIVarFile::createNew(const TIVarType& type)
+    {
+        return createNew(type, "");
+    }
 
     /*** Makers ***/
 
-    private function makeHeaderFromFile()
+    void TIVarFile::makeHeaderFromFile()
     {
-        rewind($this->file);
-        $this->header = [];
-        $this->header['signature']   = $this->get_string_bytes(8);
-        $this->header['sig_extra']   = $this->get_raw_bytes(3);
-        $this->header['comment']     = $this->get_string_bytes(42);
-        $this->header['entries_len'] = $this->get_raw_bytes(1)[0] + ($this->get_raw_bytes(1)[0] << 8);
-        $this->calcModel = TIModel::createFromSignature($this->header['signature']);
+        rewind(this->file);
+
+        string signature = this->get_string_bytes(8);
+        std::copy(signature.begin(), signature.end(), this->header.signature);
+        auto sig_extra = this->get_raw_bytes(3);
+        std::copy(sig_extra.begin(), sig_extra.end(), this->header.sig_extra);
+        string comment = str_pad("Created by tivars_lib_cpp", 42, "\0");
+        std::copy(comment.begin(), comment.end(), this->header.comment);
+        this->header.entries_len = this->get_raw_bytes(1)[0] + (this->get_raw_bytes(1)[0] << 8);
+        this->calcModel = TIModel::createFromSignature(signature);
     }
 
-    private function makeVarEntryFromFile()
+    void TIVarFile::makeVarEntryFromFile()
     {
-        $calcFlags = $this->calcModel->getFlags();
-        $dataSectionOffset = (8+3+42+2); // after header
-        fseek($this->file, $dataSectionOffset);
-        $this->varEntry = [];
-        $this->varEntry['constBytes']   = $this->get_raw_bytes(2);
-        $this->varEntry['data_length']  = $this->get_raw_bytes(1)[0] + ($this->get_raw_bytes(1)[0] << 8);
-        $this->varEntry['typeID']       = $this->get_raw_bytes(1)[0];
-        $this->varEntry['varname']      = $this->get_string_bytes(8);
-        $this->varEntry['version']      = ($calcFlags >= TIFeatureFlags::hasFlash) ? $this->get_raw_bytes(1)[0] : null;
-        $this->varEntry['archivedFlag'] = ($calcFlags >= TIFeatureFlags::hasFlash) ? $this->get_raw_bytes(1)[0] : null;
-        $this->varEntry['data_length2'] = $this->get_raw_bytes(1)[0] + ($this->get_raw_bytes(1)[0] << 8);
-        $this->varEntry['data']         = $this->get_raw_bytes($this->varEntry['data_length']);
+        uint calcFlags = this->calcModel.getFlags();
+        long dataSectionOffset = (8+3+42+2); // after header
+        fseek(this->file, dataSectionOffset, SEEK_SET);
+
+        auto constBytes             = this->get_raw_bytes(2);
+        std::copy(constBytes.begin(), constBytes.end(), this->varEntry.constBytes);
+        this->varEntry.data_length  = this->get_raw_bytes(1)[0] + (this->get_raw_bytes(1)[0] << 8);
+        this->varEntry.typeID       = this->get_raw_bytes(1)[0];
+        string varname              = this->get_string_bytes(8);
+        std::copy(varname.begin(), varname.end(), this->varEntry.varname);
+        this->varEntry.version      = (calcFlags >= TIFeatureFlags::hasFlash) ? this->get_raw_bytes(1)[0] : (uchar)-1;
+        this->varEntry.archivedFlag = (calcFlags >= TIFeatureFlags::hasFlash) ? this->get_raw_bytes(1)[0] : (uchar)-1;
+        this->varEntry.data_length2 = this->get_raw_bytes(1)[0] + (this->get_raw_bytes(1)[0] << 8);
+        this->varEntry.data         = this->get_raw_bytes(this->varEntry.data_length);
     }
-
-
-    /*** Getters ***/
-
-    public function getHeader()
-    {
-        return $this->header;
-    }
-
-    public function getVarEntry()
-    {
-        return $this->varEntry;
-    }
-
-    public function getType()
-    {
-        return $this->type;
-    }
-
 
     /*** Utils. ***/
 
-    public function isValid()
+    bool TIVarFile::isValid()
     {
-        return ($this->isFromFile) ? ($this->computedChecksum === $this->inFileChecksum)
-                                   : ($this->computedChecksum !== null);
+        return (this->isFromFile) ? (this->computedChecksum == this->inFileChecksum)
+                                  : (this->computedChecksum != 0);
     }
 
 
     /*** Private actions ***/
 
-    public function computeChecksumFromFileData()
+    uint16_t TIVarFile::computeChecksumFromFileData()
     {
-        if ($this->isFromFile)
+        if (this->isFromFile)
         {
-            $dataSectionOffset = (8 + 3 + 42 + 2); // after header
-            fseek($this->file, $dataSectionOffset);
-            $sum = 0;
-            for ($i = $dataSectionOffset; $i < $this->fileSize - 2; $i++)
+            long dataSectionOffset = (8 + 3 + 42 + 2); // after header
+            fseek(this->file, dataSectionOffset, SEEK_SET);
+            uint16_t sum = 0;
+            for (long i = dataSectionOffset; i < this->fileSize - 2; i++)
             {
-                $sum += $this->get_raw_bytes(1)[0];
+                sum += this->get_raw_bytes(1)[0];
             }
-            return $sum & 0xFFFF;
+            return (uint16_t) (sum & 0xFFFF);
         } else {
-            echo "[Error] No file loaded";
-            return -1;
+            throw runtime_error("[Error] No file loaded");
         }
     }
 
-    private function computeChecksumFromInstanceData()
+    // TODO
+    uint16_t TIVarFile::computeChecksumFromInstanceData()
     {
-        $sum = 0;
-        $sum += array_sum($this->varEntry['constBytes']);
-        $sum += 2 * (($this->varEntry['data_length'] & 0xFF) + (($this->varEntry['data_length'] >> 8) & 0xFF));
-        $sum += $this->varEntry['typeID'] + (int)$this->varEntry['version'] + (int)$this->varEntry['archivedFlag'];
-        $sum += array_sum(array_map('ord', str_split($this->varEntry['varname'])));
-        $sum += array_sum($this->varEntry['data']);
-        return $sum & 0xFFFF;
+        uint16_t sum = 0;
+        /*
+        sum += array_sum(this->varEntry.constBytes);
+        sum += 2 * ((this->varEntry.data_length & 0xFF) + ((this->varEntry.data_length >> 8) & 0xFF));
+        sum += this->varEntry.typeID + (int)this->varEntry.version + (int)this->varEntry.archivedFlag;
+        sum += array_sum(array_map("ord", str_split(this->varEntry.varname)));
+        sum += array_sum(this->varEntry.data);
+        */
+        return (uint16_t) (sum & 0xFFFF);
     }
 
-    private function getChecksumValueFromFile()
+    uint16_t TIVarFile::getChecksumValueFromFile()
     {
-        if ($this->isFromFile)
+        if (this->isFromFile)
         {
-            fseek($this->file, $this->fileSize - 2);
-            return $this->get_raw_bytes(1)[0] + ($this->get_raw_bytes(1)[0] << 8);
+            fseek(this->file, this->fileSize - 2, SEEK_SET);
+            return this->get_raw_bytes(1)[0] + (this->get_raw_bytes(1)[0] << 8);
         } else {
-            echo "[Error] No file loaded";
-            return -1;
+            throw runtime_error("[Error] No file loaded");
         }
     }
 
     /**
      *  Updates the length fields in both the header and the var entry, as well as the checksum
      */
-    private function refreshMetadataFields()
+    void TIVarFile::refreshMetadataFields()
     {
-        $this->varEntry['data_length'] = $this->varEntry['data_length2'] = count($this->varEntry['data']);
-        $this->header['entries_len'] = $this->varEntry['data_length'] + 17; // 17 == sum of the individual sizes.
-        $this->computedChecksum = $this->computeChecksumFromInstanceData();
+        this->varEntry.data_length = this->varEntry.data_length2 = (uint16_t) this->varEntry.data.size();
+        this->header.entries_len = (uint16_t) (this->varEntry.data_length + 17); // 17 == sum of the individual sizes.
+        this->computedChecksum = this->computeChecksumFromInstanceData();
     }
 
 
     /*** Public actions **/
 
     /**
-    * @param    array   $data   The array of bytes
+    * @param    array   data   The array of bytes
     */
-    public function setContentFromData(array $data = [])
+    void TIVarFile::setContentFromData(const data_t data)
     {
-        if ($data !== [])
+        if (data.size() > 0)
         {
-            $this->varEntry['data'] = $data;
-            $this->refreshMetadataFields();
+            this->varEntry.data = data;
+            this->refreshMetadataFields();
         } else {
-            echo "[Error] No data given";
+            throw runtime_error("[Error] No data given");
         }
     }
 
-    public function setContentFromString($str = '', $options = [])
+    // TODO
+    void TIVarFile::setContentFromString(const string str, const options_t options)
     {
-        $handler = $this->type->getTypeHandler();
-        $this->varEntry['data'] = $handler::makeDataFromString($str, $options);
-        $this->refreshMetadataFields();
+        /*
+        handler = this->type.getTypeHandler();
+        this->varEntry.data = handler::makeDataFromString(str, options);
+        this->refreshMetadataFields();
+        */
     }
 
-    public function getRawContent()
+    const data_t& TIVarFile::getRawContent()
     {
-        return $this->varEntry['data'];
+        return this->varEntry.data;
     }
 
-    public function getReadableContent($options = [])
+    // TODO
+    const string& TIVarFile::getReadableContent(const options_t options)
     {
-        $handler = $this->type->getTypeHandler();
-        return $handler::makeStringFromData($this->varEntry['data'], $options);
+        /*
+        handler = this->type->getTypeHandler();
+        return handler::makeStringFromData(this->varEntry.data, options);
+        */
     }
 
-    public function fixChecksumInFile()
+    // TODO
+    void TIVarFile::fixChecksumInFile()
     {
-        if ($this->isFromFile)
+        /*
+        if (this->isFromFile)
         {
-            if (!$this->isValid())
+            if (!this->isValid())
             {
-                fseek($this->file, $this->fileSize - 2);
-                fwrite($this->file, chr($this->computedChecksum & 0xFF) . chr(($this->computedChecksum >> 8) & 0xFF));
-                $this->inFileChecksum = $this->getChecksumValueFromFile();
+                fseek(this->file, this->fileSize - 2, SEEK_SET);
+                fwrite(this->file, chr(this->computedChecksum & 0xFF) + chr((this->computedChecksum >> 8) & 0xFF));
+                this->inFileChecksum = this->getChecksumValueFromFile();
             }
         } else {
-            echo "[Error] No file loaded";
+            throw runtime_error("[Error] No file loaded");
         }
+         */
     }
 
     /**
@@ -291,71 +270,75 @@ class TIVarFile extends BinaryFile
      * If the variable was already loaded from a file, it will be used and overwritten,
      * except if a specific directory and name are provided.
      *
-     * @param   string  $directory  Directory to save the file to
-     * @param   string  $name       Name of the file, without the extension
+     * @param   string  directory  Directory to save the file to
+     * @param   string  name       Name of the file, without the extension
      */
-    public function saveVarToFile($directory = '', $name = '')
+    // TODO
+    void TIVarFile::saveVarToFile(const string directory, const string name)
     {
-        if ($this->isFromFile && $directory === '')
+        /*
+        if (this->isFromFile && directory == "")
         {
-            $this->close();
-            $handle = fopen($this->filePath, 'wb');
+            this->close();
+            handle = fopen(this->filePath, "wb");
         } else {
-            if ($name === '')
+            if (name == "")
             {
-                $name = $this->varEntry['varname'];
+                name = this->varEntry.varname;
             }
             // TODO: make user be able to precise for which model the extension will be fitted
-            $fileName = str_replace("\0", '', $name) . '.' . $this->getType()->getExts()[0];
-            if ($directory === '')
+            fileName = str_replace("\0", "", name) + "." + this->getType()->getExts()[0];
+            if (directory == "")
             {
-                $directory = './';
+                directory = "./";
             }
-            $directory = rtrim($directory, '/');
-            $fullPath = realpath($directory) . '/' . $fileName;
-            $handle = fopen($fullPath, 'wb');
+            directory = rtrim(directory, "/");
+            fullPath = realpath(directory) + "/" + fileName;
+            handle = fopen(fullPath, "wb");
         }
 
-        $this->refreshMetadataFields();
+        this->refreshMetadataFields();
 
-        $bin_data = '';
-        foreach ([$this->header, $this->varEntry] as $whichData)
+        bin_data = "";
+        foreach ([this->header, this->varEntry] as whichData)
         {
-            foreach ($whichData as $key => $data)
+            foreach (whichData as key => data)
             {
                 // fields not used for this calc version, for instance.
-                if ($data === null)
+                // TODO : check with (uchar)-1
+                if (data == NULL)
                 {
                     continue;
                 }
-                switch (gettype($data))
+                switch (gettype(data))
                 {
-                    case 'integer':
+                    case "integer":
                         // The length fields are the only ones on 2 bytes.
-                        if ($key === "entries_len" || $key === "data_length" || $key === "data_length2")
+                        if (key == "entries_len" || key == "data_length" || key == "data_length2")
                         {
-                            $bin_data .= chr($data & 0xFF) . chr(($data >> 8) & 0xFF);
+                            bin_data .= chr(data & 0xFF) + chr((data >> 8) & 0xFF);
                         } else {
-                            $bin_data .= chr($data & 0xFF);
+                            bin_data .= chr(data & 0xFF);
                         }
                         break;
-                    case 'string':
-                        $bin_data .= $data;
+                    case "string":
+                        bin_data .= data;
                         break;
-                    case 'array':
-                        foreach ($data as $subData)
+                    case "array":
+                        foreach (data as subData)
                         {
-                            $bin_data .= chr($subData & 0xFF);
+                            bin_data .= chr(subData & 0xFF);
                         }
                         break;
                 }
             }
         }
 
-        fwrite($handle, $bin_data);
-        fwrite($handle, chr($this->computedChecksum & 0xFF) . chr(($this->computedChecksum >> 8) & 0xFF));
+        fwrite(handle, bin_data);
+        fwrite(handle, chr(this->computedChecksum & 0xFF) + chr((this->computedChecksum >> 8) & 0xFF));
 
-        fclose($handle);
+        fclose(handle);
+         */
     }
 
 }

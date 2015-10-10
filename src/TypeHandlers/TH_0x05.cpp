@@ -189,7 +189,7 @@ namespace tivars
             for (const auto& tokenInfo : lines)
             {
                 uint bytes;
-                if (tokenInfo[6] == "2")
+                if (tokenInfo[6] == "2") // number of bytes for the token
                 {
                     if (!is_in_vector_uchar(firstByteOfTwoByteTokens, hexdec(tokenInfo[7])))
                     {

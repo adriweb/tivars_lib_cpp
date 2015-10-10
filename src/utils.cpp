@@ -192,3 +192,32 @@ bool file_exists(const std::string filePath)
 {
     return access(filePath.c_str(), F_OK) != -1;
 }
+
+string str_pad(const string& str, unsigned long pad_length, string pad_string)
+{
+    unsigned long i, j, x;
+    unsigned long str_size = str.size();
+    unsigned long pad_size = pad_string.size();
+
+    if (pad_length <= str_size || pad_size < 1)
+    {
+        return str;
+    }
+
+    string o;
+    o.reserve(pad_length);
+
+    for (i = 0, x = str_size; i < x; i++)
+    {
+        o.push_back(str[i]);
+    }
+    for (i = str_size; i < pad_length;)
+    {
+        for (j = 0; j < pad_size && i < pad_length; j++, i++)
+        {
+            o.push_back(pad_string[j]);
+        }
+    }
+
+    return o;
+}
