@@ -11,5 +11,5 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(SOURCE_FILES src/utils.cpp src/TIModel.cpp src/TIModels.cpp src/TIVarType.cpp src/TIVarTypes.cpp src/TypeHandlers/TH_0x00.cpp src/TypeHandlers/TH_0x05.cpp tests.cpp)
+set(SOURCE_FILES src/utils.cpp src/BinaryFile.cpp src/TIModel.cpp src/TIModels.cpp src/TIVarType.cpp src/TIVarTypes.cpp src/TypeHandlers/TH_0x00.cpp src/TypeHandlers/TH_0x05.cpp tests.cpp)
 add_executable(tivars_lib_cpp ${SOURCE_FILES})

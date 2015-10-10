@@ -5,105 +5,107 @@
  * License: MIT
  */
 
-namespace tivars;
+#include <sys/stat.h>
+#include "BinaryFile.h"
+#include "utils.h"
 
-class BinaryFile
+using namespace std;
+
+namespace tivars
 {
-    protected $file = null;
-    protected $filePath = null;
-    protected $fileSize = null;
 
     /**
-     * @param null $filePath
+     * @param null filePath
      * @throws \Exception
      */
-    protected function __construct($filePath = null)
+    BinaryFile::BinaryFile(const string filePath)
     {
-        if ($filePath !== null)
+        if (filePath != "")
         {
-            if (file_exists($filePath))
+            if (file_exists(filePath))
             {
-                $filePath = realpath($filePath);
-                $this->file = fopen($filePath, 'rb+');
-                if ($this->file === false)
+                this->file = fopen(filePath.c_str(), "rb+");
+                if (!this->file)
                 {
-                    throw new \Exception("Can't open the input file");
+                    throw "Can't open the input file";
                 }
-                $this->filePath = $filePath;
-                $this->fileSize = fstat($this->file)['size'];
+                this->filePath = filePath;
+                fseek(this->file, 0L, SEEK_END);
+                this->fileSize = (size_t) ftell(this->file);
+                fseek(this->file, 0L, SEEK_SET);
             } else {
-                throw new \Exception("No such file");
+                throw "No such file";
             }
         } else {
-            throw new \Exception("No file path given");
+            throw new invalid_argument("No file path given");
         }
     }
 
     /**
-     * Returns an array of $bytes bytes read from the file
+     * Returns an array of bytes bytes read from the file
      *
-     * @param   int $bytes
+     * @param   int bytes
      * @return  array
      * @throws  \Exception
      */
-    public function get_raw_bytes($bytes = -1)
+    data_t BinaryFile::get_raw_bytes(uint bytes)
     {
-        if ($this->file !== null)
+        if (file)
         {
-            if ($bytes !== -1)
+            if (bytes > 0)
             {
-                return array_merge(unpack("C*", fread($this->file, $bytes)));
+                uchar buf[bytes];
+                fread(buf, sizeof(uchar), bytes, file);
+                data_t v(buf, buf + bytes);
+                return v;
             } else {
-                throw new \Exception("Invalid number of bytes to read");
+                throw new invalid_argument("Invalid number of bytes to read");
             }
         } else {
-            throw new \Exception("No file loaded");
+            throw "No file loaded";
         }
     }
 
     /**
-     * Returns a string of $bytes bytes read from the file (doesn't stop at NUL)
+     * Returns a string of bytes bytes read from the file (doesn't stop at NUL)
      *
-     * @param   int $bytes The number of bytes to read
+     * @param   int bytes The number of bytes to read
      * @return  string
      * @throws  \Exception
      */
-    public function get_string_bytes($bytes = -1)
+    string BinaryFile::get_string_bytes(uint bytes)
     {
-        if ($this->file !== null)
+        if (file)
         {
-            if ($bytes !== -1)
+            if (bytes > 0)
             {
-                return fread($this->file, $bytes);
+                char buf[bytes];
+                fread(buf, sizeof(char), bytes, file);
+                return string(buf);
             } else {
-                throw new \Exception("Invalid number of bytes to read");
+                throw invalid_argument("Invalid number of bytes to read");
             }
         } else {
-            throw new \Exception("No file loaded");
+            throw "No file loaded";
         }
     }
 
-    public function close()
+    void BinaryFile::close()
     {
-        if ($this->file !== null)
+        if (file)
         {
-            fclose($this->file);
-            $this->file = null;
+            fclose(file);
+            file = nullptr;
         }
     }
 
-    function size()
+    size_t BinaryFile::size()
     {
-        if ($this->file !== null)
+        if (file)
         {
-            return $this->fileSize;
+            return fileSize;
         } else {
-            throw new \Exception("No file loaded");
+            throw "No file loaded";
         }
-    }
-
-    function __destruct()
-    {
-        $this->close();
     }
 }
