@@ -18,9 +18,9 @@ namespace tivars
     {
     public:
 
-        static std::vector<uint> makeDataFromString(const std::string& str, const options_t options);
+        static data_t makeDataFromString(const std::string& str, const options_t options);
 
-        static std::string makeStringFromData(const std::vector<uint>& data, const options_t options);
+        static std::string makeStringFromData(const data_t& data, const options_t options);
 
     };
 }

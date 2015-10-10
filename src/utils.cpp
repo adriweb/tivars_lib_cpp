@@ -9,8 +9,14 @@
 #include <sstream>
 #include <iomanip>
 #include <regex>
+#include <unistd.h>
 
 using namespace std;
+
+bool is_in_vector_uchar(const std::vector<unsigned char>& v, unsigned char element)
+{
+    return find(v.begin(), v.end(), element) != v.end();
+}
 
 bool is_in_vector_uint(const std::vector<unsigned int>& v, unsigned int element)
 {
@@ -20,6 +26,11 @@ bool is_in_vector_uint(const std::vector<unsigned int>& v, unsigned int element)
 bool is_in_vector_string(const std::vector<std::string>& v, std::string element)
 {
     return find(v.begin(), v.end(), element) != v.end();
+}
+
+bool is_in_umap_string_uchar(const unordered_map<string, unsigned char>& m, const string element)
+{
+    return m.find(element) != m.end();
 }
 
 bool is_in_umap_string_uint(const unordered_map<string, unsigned int>& m, const string element)
@@ -37,20 +48,20 @@ bool is_in_umap_string_TIVarType(const std::unordered_map<std::string, tivars::T
     return m.find(element) != m.end();
 }
 
-bool has_option(const unordered_map<string, unsigned int>& m, const string element)
+bool has_option(const unordered_map<string, unsigned char>& m, const string element)
 {
     return m.find(element) != m.end();
 }
 
-unsigned int hexdec(const string& str)
+unsigned char hexdec(const string& str)
 {
-    return (unsigned int) stoul(str, nullptr, 16);
+    return (unsigned char) stoul(str, nullptr, 16);
 }
 
-std::string dechex(unsigned int i)
+std::string dechex(unsigned char i)
 {
     std::stringstream stream;
-    stream << "0x" << std::setfill('0') << std::setw((int) (sizeof(unsigned int) * 2)) << std::hex << i;
+    stream << "0x" << std::setfill('0') << std::setw((int) (sizeof(unsigned char) * 2)) << std::hex << i;
     return stream.str();
 }
 
@@ -91,7 +102,7 @@ string str_repeat(const string& str, unsigned int times)
 {
     string result;
     result.reserve(times * str.length()); // avoid repeated reallocation
-    for (unsigned int i = 0; i < times; i++)
+    for (unsigned char i = 0; i < times; i++)
     {
         result += str;
     }
@@ -175,4 +186,9 @@ std::string stripchars(std::string str, const std::string& chars)
 {
     str.erase(std::remove_if(str.begin(), str.end(), [&](char c){ return chars.find(c) != std::string::npos; }), str.end());
     return str;
+}
+
+bool file_exists(const std::string filePath)
+{
+    return access(filePath.c_str(), F_OK) != -1;
 }

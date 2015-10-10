@@ -18,12 +18,12 @@ namespace tivars
 
     std::unordered_map<uint, std::vector<std::string>> tokens_BytesToName;
     std::unordered_map<std::string, uint> tokens_NameToBytes;
-    uint lengthOfLongestTokenName;
-    std::vector<uint> firstByteOfTwoByteTokens;
+    uchar lengthOfLongestTokenName;
+    std::vector<uchar> firstByteOfTwoByteTokens;
 
     data_t TH_0x05::makeDataFromString(const string& str, const options_t options)
     {
-        vector<uint> data;
+        data_t data;
 
         // two bytes reserved for the size. Filled later
         data.push_back(0); data.push_back(0);
@@ -38,17 +38,17 @@ namespace tivars
                     uint tokenValue = tokens_NameToBytes[currentSubString];
                     if (tokenValue > 0xFF)
                     {
-                        data.push_back(tokenValue >> 8);
+                        data.push_back((uchar)(tokenValue >> 8));
                     }
-                    data.push_back(tokenValue & 0xFF);
+                    data.push_back((uchar)(tokenValue & 0xFF));
                     strCursorPos += currentLength - 1;
                     break;
                 }
             }
         }
         uint actualDataLen = (uint) (data.size() - 2);
-        data[0] = actualDataLen & 0xFF;
-        data[1] = (actualDataLen >> 8) & 0xFF;
+        data[0] = (uchar)(actualDataLen & 0xFF);
+        data[1] = (uchar)((actualDataLen >> 8) & 0xFF);
         return data;
     }
 
@@ -61,8 +61,7 @@ namespace tivars
 
         uint langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
 
-        uint howManyBytes = (data[0] & 0xFF) + ((data[1] << 8) & 0xFF00);
-
+        int howManyBytes = (data[0] & 0xFF) + ((data[1] << 8) & 0xFF00);
         if (howManyBytes != data.size() - 2)
         {
             cerr << "[Warning] Token count (" << (data.size() - 2) << ") and size field (" << howManyBytes  << ") mismatch!";
@@ -75,7 +74,7 @@ namespace tivars
             uint currentToken = data[i];
             uint nextToken = (i < howManyBytes-1) ? data[i+1] : (uint)-1;
             uint bytesKey = currentToken;
-            if (is_in_vector_uint(firstByteOfTwoByteTokens, currentToken))
+            if (is_in_vector_uchar(firstByteOfTwoByteTokens, (uchar)currentToken))
             {
                 if (nextToken == (uint)-1)
                 {
@@ -192,7 +191,7 @@ namespace tivars
                 uint bytes;
                 if (tokenInfo[6] == "2")
                 {
-                    if (!is_in_vector_uint(firstByteOfTwoByteTokens, hexdec(tokenInfo[7])))
+                    if (!is_in_vector_uchar(firstByteOfTwoByteTokens, hexdec(tokenInfo[7])))
                     {
                         firstByteOfTwoByteTokens.push_back(hexdec(tokenInfo[7]));
                     }
@@ -203,7 +202,7 @@ namespace tivars
                 tokens_BytesToName[bytes] = { tokenInfo[4], tokenInfo[5] }; // EN, FR
                 tokens_NameToBytes[tokenInfo[4]] = bytes; // EN
                 tokens_NameToBytes[tokenInfo[5]] = bytes; // FR
-                uint maxLenName = (uint) max(tokenInfo[4].length(), tokenInfo[5].length());
+                uchar maxLenName = (uchar) max(tokenInfo[4].length(), tokenInfo[5].length());
                 if (maxLenName > lengthOfLongestTokenName)
                 {
                     lengthOfLongestTokenName = maxLenName;

@@ -17,8 +17,9 @@
 #include <unordered_map>
 
 typedef unsigned int    uint;
-typedef std::vector<uint>   data_t;
-typedef std::unordered_map<std::string, uint>   options_t;
+typedef unsigned char   uchar;
+typedef std::vector<uchar>   data_t;
+typedef std::unordered_map<std::string, uchar>   options_t;
 
 /*
 #include "TIVarTypes.h"
