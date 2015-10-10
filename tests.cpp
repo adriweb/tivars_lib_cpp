@@ -5,12 +5,14 @@
  * License: MIT
  */
 
+#include <assert.h>
 #include "src/autoloader.h"
 
 #include "src/TypeHandlers/TH_0x00.h"
 #include "src/TypeHandlers/TH_0x05.h"
 #include "src/TIVarTypes.h"
 #include "src/TIModels.h"
+#include "src/BinaryFile.h"
 
 using namespace std;
 using namespace tivars;
@@ -23,30 +25,37 @@ int main(int argc, char** argv)
     TIVarTypes::initTIVarTypesArray();
     TH_0x05::initTokens();
 
+    BinaryFile bf("/Users/adriweb/Documents/tivars_lib_cpp/testData/Complex.8xc");
+    data_t someData = bf.get_raw_bytes(10);
+
+    string teststrbytes = bf.get_string_bytes(20);
 
     /* Tests */
 
-    cout << "id for name 'ExactRealPi' (should be 32) : " << endl;
-    cout << TIVarTypes::getIDFromName("ExactRealPi") << endl;
-    cout << endl;
+    assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
+
 
     string test = "Disp 42:Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
     cout << "Indented code:" << endl << TH_0x05::reindentCodeString(test) << endl;
 
-    cout << "Raw data for Program == 'Disp 42:Pause':" << endl;
-    data_t testData = TH_0x05::makeDataFromString("Disp 42:Pause", {});
+
+
+    data_t testData = TH_0x05::makeDataFromString("Asm(prgmABCD", {});
     for (int i = 0; i < testData.size(); ++i)
     {
-        cout << "i=" << i << " : " << testData[i] << endl;
+        cout << "i=" << i << " : " << (uint)testData[i] << endl;
     }
     cout << endl;
+
+
 
     cout << "Raw data for Real == 45.2:" << endl;
     data_t testData2 = TH_0x00::makeDataFromString("45.2", {});
     for (int i = 0; i < testData2.size(); ++i)
     {
-        cout << "i=" << i << " : " << testData2[i] << endl;
+        cout << "i=" << i << " : " << (uint)testData2[i] << endl;
     }
+
 
     return 0;
 }
