@@ -275,46 +275,56 @@ namespace tivars
         }
     }
 
-    // TODO
     data_t TIVarFile::bindata_maker()
     {
         data_t bin_data;
 
-        /*
-        foreach ([this->header, this->varEntry] as whichData)
+        // Header
         {
-            foreach (whichData as key => data)
+            for (uint i = 0; i < 8; i++)
             {
-                // fields not used for this calc version, for instance.
-                // TODO : check with (uchar)-1
-                if (data == NULL)
-                {
-                    continue;
-                }
-                switch (gettype(data))
-                {
-                    case "integer":
-                        // The length fields are the only ones on 2 bytes.
-                        if (key == "entries_len" || key == "data_length" || key == "data_length2")
-                        {
-                            bin_data .= chr(data & 0xFF) + chr((data >> 8) & 0xFF);
-                        } else {
-                            bin_data .= chr(data & 0xFF);
-                        }
-                        break;
-                    case "string":
-                        bin_data .= data;
-                        break;
-                    case "array":
-                        foreach (data as subData)
-                        {
-                            bin_data .= chr(subData & 0xFF);
-                        }
-                        break;
-                }
+                bin_data.push_back(this->header.signature[i]);
+            }
+            for (uint i = 0; i < 3; i++)
+            {
+                bin_data.push_back(this->header.sig_extra[i]);
+            }
+            for (uint i = 0; i < 42; i++)
+            {
+                bin_data.push_back(this->header.comment[i]);
+            }
+            bin_data.push_back((uchar) (this->header.entries_len & 0xFF));
+            bin_data.push_back((uchar) ((this->header.entries_len >> 8) & 0xFF));
+        }
+
+        // Var entry
+        {
+            for (uint i = 0; i < 2; i++)
+            {
+                bin_data.push_back(this->varEntry.constBytes[i]);
+            }
+            bin_data.push_back((uchar) (this->varEntry.data_length & 0xFF));
+            bin_data.push_back((uchar) ((this->varEntry.data_length >> 8) & 0xFF));
+            bin_data.push_back(this->varEntry.typeID);
+            for (uint i = 0; i < 8; i++)
+            {
+                bin_data.push_back(this->varEntry.varname[i]);
+            }
+            if (this->varEntry.version != (uchar)-1)
+            {
+                bin_data.push_back(this->varEntry.version);
+            }
+            if (this->varEntry.archivedFlag != (uchar)-1)
+            {
+                bin_data.push_back(this->varEntry.archivedFlag);
+            }
+            bin_data.push_back((uchar) (this->varEntry.data_length2 & 0xFF));
+            bin_data.push_back((uchar) ((this->varEntry.data_length2 >> 8) & 0xFF));
+            for (uint i = 0; i < this->varEntry.data_length; i++)
+            {
+                bin_data.push_back(this->varEntry.data[i]);
             }
         }
-        */
 
         return bin_data;
     }

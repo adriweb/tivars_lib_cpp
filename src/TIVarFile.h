@@ -29,7 +29,7 @@ namespace tivars
 
         struct var_entry_t
         {
-            uchar    constBytes[8] = {0};
+            uchar    constBytes[2] = {0};
             uint16_t data_length   = {0};
             uchar    typeID        = 0;
             uchar    varname[8]    = {0};
