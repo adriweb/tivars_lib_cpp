@@ -79,8 +79,9 @@ namespace tivars
         {
             if (bytes > 0)
             {
-                char buf[bytes];
+                char buf[bytes+1];
                 fread(buf, sizeof(char), bytes, file);
+                buf[bytes] = '\0';
                 return string(buf);
             } else {
                 throw invalid_argument("Invalid number of bytes to read");

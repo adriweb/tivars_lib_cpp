@@ -8,14 +8,13 @@
 #include "TIVarType.h"
 #include "TIVarTypes.h"
 #include "utils.h"
+#include "TypeHandlers/TH_0x05.h"
 
 using namespace std;
 
 namespace tivars
 {
 
-    // Kind of a factory, but since the two methods in a Type Handler are static,
-    // we"ll just return a string being the name of the class. Later used with "::".
     ITIVarTypeHandler* TIVarType::determineTypeHandler(int typeID)
     {
         if (TIVarTypes::isValidID(typeID))
@@ -34,7 +33,7 @@ namespace tivars
                 return "tivars\TypeHandlers\\TH_Unimplemented";
             }
             */
-            return nullptr;
+            return new TH_0x05;
         } else {
             throw invalid_argument("Invalid type ID");
         }

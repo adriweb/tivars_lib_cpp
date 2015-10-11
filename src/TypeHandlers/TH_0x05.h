@@ -42,7 +42,7 @@ namespace tivars
         static std::string reindentCodeString(const std::string& str);
 
         static void initTokens();
-
+        
     };
 }
 

@@ -9,11 +9,10 @@
 #define TIMODEL_H
 
 #include "autoloader.h"
+#include "TIVarType.h"
 
 namespace tivars
 {
-
-    class TIVarType;
 
     class TIModel
     {
@@ -35,7 +34,7 @@ namespace tivars
         const uint& getFlags() const { return this->flags; }
         const std::string& getSig() const { return this->sig; }
 
-        bool supportsType(TIVarType& type);
+        bool supportsType(const TIVarType& type);
 
 
         /*** "Constructors" ***/

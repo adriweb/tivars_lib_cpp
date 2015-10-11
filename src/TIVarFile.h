@@ -11,32 +11,33 @@
 #include "autoloader.h"
 #include "BinaryFile.h"
 #include "TIVarType.h"
+#include "TIModel.h"
 
 namespace tivars
 {
 
-    struct var_header_t
-    {
-        uchar    signature[8]  = {0};
-        uchar    sig_extra[3]  = {0};
-        uchar    comment[42]   = {0};
-        uint16_t entries_len   = 0;
-    };
-
-    struct var_entry_t
-    {
-        uchar    constBytes[8] = {0};
-        uint16_t data_length   = {0};
-        uchar    typeID        = 0;
-        uchar    varname[8]    = {0};
-        uchar    version       = 0;
-        uchar    archivedFlag  = 0;
-        uint16_t data_length2  = {0};
-        data_t   data;
-    };
-
     class TIVarFile : public BinaryFile
     {
+
+        struct var_header_t
+        {
+            uchar    signature[8]  = {0};
+            uchar    sig_extra[3]  = {0};
+            uchar    comment[42]   = {0};
+            uint16_t entries_len   = 0;
+        };
+
+        struct var_entry_t
+        {
+            uchar    constBytes[8] = {0};
+            uint16_t data_length   = {0};
+            uchar    typeID        = 0;
+            uchar    varname[8]    = {0};
+            uchar    version       = 0;
+            uchar    archivedFlag  = 0;
+            uint16_t data_length2  = {0};
+            data_t   data;
+        };
 
     public:
         TIVarFile()
@@ -45,15 +46,12 @@ namespace tivars
         TIVarFile(const std::string filePath);
 
         ~TIVarFile()
-        {
-            close();
-        }
+        { }
 
         const var_header_t& getHeader() const { return header; }
         const var_entry_t& getVarEntry() const { return varEntry; }
         const TIVarType& getType() const { return type; }
-
-        void refreshMetadataFields();
+        const uint16_t& getInstanceChecksum() const { return computedChecksum; }
 
         static TIVarFile loadFromFile(const std::string filePath);
 
@@ -67,19 +65,15 @@ namespace tivars
 
         bool isValid();
 
-        uint16_t computeChecksumFromInstanceData();
-
-        uint16_t computeChecksumFromFileData();
-
         uint16_t getChecksumValueFromFile();
 
         void setContentFromData(const data_t data);
 
         void setContentFromString(const std::string str, const options_t options);
 
-        const data_t& getRawContent();
+        data_t getRawContent();
 
-        const std::string& getReadableContent(const options_t options);
+        std::string getReadableContent(const options_t options);
 
         void fixChecksumInFile();
 
@@ -87,6 +81,12 @@ namespace tivars
 
 
     private:
+        void refreshMetadataFields();
+
+        uint16_t computeChecksumFromInstanceData();
+        uint16_t computeChecksumFromFileData();
+
+
         var_header_t header;
         var_entry_t  varEntry;
         TIVarType    type;

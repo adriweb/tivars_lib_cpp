@@ -14,9 +14,21 @@ namespace tivars
 {
     class ITIVarTypeHandler
     {
+
     public:
-        static data_t makeDataFromString(const std::string& str, const options_t options);
-        static std::string makeStringFromData(const data_t& data, const options_t options);
+
+        // We can't make virtual static methods...
+
+        static data_t makeDataFromString(const std::string& str, const options_t options)
+        {
+            throw std::runtime_error("This type is not supported / implemented (yet?)");
+        }
+
+        static std::string makeStringFromData(const data_t& data, const options_t options)
+        {
+            throw std::runtime_error("This type is not supported / implemented (yet?)");
+        }
+
     };
 }
 

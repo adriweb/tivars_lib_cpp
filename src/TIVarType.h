@@ -10,7 +10,6 @@
 
 #include "autoloader.h"
 #include "TypeHandlers/ITIVarTypeHandler.h"
-#include "TIModel.h"
 
 namespace tivars
 {
@@ -33,7 +32,7 @@ namespace tivars
         const int& getId() const { return this->id; }
         const std::string& getName() const { return this->name; }
         const std::vector<std::string>& getExts() const { return this->exts; }
-        const ITIVarTypeHandler* getTypeHandler() const { return this->typeHandler; }
+        ITIVarTypeHandler* getTypeHandler() { return this->typeHandler; }
 
         static ITIVarTypeHandler* determineTypeHandler(int typeID);
 

@@ -13,7 +13,7 @@ using namespace std;
 namespace tivars
 {
     
-    bool TIModel::supportsType(TIVarType& type)
+    bool TIModel::supportsType(const TIVarType& type)
     {
         const vector<string>& exts = type.getExts();
         return this->orderID >= 0 && this->orderID < exts.size() && exts[this->orderID] != "";

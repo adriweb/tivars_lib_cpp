@@ -26,7 +26,12 @@ typedef std::unordered_map<std::string, uchar>   options_t;
 #include "TIVarType.h"
 #include "TIModels.h"
 #include "TIModel.h"
+#include "BinaryFile.h"
 #include "TIVarFile.h"
+#include "TypeHandlers/ITIVarTypeHandler.h"
+#include "TypeHandlers/TH_0x00.h"
+#include "TypeHandlers/TH_0x05.h"
+#include "TypeHandlers/TH_0x06.h"
 */
 
 // Put all the files to include here.

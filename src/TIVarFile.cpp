@@ -8,6 +8,9 @@
 #include "TIVarFile.h"
 #include "utils.h"
 #include "TIModels.h"
+#include "TypeHandlers/TH_0x05.h"
+#include "TypeHandlers/TH_0x00.h"
+#include "TypeHandlers/TypeHandlerFuncDispatcher.h"
 #include <regex>
 #include <numeric>
 
@@ -61,7 +64,7 @@ namespace tivars
             newName = "FILE" + ((type.getExts().size() > 0) ? type.getExts()[0] : "");
         }
         newName = regex_replace(newName, regex("[^a-zA-Z0-9]"), "");
-        if (newName != name || newName.length() > 8 || newName == "" || is_numeric(newName.substr(0, 1)))
+        if (newName.length() > 8 || newName == "" || is_numeric(newName.substr(0, 1)))
         {
             throw invalid_argument("Invalid name given. 8 chars (A-Z, 0-9) max, starting by a letter");
         }
@@ -120,9 +123,10 @@ namespace tivars
         std::copy(signature.begin(), signature.end(), this->header.signature);
         auto sig_extra = this->get_raw_bytes(3);
         std::copy(sig_extra.begin(), sig_extra.end(), this->header.sig_extra);
-        string comment = str_pad("Created by tivars_lib_cpp", 42, "\0");
+        string comment = this->get_string_bytes(42);
         std::copy(comment.begin(), comment.end(), this->header.comment);
-        this->header.entries_len = this->get_raw_bytes(1)[0] + (this->get_raw_bytes(1)[0] << 8);
+        this->header.entries_len = (uint16_t)(this->get_raw_bytes(1)[0] & 0xFF);
+        this->header.entries_len += (uint16_t)(this->get_raw_bytes(1)[0] << 8);
         this->calcModel = TIModel::createFromSignature(signature);
     }
 
@@ -224,46 +228,38 @@ namespace tivars
         }
     }
 
-    // TODO
     void TIVarFile::setContentFromString(const string str, const options_t options)
     {
-        /*
-        handler = this->type.getTypeHandler();
-        this->varEntry.data = handler::makeDataFromString(str, options);
+        auto func = TypeHandlerFuncDispatcher::getDataFromStringFunc(this->type.getId());
+        this->varEntry.data = func(str, options);
         this->refreshMetadataFields();
-        */
     }
 
-    const data_t& TIVarFile::getRawContent()
+    data_t TIVarFile::getRawContent()
     {
         return this->varEntry.data;
     }
 
-    // TODO
-    const string& TIVarFile::getReadableContent(const options_t options)
+    string TIVarFile::getReadableContent(const options_t options)
     {
-        /*
-        handler = this->type->getTypeHandler();
-        return handler::makeStringFromData(this->varEntry.data, options);
-        */
+        auto func = TypeHandlerFuncDispatcher::getStringFromDataFunc(this->type.getId());
+        return func(this->varEntry.data, options);
     }
 
-    // TODO
     void TIVarFile::fixChecksumInFile()
     {
-        /*
         if (this->isFromFile)
         {
             if (!this->isValid())
             {
                 fseek(this->file, this->fileSize - 2, SEEK_SET);
-                fwrite(this->file, chr(this->computedChecksum & 0xFF) + chr((this->computedChecksum >> 8) & 0xFF));
+                char buf[2] = {(char) (this->computedChecksum & 0xFF), (char) ((this->computedChecksum >> 8) & 0xFF)};
+                fwrite(buf, sizeof(char), sizeof(buf), this->file);
                 this->inFileChecksum = this->getChecksumValueFromFile();
             }
         } else {
             throw runtime_error("[Error] No file loaded");
         }
-         */
     }
 
     /**

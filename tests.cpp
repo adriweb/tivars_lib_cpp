@@ -6,14 +6,15 @@
  */
 
 #include <assert.h>
+
 #include "src/autoloader.h"
 
-#include "src/TypeHandlers/TH_0x00.h"
-#include "src/TypeHandlers/TH_0x05.h"
-#include "src/TIVarTypes.h"
 #include "src/TIModels.h"
+#include "src/TIVarTypes.h"
 #include "src/BinaryFile.h"
 #include "src/TIVarFile.h"
+#include "src/TypeHandlers/TH_0x05.h"
+#include "src/TypeHandlers/TH_0x00.h"
 
 using namespace std;
 using namespace tivars;
@@ -29,6 +30,7 @@ int main(int argc, char** argv)
 
     /* Tests */
 
+    /*
     BinaryFile bf("/Users/adriweb/Documents/tivars_lib_cpp/testData/Complex.8xc");
     data_t someData = bf.get_raw_bytes(11);
     string teststrbytes = bf.get_string_bytes(42);
@@ -63,38 +65,44 @@ int main(int argc, char** argv)
     }
 
 
-    auto goodTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("Program"), "Bla", TIModel::createFromName("83PCE"));
-    goodTypeForCalc.setContentFromData(testData);
+    try
+    {
+        auto goodTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("Program"), "Bla", TIModel::createFromName("83PCE"));
+        goodTypeForCalc.setContentFromData(testData);
+    } catch (runtime_error e) {
+        cout << "Caught unexpected exception: " << e.what() << endl;
+    }
 
-    //auto badTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("ExactComplexFrac"), "Bla", TIModel::createFromName("84+"));
+    try
+    {
+        auto badTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("ExactComplexFrac"), "Bla", TIModel::createFromName("84+"));
+    } catch (runtime_error e) {
+        cout << "Caught expected exception: " << e.what() << endl;
+    }
+
+
+    assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
+    */
+
+    TIVarFile testPrgm = TIVarFile::loadFromFile("/Users/adriweb/Documents/tivars_lib_cpp/testData/Program.8xp");
+    cout << "testPrgm.getHeader().entries_len = " << testPrgm.getHeader().entries_len << "\t testPrgm.size() - 57 == " << (testPrgm.size() - 57) << endl;
+    assert(testPrgm.getHeader().entries_len == testPrgm.size() - 57);
+    TIVarFile newPrgm = TIVarFile::createNew(TIVarType::createFromName("Program"));
+    string testPrgmcontent = testPrgm.getReadableContent({{"lang", LANG_FR}});
+    cout << "testPrgmContent :" << endl << testPrgmcontent << endl;
+    newPrgm.setContentFromString(testPrgmcontent, {});
+    string newPrgmcontent = newPrgm.getReadableContent({{"lang", LANG_FR}});
+    cout << "newPrgmcontent :" << endl << newPrgmcontent << endl;
+    cout << "testPrgm.getInstanceChecksum() = " << testPrgm.getInstanceChecksum() << endl;
+    cout << "newPrgm.getInstanceChecksum() = " << newPrgm.getInstanceChecksum() << endl;
+    assert(testPrgm.getInstanceChecksum() == newPrgm.getInstanceChecksum());
+    //$newPrgm->saveVarToFile();
 
 
     return 0;
 }
 
 /*
-$badTypeForCalc = TIVarFile::createNew(TIVarType::createFromName('ExactComplexFrac'), 'Bla', TIModel::createFromName('83PCE'));
-try
-{
-    $goodTypeForCalc = TIVarFile::createNew(TIVarType::createFromName('ExactComplexFrac'), 'Bla', TIModel::createFromName('84+'));
-    assert(false);
-} catch (Exception $e) {}
-
-
-
-assert(TIVarTypes::getIDFromName("ExactRealPi") === 32);
-
-
-
-$testPrgm = TIVarFile::loadFromFile('testData/ProtectedProgram_long.8xp');
-assert($testPrgm->getHeader()['entries_len'] === $testPrgm->size() - 57);
-$newPrgm = TIVarFile::createNew(TIVarType::createFromName("Program"));
-$testPrgmcontent = $testPrgm->getReadableContent(['lang' => 'fr']);
-//echo "testPrgmContent :\n$testPrgmcontent\n";
-$newPrgm->setContentFromString($testPrgmcontent);
-assert($testPrgm->getRawContent() === $newPrgm->getRawContent());
-//$newPrgm->saveVarToFile();
-
 
 
 $testPrgm = TIVarFile::loadFromFile('testData/ProtectedProgram_long.8xp');
