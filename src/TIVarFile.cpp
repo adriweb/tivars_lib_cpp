@@ -235,6 +235,13 @@ namespace tivars
         this->refreshMetadataFields();
     }
 
+    void TIVarFile::setContentFromString(const string str)
+    {
+        auto func = TypeHandlerFuncGetter::getDataFromStringFunc(this->type.getId());
+        this->varEntry.data = func(str, {});
+        this->refreshMetadataFields();
+    }
+
     data_t TIVarFile::getRawContent()
     {
         return this->varEntry.data;
@@ -244,6 +251,12 @@ namespace tivars
     {
         auto func = TypeHandlerFuncGetter::getStringFromDataFunc(this->type.getId());
         return func(this->varEntry.data, options);
+    }
+
+    string TIVarFile::getReadableContent()
+    {
+        auto func = TypeHandlerFuncGetter::getStringFromDataFunc(this->type.getId());
+        return func(this->varEntry.data, {});
     }
 
     void TIVarFile::fixChecksumInFile()

@@ -70,10 +70,12 @@ namespace tivars
         void setContentFromData(const data_t data);
 
         void setContentFromString(const std::string str, const options_t options);
+        void setContentFromString(const std::string str);
 
         data_t getRawContent();
 
         std::string getReadableContent(const options_t options);
+        std::string getReadableContent();
 
         void fixChecksumInFile();
 
