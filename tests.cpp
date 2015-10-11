@@ -34,8 +34,8 @@ int main(int argc, char** argv)
     assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
 
 
-    //string test = "Disp 42:Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
-    //cout << "Indented code:" << endl << TH_0x05::reindentCodeString(test) << endl;
+    string test = "Disp 42:Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
+    cout << "Indented code:" << endl << TH_0x05::reindentCodeString(test) << endl;
 
 
     try
@@ -56,17 +56,19 @@ int main(int argc, char** argv)
     assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
 
 
-    TIVarFile testPrgm = TIVarFile::loadFromFile("/Users/adriweb/Documents/tivars_lib_cpp/testData/Program.8xp");
+    TIVarFile testPrgm = TIVarFile::loadFromFile("assets/testData/Program.8xp");
     cout << "testPrgm.getHeader().entries_len = " << testPrgm.getHeader().entries_len << "\t testPrgm.size() - 57 == " << (testPrgm.size() - 57) << endl;
     assert(testPrgm.getHeader().entries_len == testPrgm.size() - 57);
+    string testPrgmcontent = testPrgm.getReadableContent({{"lang", LANG_FR}});
 
     TIVarFile newPrgm = TIVarFile::createNew(TIVarType::createFromName("Program"));
-    string testPrgmcontent = testPrgm.getReadableContent({{"lang", LANG_FR}});
     newPrgm.setContentFromString(testPrgmcontent);
     string newPrgmcontent = newPrgm.getReadableContent({{"lang", LANG_FR}});
+
     assert(testPrgmcontent == newPrgmcontent);
     newPrgm.saveVarToFile();
 
+    cout << endl << "testPrgmcontent : " << endl << testPrgmcontent << endl;
 
     return 0;
 }
