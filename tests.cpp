@@ -65,7 +65,7 @@ int main(int argc, char** argv)
     newPrgm.setContentFromString(testPrgmcontent);
     string newPrgmcontent = newPrgm.getReadableContent({{"lang", LANG_FR}});
     assert(testPrgmcontent == newPrgmcontent);
-    //$newPrgm->saveVarToFile();
+    newPrgm.saveVarToFile();
 
 
     return 0;

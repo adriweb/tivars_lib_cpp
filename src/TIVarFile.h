@@ -79,8 +79,8 @@ namespace tivars
 
         void fixChecksumInFile();
 
-        void saveVarToFile(const std::string directory, const std::string name);
-
+        void saveVarToFile(std::string directory, std::string name);
+        void saveVarToFile();
 
     private:
         void refreshMetadataFields();
@@ -96,6 +96,8 @@ namespace tivars
         uint16_t     computedChecksum = 0;
         uint16_t     inFileChecksum   = 0;
         bool         isFromFile       = false;
+
+        data_t bindata_maker();
 
     };
 }

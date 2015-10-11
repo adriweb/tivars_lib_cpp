@@ -275,41 +275,12 @@ namespace tivars
         }
     }
 
-    /**
-     * Writes a variable to an actual file on the FS
-     * If the variable was already loaded from a file, it will be used and overwritten,
-     * except if a specific directory and name are provided.
-     *
-     * @param   string  directory  Directory to save the file to
-     * @param   string  name       Name of the file, without the extension
-     */
     // TODO
-    void TIVarFile::saveVarToFile(const string directory, const string name)
+    data_t TIVarFile::bindata_maker()
     {
+        data_t bin_data;
+
         /*
-        if (this->isFromFile && directory == "")
-        {
-            this->close();
-            handle = fopen(this->filePath, "wb");
-        } else {
-            if (name == "")
-            {
-                name = this->varEntry.varname;
-            }
-            // TODO: make user be able to precise for which model the extension will be fitted
-            fileName = str_replace("\0", "", name) + "." + this->getType()->getExts()[0];
-            if (directory == "")
-            {
-                directory = "./";
-            }
-            directory = rtrim(directory, "/");
-            fullPath = realpath(directory) + "/" + fileName;
-            handle = fopen(fullPath, "wb");
-        }
-
-        this->refreshMetadataFields();
-
-        bin_data = "";
         foreach ([this->header, this->varEntry] as whichData)
         {
             foreach (whichData as key => data)
@@ -343,12 +314,67 @@ namespace tivars
                 }
             }
         }
+        */
 
-        fwrite(handle, bin_data);
-        fwrite(handle, chr(this->computedChecksum & 0xFF) + chr((this->computedChecksum >> 8) & 0xFF));
+        return bin_data;
+    }
+
+    /**
+     * Writes a variable to an actual file on the FS
+     * If the variable was already loaded from a file, it will be used and overwritten,
+     * except if a specific directory and name are provided.
+     *
+     * @param   string  directory  Directory to save the file to
+     * @param   string  name       Name of the file, without the extension
+     */
+    void TIVarFile::saveVarToFile(string directory, string name)
+    {
+        FILE* handle;
+        if (this->isFromFile && directory == "")
+        {
+            this->close();
+            handle = fopen(this->filePath.c_str(), "wb");
+        } else {
+            if (name == "")
+            {
+                string tmp("");
+                for (uint i=0; i<8; i++)
+                {
+                    if (this->varEntry.varname[i])
+                    {
+                        tmp += this->varEntry.varname[i];
+                    } else {
+                        break;
+                    }
+                }
+                name = tmp;
+            }
+            // TODO: make user be able to precise for which model the extension will be fitted
+            string fileName = name + "." + this->getType().getExts()[0];
+            if (directory == "")
+            {
+                directory = ".";
+            }
+            string fullPath = directory + "/" + fileName;
+            handle = fopen(fullPath.c_str(), "wb");
+        }
+
+        this->refreshMetadataFields();
+
+        data_t bin_data = bindata_maker();
+
+        uchar* buf_bin = &bin_data[0];
+        fwrite(buf_bin, bin_data.size(), sizeof(uchar), handle);
+
+        char buf[2] = {(char) (this->computedChecksum & 0xFF), (char) ((this->computedChecksum >> 8) & 0xFF)};
+        fwrite(buf, sizeof(char), sizeof(buf), handle);
 
         fclose(handle);
-         */
+    }
+
+    void TIVarFile::saveVarToFile()
+    {
+        saveVarToFile("", "");
     }
 
 }
