@@ -69,10 +69,11 @@ namespace tivars
 
         uint errCount = 0;
         string str("");
+        size_t dataSize = data.size();
         for (uint i = 2; i < howManyBytes + 2; i++)
         {
             uint currentToken = data[i];
-            uint nextToken = (i < howManyBytes-1) ? data[i+1] : (uint)-1;
+            uint nextToken = (i < dataSize-1) ? data[i+1] : (uint)-1;
             uint bytesKey = currentToken;
             if (is_in_vector_uchar(firstByteOfTwoByteTokens, (uchar)currentToken))
             {
