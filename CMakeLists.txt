@@ -22,7 +22,6 @@ set(SOURCE_FILES
         src/TypeHandlers/TH_0x00.cpp
         src/TypeHandlers/TH_0x05.cpp
         src/TypeHandlers/TH_0x06.h
-        src/TypeHandlers/TypeHandlerFuncGetter.h
         tests.cpp)
 
 add_executable(tivars_lib_cpp ${SOURCE_FILES})

@@ -10,6 +10,9 @@
 #include "TH_0x05.h"
 #include "TH_0x06.h"
 
+#ifndef TIVARS_LIB_CPP_TYPEHANDLERFUNCGETTER_H
+#define TIVARS_LIB_CPP_TYPEHANDLERFUNCGETTER_H
+
 namespace tivars
 {
 
@@ -60,3 +63,5 @@ namespace tivars
     };
 
 }
+
+#endif //TIVARS_LIB_CPP_TYPEHANDLERFUNCGETTER_H
