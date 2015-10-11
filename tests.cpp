@@ -30,45 +30,17 @@ int main(int argc, char** argv)
 
     /* Tests */
 
-    /*
-    BinaryFile bf("/Users/adriweb/Documents/tivars_lib_cpp/testData/Complex.8xc");
-    data_t someData = bf.get_raw_bytes(11);
-    string teststrbytes = bf.get_string_bytes(42);
-
 
     assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
 
 
-    string test = "Disp 42:Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
-    cout << "Indented code:" << endl << TH_0x05::reindentCodeString(test) << endl;
-
-
-    string strFromData = TH_0x05::makeStringFromData({7, 0, 187, 106, 95, 65, 66, 67, 68}, {});
-    cout << "string from data: " << endl << strFromData << endl;
-    cout << endl;
-
-
-    cout << "data from string: " << endl;
-    data_t testData = TH_0x05::makeDataFromString("Asm(prgmABCD", {});
-    for (int i = 0; i < testData.size(); ++i)
-    {
-        cout << (uint)testData[i] << endl;
-    }
-    cout << endl;
-
-
-    cout << "Raw data for Real == 45.2:" << endl;
-    data_t testData2 = TH_0x00::makeDataFromString("45.2", {});
-    for (int i = 0; i < testData2.size(); ++i)
-    {
-        cout << (uint)testData2[i] << endl;
-    }
+    //string test = "Disp 42:Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
+    //cout << "Indented code:" << endl << TH_0x05::reindentCodeString(test) << endl;
 
 
     try
     {
         auto goodTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("Program"), "Bla", TIModel::createFromName("83PCE"));
-        goodTypeForCalc.setContentFromData(testData);
     } catch (runtime_error e) {
         cout << "Caught unexpected exception: " << e.what() << endl;
     }
@@ -82,20 +54,17 @@ int main(int argc, char** argv)
 
 
     assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
-    */
+
 
     TIVarFile testPrgm = TIVarFile::loadFromFile("/Users/adriweb/Documents/tivars_lib_cpp/testData/Program.8xp");
     cout << "testPrgm.getHeader().entries_len = " << testPrgm.getHeader().entries_len << "\t testPrgm.size() - 57 == " << (testPrgm.size() - 57) << endl;
     assert(testPrgm.getHeader().entries_len == testPrgm.size() - 57);
+
     TIVarFile newPrgm = TIVarFile::createNew(TIVarType::createFromName("Program"));
     string testPrgmcontent = testPrgm.getReadableContent({{"lang", LANG_FR}});
-    cout << "testPrgmContent :" << endl << testPrgmcontent << endl;
-    newPrgm.setContentFromString(testPrgmcontent, {});
+    newPrgm.setContentFromString(testPrgmcontent);
     string newPrgmcontent = newPrgm.getReadableContent({{"lang", LANG_FR}});
-    cout << "newPrgmcontent :" << endl << newPrgmcontent << endl;
-    cout << "testPrgm.getInstanceChecksum() = " << testPrgm.getInstanceChecksum() << endl;
-    cout << "newPrgm.getInstanceChecksum() = " << newPrgm.getInstanceChecksum() << endl;
-    assert(testPrgm.getInstanceChecksum() == newPrgm.getInstanceChecksum());
+    assert(testPrgmcontent == newPrgmcontent);
     //$newPrgm->saveVarToFile();
 
 

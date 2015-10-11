@@ -22,7 +22,7 @@ namespace tivars
         TIVarType()
         {}
 
-        TIVarType(int id, std::string name, std::vector<std::string> exts, ITIVarTypeHandler* typeHandler) : id(id), name(name), exts(exts), typeHandler(typeHandler)
+        TIVarType(int id, std::string name, std::vector<std::string> exts) : id(id), name(name), exts(exts)
         {}
 
         ~TIVarType()
@@ -32,9 +32,6 @@ namespace tivars
         const int& getId() const { return this->id; }
         const std::string& getName() const { return this->name; }
         const std::vector<std::string>& getExts() const { return this->exts; }
-        ITIVarTypeHandler* getTypeHandler() { return this->typeHandler; }
-
-        static ITIVarTypeHandler* determineTypeHandler(int typeID);
 
         /*** "Constructors" ***/
         static TIVarType createFromID(uint id);
@@ -44,7 +41,6 @@ namespace tivars
         int id = -1;
         std::string name = "Unknown";
         std::vector<std::string> exts;
-        ITIVarTypeHandler* typeHandler = nullptr;
 
     };
 

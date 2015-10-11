@@ -25,7 +25,7 @@ namespace tivars
      */
     void TIVarTypes::insertType(string name, int id, vector<string> exts)
     {
-        TIVarType varType(id, name, exts, nullptr);
+        TIVarType varType(id, name, exts);
 
         string id_str = to_string(id);
         types[name]   = varType;

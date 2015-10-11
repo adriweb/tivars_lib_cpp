@@ -13,10 +13,11 @@
 namespace tivars
 {
 
-    class TypeHandlerFuncDispatcher
+    class TypeHandlerFuncGetter
     {
 
     public:
+
         static auto getStringFromDataFunc(int type)
         {
             auto func = &ITIVarTypeHandler::makeStringFromData;

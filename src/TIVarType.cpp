@@ -14,31 +14,6 @@ using namespace std;
 
 namespace tivars
 {
-
-    ITIVarTypeHandler* TIVarType::determineTypeHandler(int typeID)
-    {
-        if (TIVarTypes::isValidID(typeID))
-        {
-            // TODO
-            /*
-            typeID_hex = ((typeID < 0x10) ? "0" : "") + dechex(typeID);
-            handlerName = "TH_0x{typeID_hex}";
-            handlerIncludePath = __DIR__ . "/TypeHandlers/{handlerName}.php";
-            if (file_exists(handlerIncludePath))
-            {
-                include_once(handlerIncludePath);
-                return "tivars\TypeHandlers\\" . handlerName;
-            } else {
-                include_once("TypeHandlers/TH_Unimplemented.php");
-                return "tivars\TypeHandlers\\TH_Unimplemented";
-            }
-            */
-            return new TH_0x05;
-        } else {
-            throw invalid_argument("Invalid type ID");
-        }
-    }
-
     /*** "Constructors" ***/
 
     /**
@@ -54,7 +29,6 @@ namespace tivars
             varType.id = id;
             varType.exts = TIVarTypes::getExtensionsFromTypeID(id);
             varType.name = TIVarTypes::getNameFromID(id);
-            varType.typeHandler = determineTypeHandler(id);
             return varType;
         } else {
             throw invalid_argument("Invalid type ID");
@@ -74,7 +48,6 @@ namespace tivars
             varType.name = name;
             varType.id   = TIVarTypes::getIDFromName(name);
             varType.exts = TIVarTypes::getExtensionsFromName(name);
-            varType.typeHandler = determineTypeHandler(varType.id);
             return varType;
         } else {
             throw invalid_argument("Invalid type name");

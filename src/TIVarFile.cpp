@@ -10,7 +10,7 @@
 #include "TIModels.h"
 #include "TypeHandlers/TH_0x05.h"
 #include "TypeHandlers/TH_0x00.h"
-#include "TypeHandlers/TypeHandlerFuncDispatcher.h"
+#include "TypeHandlers/TypeHandlerFuncGetter.h"
 #include <regex>
 #include <numeric>
 
@@ -230,7 +230,7 @@ namespace tivars
 
     void TIVarFile::setContentFromString(const string str, const options_t options)
     {
-        auto func = TypeHandlerFuncDispatcher::getDataFromStringFunc(this->type.getId());
+        auto func = TypeHandlerFuncGetter::getDataFromStringFunc(this->type.getId());
         this->varEntry.data = func(str, options);
         this->refreshMetadataFields();
     }
@@ -242,7 +242,7 @@ namespace tivars
 
     string TIVarFile::getReadableContent(const options_t options)
     {
-        auto func = TypeHandlerFuncDispatcher::getStringFromDataFunc(this->type.getId());
+        auto func = TypeHandlerFuncGetter::getStringFromDataFunc(this->type.getId());
         return func(this->varEntry.data, options);
     }
 
