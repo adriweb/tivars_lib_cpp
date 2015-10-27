@@ -32,7 +32,7 @@ namespace tivars
         {
             TIModel model;
             model.flags = flags;
-            model.orderID = TIModels::getDefaulOrderIDFromFlags(flags);
+            model.orderID = TIModels::getDefaultOrderIDFromFlags(flags);
             model.sig = TIModels::getSignatureFromFlags(flags);
             model.name = TIModels::getDefaultNameFromFlags(flags);
             return model;

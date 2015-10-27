@@ -131,7 +131,7 @@ namespace tivars
      * @param   int     flags  The model flags
      * @return  int             The default calc order ID whose file formats use that signature
      */
-    int TIModels::getDefaulOrderIDFromFlags(uint flags)
+    int TIModels::getDefaultOrderIDFromFlags(uint flags)
     {
         string flags_str = to_string(flags);
         return isValidFlags(flags) ? models[flags_str].getOrderId() : -1;

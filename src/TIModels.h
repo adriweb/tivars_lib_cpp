@@ -75,7 +75,7 @@ namespace tivars
          * @param   int     flags  The model flags
          * @return  int             The default calc order ID whose file formats use that signature
          */
-        static int getDefaulOrderIDFromFlags(uint flags);
+        static int getDefaultOrderIDFromFlags(uint flags);
 
         /**
          * @param   std::string  sig    The signature
