@@ -56,24 +56,13 @@ namespace tivars
         }
     }
 
-    TIVarFile TIVarFile::createNew(const TIVarType& type, const string name, const TIModel& version)
+    TIVarFile TIVarFile::createNew(const TIVarType& type, const string name, const TIModel& model)
     {
-        string newName(name);
-        if (newName == "")
-        {
-            newName = "FILE" + ((type.getExts().size() > 0) ? type.getExts()[0] : "");
-        }
-        newName = regex_replace(newName, regex("[^a-zA-Z0-9]"), "");
-        if (newName.length() > 8 || newName == "" || is_numeric(newName.substr(0, 1)))
-        {
-            throw invalid_argument("Invalid name given. 8 chars (A-Z, 0-9) max, starting by a letter");
-        }
-
-        for (auto & c: newName) c = (char) toupper(c);
-
         TIVarFile varFile;
         varFile.type = type;
-        varFile.calcModel = version;
+        varFile.calcModel = model;
+
+        string newName = varFile.fixVarName(name);
 
         if (!varFile.calcModel.supportsType(varFile.type))
         {
@@ -95,7 +84,7 @@ namespace tivars
         varFile.varEntry.data_length  = 0; // will have to be overwritten later
         varFile.varEntry.typeID       = (uchar) type.getId();
         string varname = str_pad(newName, 8, "\0");
-        std::copy(varname.begin(), varname.end(), varFile.varEntry.varname);
+        std::copy(varname.begin(), varname.begin() + 7, varFile.varEntry.varname);
         varFile.varEntry.version      = (calcFlags >= TIFeatureFlags::hasFlash) ? (uchar)0 : (uchar)-1;
         varFile.varEntry.archivedFlag = (calcFlags >= TIFeatureFlags::hasFlash) ? (uchar)0 : (uchar)-1; // TODO: check when that needs to be 1.
         varFile.varEntry.data_length2 = 0; // will have to be overwritten later
@@ -141,7 +130,7 @@ namespace tivars
         this->varEntry.data_length  = this->get_raw_bytes(1)[0] + (this->get_raw_bytes(1)[0] << 8);
         this->varEntry.typeID       = this->get_raw_bytes(1)[0];
         string varname              = this->get_string_bytes(8);
-        std::copy(varname.begin(), varname.end(), this->varEntry.varname);
+        std::copy(varname.begin(), varname.begin() + 7, this->varEntry.varname);
         this->varEntry.version      = (calcFlags >= TIFeatureFlags::hasFlash) ? this->get_raw_bytes(1)[0] : (uchar)-1;
         this->varEntry.archivedFlag = (calcFlags >= TIFeatureFlags::hasFlash) ? this->get_raw_bytes(1)[0] : (uchar)-1;
         this->varEntry.data_length2 = this->get_raw_bytes(1)[0] + (this->get_raw_bytes(1)[0] << 8);
@@ -211,6 +200,25 @@ namespace tivars
         this->computedChecksum = this->computeChecksumFromInstanceData();
     }
 
+    string TIVarFile::fixVarName(const string& name)
+    {
+        string newName(name);
+        if (newName == "")
+        {
+            newName = "FILE" + ((type.getExts().size() > 0) ? type.getExts()[0] : "");
+        }
+        newName = regex_replace(newName, regex("[^a-zA-Z0-9]"), "");
+        if (newName.length() > 8 || newName == "" || is_numeric(newName.substr(0, 1)))
+        {
+            throw invalid_argument("Invalid name given. 8 chars (A-Z, 0-9) max, starting by a letter");
+        }
+
+        for (auto & c: newName) c = (char) toupper(c);
+
+        newName = str_pad(newName, 8, "\0");
+
+        return newName;
+    }
 
     /*** Public actions **/
 
@@ -239,6 +247,21 @@ namespace tivars
     {
         setContentFromString(str, {});
     }
+
+    void TIVarFile::setCalcModel(const TIModel model)
+    {
+        this->calcModel = model;
+        string signature = model.getSig();
+        std::copy(signature.begin(), signature.end(), this->header.signature);
+    }
+
+    void TIVarFile::setVarName(const std::string name)
+    {
+        string varname = TIVarFile::fixVarName(name);
+        std::copy(varname.begin(), varname.begin() + 7, this->varEntry.varname);
+        this->refreshMetadataFields();
+    }
+
 
     data_t TIVarFile::getRawContent()
     {
@@ -356,8 +379,12 @@ namespace tivars
                 }
                 name = tmp;
             }
-            // TODO: make user be able to precise for which model the extension will be fitted
-            string fileName = name + "." + this->getType().getExts()[0];
+            int extIndex = this->calcModel.getOrderId();
+            if (extIndex < 0)
+            {
+                extIndex = 0;
+            }
+            string fileName = name + "." + this->getType().getExts()[extIndex];
             if (directory == "")
             {
                 directory = ".";

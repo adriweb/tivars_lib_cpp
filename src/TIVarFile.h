@@ -55,7 +55,7 @@ namespace tivars
 
         static TIVarFile loadFromFile(const std::string filePath);
 
-        static TIVarFile createNew(const TIVarType& type, const std::string name, const TIModel& version);
+        static TIVarFile createNew(const TIVarType& type, const std::string name, const TIModel& model);
         static TIVarFile createNew(const TIVarType& type, const std::string name);
         static TIVarFile createNew(const TIVarType& type);
 
@@ -72,6 +72,9 @@ namespace tivars
         void setContentFromString(const std::string str, const options_t options);
         void setContentFromString(const std::string str);
 
+        void setCalcModel(const TIModel model);
+        void setVarName(const std::string name);
+
         data_t getRawContent();
 
         std::string getReadableContent(const options_t options);
@@ -84,6 +87,7 @@ namespace tivars
 
     private:
         void refreshMetadataFields();
+        std::string fixVarName(const std::string& name);
 
         uint16_t computeChecksumFromInstanceData();
         uint16_t computeChecksumFromFileData();

@@ -70,6 +70,16 @@ int main(int argc, char** argv)
 
     cout << endl << "testPrgmcontent : " << endl << testPrgmcontent << endl;
 
+
+    cout << "\n\n\n" << endl;
+
+
+    TIVarFile testPrgm42 = TIVarFile::createNew(TIVarType::createFromName("Program"), "asdf");
+    testPrgm42.setCalcModel(TIModel::createFromName("82"));
+    testPrgm42.setContentFromString("");
+    testPrgm42.setVarName("Toto");
+    testPrgm42.saveVarToFile("/Users/adriweb/Downloads", "blablaTOTO");
+
     return 0;
 }
 
