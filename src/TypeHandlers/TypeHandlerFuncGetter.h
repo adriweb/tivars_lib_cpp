@@ -21,7 +21,7 @@ namespace tivars
 
     public:
 
-        static auto getStringFromDataFunc(int type)
+        static decltype(&ITIVarTypeHandler::makeStringFromData) getStringFromDataFunc(int type)
         {
             auto func = &ITIVarTypeHandler::makeStringFromData;
             switch (type)
@@ -41,7 +41,7 @@ namespace tivars
             return func;
         }
 
-        static auto getDataFromStringFunc(int type)
+        static decltype(&ITIVarTypeHandler::makeDataFromString) getDataFromStringFunc(int type)
         {
             auto func = &ITIVarTypeHandler::makeDataFromString;
             switch (type)
