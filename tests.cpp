@@ -30,8 +30,26 @@ int main(int argc, char** argv)
 
     /* Tests */
 
-
     assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
+
+
+    TIVarFile testString = TIVarFile::loadFromFile("assets/testData/String.8xs");
+    assert(testString.getReadableContent() == "Hello World");
+
+
+    TIVarFile testEquation = TIVarFile::loadFromFile("assets/testData/Equation_Y1T.8xy");
+    assert(testEquation.getReadableContent() == "3sin(T)+4");
+
+
+    TIVarFile testReal = TIVarFile::loadFromFile("assets/testData/Real.8xn");
+    cout << "testReal.getReadableContent() : " << testReal.getReadableContent() << endl;
+    assert(testReal.getReadableContent() == "-42.1337");
+
+
+    TIVarFile testReal42 = TIVarFile::createNew(TIVarType::createFromName("Real"), "R");
+    testReal42.setCalcModel(TIModel::createFromName("84+"));
+    testReal42.setContentFromString("9001.42");
+    testReal42.saveVarToFile("/Users/adriweb/Downloads", "Real9001dot42");
 
 
     string test = "Disp 42:Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
@@ -98,15 +116,7 @@ $newPrgm->setContentFromString($testPrgm->getReadableContent(['lang' => 'en']));
 assert($testPrgm->getRawContent() === $newPrgm->getRawContent());
 
 
-
-$testReal = TIVarFile::loadFromFile('testData/Real.8xn'); // -42.1337
-$newReal = TIVarFile::createNew(TIVarType::createFromName("Real"), "A");
-$newReal->setContentFromString('-42.1337');
-assert($testReal->getReadableContent() === '-42.1337');
-assert($testReal->getRawContent() === $newReal->getRawContent());
-//$newReal->saveVarToFile("/Users/adriweb/", "trololol");
-
-
+ 
 
 $testExactRealFrac = TIVarFile::loadFromFile('testData/Exact_RealFrac.8xn');
 //echo "Before: " . $testExactRealFrac->getReadableContent() . "\t" . "Now: ";

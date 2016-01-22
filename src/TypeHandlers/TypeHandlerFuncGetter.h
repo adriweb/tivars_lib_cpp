@@ -7,6 +7,8 @@
 
 #include "ITIVarTypeHandler.h"
 #include "TH_0x00.h"
+#include "TH_0x03.h"
+#include "TH_0x04.h"
 #include "TH_0x05.h"
 #include "TH_0x06.h"
 
@@ -30,6 +32,14 @@ namespace tivars
                     func = &TH_0x00::makeStringFromData;
                     break;
 
+                case 0x03:
+                    func = &TH_0x03::makeStringFromData; // We could actually directly use TH_0x05 here, but that might be confusing.
+                    break;
+
+                case 0x04:
+                    func = &TH_0x04::makeStringFromData; // Same comment as 0x03 here.
+                    break;
+
                 case 0x05:
                 case 0x06:
                     func = &TH_0x05::makeStringFromData;
@@ -48,6 +58,14 @@ namespace tivars
             {
                 case 0x00:
                     func = &TH_0x00::makeDataFromString;
+                    break;
+
+                case 0x03:
+                    func = &TH_0x03::makeDataFromString; // We could actually directly use TH_0x05 here, but that might be confusing.
+                    break;
+
+                case 0x04:
+                    func = &TH_0x04::makeDataFromString; // Same comment as 0x03 here.
                     break;
 
                 case 0x05:
