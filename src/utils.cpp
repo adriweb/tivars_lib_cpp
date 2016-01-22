@@ -61,7 +61,7 @@ unsigned char hexdec(const string& str)
 std::string dechex(unsigned char i)
 {
     std::stringstream stream;
-    stream << "0x" << std::setfill('0') << std::setw((int) (sizeof(unsigned char) * 2)) << std::hex << i;
+    stream << std::hex << (unsigned int)i;
     return stream.str();
 }
 

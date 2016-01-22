@@ -9,6 +9,8 @@
 #include "../utils.h"
 #include <regex>
 
+// TODO : check if the models have different exponent offsets
+
 using namespace std;
 
 namespace tivars
@@ -31,15 +33,15 @@ namespace tivars
         sprintf(tmp, "%0.14f", number);
         string newStr = stripchars(tmp, "-.");
 
-        uint flags = 0;
+        uchar flags = 0;
         flags |= (number < 0) ? (1 << 7) : 0;
         flags |= (has_option(options, "seqInit") && options.at("seqInit") == 1) ? 1 : 0;
 
         data[0] = flags;
-        data[1] = (uint)(exponent + 0x80);
+        data[1] = (uchar)(exponent + 0x80);
         for (uint i = 2; i < 9; i++)
         {
-            data[i] = hexdec(newStr.substr(2*(i-2), 2)) & 0xFF;
+            data[i] = (uchar)(hexdec(newStr.substr(2*(i-2), 2)) & 0xFF);
         }
 
         return data;
@@ -53,17 +55,29 @@ namespace tivars
         }
         uint flags      = data[0];
         bool isNegative = (flags >> 7 == 1);
-//      bool isUndef    = (flags  & 1 == 1); // if true, "used for initial sequence values"
-        uint exponent   = data[1] - 0x80;
+//      bool isSeqInit  = (flags  & 1 == 1); // if true, "used for initial sequence values"
+        uint exponent   = (uint)(data[1] - 0x80);
         string number   = "";
         for (uint i = 2; i < 9; i++)
         {
             number += dechex(data[i]);
         }
         number = number.substr(0, 1) + "." + number.substr(1);
-        float tmp = (float) ((isNegative ? -1.0 : 1.0) * powf(10, exponent) * atof(number.c_str()));
 
-        return to_string(tmp);
+        string str = to_string(pow(10, exponent) * std::stod(number));
+
+        // Cleanup
+        if (str.length() > 12)
+        {
+            str.erase(str.begin() + 12, str.end());
+        }
+        if (str.find('.') != std::string::npos)
+        {
+            while (str.back() == '0') str.pop_back();
+        }
+
+        str = (isNegative ? "-" : "") + str;
+
+        return str;
     }
 }
-

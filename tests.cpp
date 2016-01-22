@@ -42,7 +42,6 @@ int main(int argc, char** argv)
 
 
     TIVarFile testReal = TIVarFile::loadFromFile("assets/testData/Real.8xn");
-    cout << "testReal.getReadableContent() : " << testReal.getReadableContent() << endl;
     assert(testReal.getReadableContent() == "-42.1337");
 
 
@@ -116,7 +115,7 @@ $newPrgm->setContentFromString($testPrgm->getReadableContent(['lang' => 'en']));
 assert($testPrgm->getRawContent() === $newPrgm->getRawContent());
 
 
- 
+
 
 $testExactRealFrac = TIVarFile::loadFromFile('testData/Exact_RealFrac.8xn');
 //echo "Before: " . $testExactRealFrac->getReadableContent() . "\t" . "Now: ";
