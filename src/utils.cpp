@@ -119,18 +119,27 @@ void ParseCSV(const string& csvSource, vector<vector<string>>& lines)
     vector<string> line;
 
     string::const_iterator aChar = csvSource.begin();
+    string::const_iterator tmp;
+
     while (aChar != csvSource.end())
     {
+        tmp = aChar;
         switch (*aChar)
         {
             case '"':
                 newLine = false;
-                inQuote = !inQuote;
+                // Handle weird escaping of quotes ("""" => ")
+                if (*(tmp+1) == '"' && *(tmp+2) == '"' && *(tmp+3) == '"') {
+                    field.push_back(*aChar);
+                    aChar += 3;
+                } else {
+                    inQuote = !inQuote;
+                }
                 break;
 
             case ',':
                 newLine = false;
-                if (inQuote == true)
+                if (inQuote)
                 {
                     field += *aChar;
                 }
@@ -143,13 +152,13 @@ void ParseCSV(const string& csvSource, vector<vector<string>>& lines)
 
             case '\n':
             case '\r':
-                if (inQuote == true)
+                if (inQuote)
                 {
                     field += *aChar;
                 }
                 else
                 {
-                    if (newLine == false)
+                    if (!newLine)
                     {
                         line.push_back(field);
                         lines.push_back(line);
