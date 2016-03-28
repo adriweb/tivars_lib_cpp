@@ -141,15 +141,19 @@ namespace tivars
             oldFirstCommand = firstCommand;
 
             string trimmedLine = trim(lineData.second);
-            char* trimmedLine_c = (char*) trimmedLine.c_str();
-            firstCommand = strtok(trimmedLine_c, " ");
-            firstCommand = trim(firstCommand);
-            trimmedLine = string(trimmedLine_c);
-            trimmedLine_c = (char*) trimmedLine.c_str();
-            if (firstCommand == trimmedLine)
-            {
-                firstCommand = strtok(trimmedLine_c, "(");
+            if (trimmedLine.length() > 0) {
+                char* trimmedLine_c = (char*) trimmedLine.c_str();
+                firstCommand = strtok(trimmedLine_c, " ");
                 firstCommand = trim(firstCommand);
+                trimmedLine = string(trimmedLine_c);
+                trimmedLine_c = (char*) trimmedLine.c_str();
+                if (firstCommand == trimmedLine)
+                {
+                    firstCommand = strtok(trimmedLine_c, "(");
+                    firstCommand = trim(firstCommand);
+                }
+            } else {
+                firstCommand = "";
             }
 
             lines[key].first = nextIndent;
