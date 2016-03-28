@@ -479,7 +479,7 @@
 ,,,ExprOn,ExprOn,ExpAff,2,BB,50,,Action,,,,
 ,,,ExprOff,ExprOff,ExpNAff,2,BB,51,,Action,,,,
 ,,,ClrAllLists,ClrAllLists,EffToutListes,2,BB,52,,Action,,,,
-,,,GetCalc(,GetCalc(,CaptVar(,2,BB,53,,Function,,,,
+,,,GetCalc(,GetCalc(,GetCalc(,2,BB,53,,Function,,,,
 ,,,DelVar ,DelVar ,EffVar ,2,BB,54,,Function,,,,
 ,,,Equ\uf014String(,Equ►String(,Equ►Chaine(,2,BB,55,,Function,,,,
 ,,,String\uf014Equ(,String►Equ(,Chaine►Equ(,2,BB,56,,Function,,,,

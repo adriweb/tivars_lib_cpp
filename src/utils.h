@@ -5,8 +5,8 @@
  * License: MIT
  */
 
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef TIVARSLIB_UTILS_H
+#define TIVARSLIB_UTILS_H
 
 #include <unordered_map>
 #include <vector>
@@ -15,7 +15,7 @@
 #include "TIVarType.h"
 
 bool is_in_vector_uchar(const std::vector<unsigned char>& v, unsigned char element);
-bool is_in_vector_int(const std::vector<unsigned int>& v, unsigned int element);
+bool is_in_vector_uint(const std::vector<unsigned int>& v, unsigned int element);
 bool is_in_vector_string(const std::vector<std::string>& v, std::string element);
 bool is_in_umap_string_uchar(const std::unordered_map<std::string, unsigned char>& m, const std::string element);
 bool is_in_umap_string_uint(const std::unordered_map<std::string, unsigned int>& m, const std::string element);

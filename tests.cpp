@@ -36,6 +36,9 @@ int main(int argc, char** argv)
     TIVarFile testString = TIVarFile::loadFromFile("assets/testData/String.8xs");
     assert(testString.getReadableContent() == "Hello World");
 
+    TIVarFile testPrgmQuotes = TIVarFile::loadFromFile("assets/testData/testPrgmQuotes.8xp");
+    cout << "testPrgmQuotes.getReadableContent() : " << testPrgmQuotes.getReadableContent() << endl;
+    assert(testPrgmQuotes.getReadableContent() == "Pause \"2 SECS\",2");
 
     TIVarFile testEquation = TIVarFile::loadFromFile("assets/testData/Equation_Y1T.8xy");
     assert(testEquation.getReadableContent() == "3sin(T)+4");
