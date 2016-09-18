@@ -29,6 +29,7 @@ unsigned char hexdec(const std::string& str);
 
 std::string dechex(unsigned char i);
 
+std::vector<std::string> explode(const std::string& str, const std::string& delim);
 std::vector<std::string> explode(const std::string& str, char delim);
 
 std::string ltrim(std::string s, const char* t = " \t\n\r\f\v");
