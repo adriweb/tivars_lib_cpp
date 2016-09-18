@@ -61,7 +61,7 @@ namespace tivars
         string number   = "";
         for (uint i = 2; i < TH_0x00::dataByteCount; i++)
         {
-            number += dechex(data[i]);
+            number += (data[i] < 0x10 ? "0" : "") + dechex(data[i]); // zero left pad
         }
         number = number.substr(0, 1) + "." + number.substr(1);
 

@@ -54,7 +54,12 @@ int main(int argc, char** argv)
     TIVarFile testReal42 = TIVarFile::createNew(TIVarType::createFromName("Real"), "R");
     testReal42.setCalcModel(TIModel::createFromName("84+"));
     testReal42.setContentFromString("9001.42");
-    testReal42.saveVarToFile("/Users/adriweb/Downloads", "Real9001dot42");
+    cout << "testReal42.getReadableContent() : " << testReal42.getReadableContent() << endl;
+    assert(testReal42.getReadableContent() == "9001.42");
+    testReal42.setContentFromString("-0.00000008");
+    cout << "testReal42.getReadableContent() : " << testReal42.getReadableContent() << endl;
+    assert(atof(testReal42.getReadableContent().c_str()) == -8e-08);
+    //testReal42.saveVarToFile("/Users/adriweb/Downloads", "Real9001dot42");
 
 
     string test = "Disp 42:Wait 5:toString(42):Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
@@ -89,7 +94,7 @@ int main(int argc, char** argv)
     string newPrgmcontent = newPrgm.getReadableContent({{"lang", LANG_FR}});
 
     assert(testPrgmcontent == newPrgmcontent);
-    newPrgm.saveVarToFile();
+    //newPrgm.saveVarToFile();
 
     cout << endl << "testPrgmcontent : " << endl << testPrgmcontent << endl;
 
@@ -101,7 +106,7 @@ int main(int argc, char** argv)
     testPrgm42.setCalcModel(TIModel::createFromName("82"));
     testPrgm42.setContentFromString("");
     testPrgm42.setVarName("Toto");
-    testPrgm42.saveVarToFile("/Users/adriweb/Downloads", "blablaTOTO");
+    //testPrgm42.saveVarToFile("/Users/adriweb/Downloads", "blablaTOTO");
 
 
     TIVarFile testRealList = TIVarFile::loadFromFile("assets/testData/RealList.8xl");
