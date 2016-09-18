@@ -10,7 +10,6 @@
 
 #include "autoloader.h"
 #include "TIVarType.h"
-#include "TypeHandlers/DummyHandler.h"
 
 namespace tivars
 {

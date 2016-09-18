@@ -10,6 +10,7 @@
 #include <regex>
 
 // TODO : check if the models have different exponent offsets
+// TODO : redo float creation more correctly...
 
 using namespace std;
 

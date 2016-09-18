@@ -9,7 +9,6 @@
 #define TIVARTYPE_H
 
 #include "autoloader.h"
-#include "TypeHandlers/DummyHandler.h"
 
 namespace tivars
 {

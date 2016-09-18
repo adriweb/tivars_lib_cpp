@@ -8,13 +8,15 @@
 #ifndef TYPE_HANDLERS_H
 #define TYPE_HANDLERS_H
 
-#include "DummyHandler.h"
+#include "../autoloader.h"
 
 namespace tivars
 {
 #define th()    data_t      makeDataFromString(const std::string& str,  const options_t options = {}); \
                 std::string makeStringFromData(const data_t& data,      const options_t options = {})
 
+    namespace DummyHandler
+    { th(); }
 
     namespace TH_0x00   // Real
     {
@@ -37,8 +39,15 @@ namespace tivars
     namespace TH_0x04 = TH_0x05; // String
     namespace TH_0x06 = TH_0x05; // Protected Program
 
-
 #undef th
+
+
+typedef decltype(&DummyHandler::makeDataFromString) dataFromString_handler_t;
+typedef decltype(&DummyHandler::makeStringFromData) stringFromData_handler_t;
+typedef std::pair<dataFromString_handler_t, stringFromData_handler_t> handler_pair_t;
+
+#define make_handler_pair(cls)   make_pair(&cls::makeDataFromString, &cls::makeStringFromData)
+
 }
 
 #endif
