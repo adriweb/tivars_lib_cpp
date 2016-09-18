@@ -48,6 +48,7 @@ int main(int argc, char** argv)
     TIVarFile testReal = TIVarFile::loadFromFile("assets/testData/Real.8xn");
     assert(testReal.getReadableContent() == "-42.1337");
     testReal.setContentFromString(".5");
+    cout << "testReal.getReadableContent() : " << testReal.getReadableContent() << endl;
     assert(testReal.getReadableContent() == "0.5");
 
 

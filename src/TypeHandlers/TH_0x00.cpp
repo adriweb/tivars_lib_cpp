@@ -8,6 +8,7 @@
 #include "TypeHandlers.h"
 #include "../utils.h"
 #include <regex>
+#include <cfloat>
 
 // TODO : check if the models have different exponent offsets
 // TODO : redo float creation more correctly...
@@ -65,8 +66,8 @@ namespace tivars
         }
         number = number.substr(0, 1) + "." + number.substr(1);
 
-        char buf[20] = {0};
-        sprintf(buf, "%g", pow(10, exponent) * atof(number.c_str()));
+        char buf[35] = {0};
+        sprintf(buf, "%.*f", DECIMAL_DIG, pow(10, exponent) * atof(number.c_str()));
         string str(buf);
 
         // Cleanup
