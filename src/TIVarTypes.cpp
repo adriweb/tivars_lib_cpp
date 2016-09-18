@@ -50,7 +50,7 @@ namespace tivars
         /* Standard types */
         insertType("Real",                 0x00,  {"82n", "83n", "8xn", "8xn", "8xn", "8xn", "8xn"},  make_handler_pair(TH_0x00) );
         insertType("RealList",             0x01,  {"82l", "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  make_handler_pair(TH_0x01) );
-        insertType("Matrix",               0x02,  {"82m", "83m", "8xm", "8xm", "8xm", "8xm", "8xm"});
+        insertType("Matrix",               0x02,  {"82m", "83m", "8xm", "8xm", "8xm", "8xm", "8xm"},  make_handler_pair(TH_0x02) );
         insertType("Equation",             0x03,  {"82y", "83y", "8xy", "8xy", "8xy", "8xy", "8xy"},  make_handler_pair(TH_0x03) );
         insertType("String",               0x04,  {"82s", "83s", "8xs", "8xs", "8xs", "8xs", "8xs"},  make_handler_pair(TH_0x04) );
         insertType("Program",              0x05,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_0x05) );

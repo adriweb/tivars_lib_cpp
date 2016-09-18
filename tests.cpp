@@ -116,6 +116,15 @@ int main(int argc, char** argv)
     cout << testRealList.getReadableContent() << "\n";
 //testRealList.saveVarToFile("testData", "RealList_new");
 
+
+    TIVarFile testStandardMatrix = TIVarFile::loadFromFile("assets/testData/Matrix_3x3_standard.8xm");
+    cout << "Before: " << testStandardMatrix.getReadableContent() << "\t" << "Now: ";
+    testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7,-8,-9]]");
+    testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7,-8,-9][1,2,3][4,5,6][-7,-8,-9]]");
+    cout << testStandardMatrix.getReadableContent() << "\n";
+//testStandardMatrix.saveVarToFile('testData', 'Matrix_new');
+
+
     return 0;
 }
 
