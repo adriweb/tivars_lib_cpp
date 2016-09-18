@@ -243,11 +243,6 @@ namespace tivars
         this->refreshMetadataFields();
     }
 
-    void TIVarFile::setContentFromString(const string str)
-    {
-        setContentFromString(str, {});
-    }
-
     void TIVarFile::setCalcModel(const TIModel model)
     {
         this->calcModel = model;
@@ -272,11 +267,6 @@ namespace tivars
     {
         auto func = TypeHandlerFuncGetter::getStringFromDataFunc(this->type.getId());
         return func(this->varEntry.data, options);
-    }
-
-    string TIVarFile::getReadableContent()
-    {
-        return getReadableContent({});
     }
 
     void TIVarFile::fixChecksumInFile()

@@ -27,7 +27,7 @@ namespace tivars
          * @param   array   options    Ignored here (French and English token names supported by default)
          * @return  array   The bytes (tokens) array (the two first ones are the size of the rest)
          */
-        static data_t makeDataFromString(const std::string& str, const options_t options);
+        static data_t makeDataFromString(const std::string& str, const options_t options = {});
 
         /**
          * Detokenizer
@@ -37,7 +37,7 @@ namespace tivars
          * @return  string  The program source as a string (detokenized)
          * @throws  \Exception
          */
-        static std::string makeStringFromData(const data_t& data, const options_t options);
+        static std::string makeStringFromData(const data_t& data, const options_t options = {});
 
         static std::string reindentCodeString(const std::string& str);
 
