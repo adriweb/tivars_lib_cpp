@@ -46,6 +46,8 @@ int main(int argc, char** argv)
 
     TIVarFile testReal = TIVarFile::loadFromFile("assets/testData/Real.8xn");
     assert(testReal.getReadableContent() == "-42.1337");
+    testReal.setContentFromString(".5");
+    assert(testReal.getReadableContent() == "0.5");
 
 
     TIVarFile testReal42 = TIVarFile::createNew(TIVarType::createFromName("Real"), "R");
@@ -54,7 +56,7 @@ int main(int argc, char** argv)
     testReal42.saveVarToFile("/Users/adriweb/Downloads", "Real9001dot42");
 
 
-    string test = "Disp 42:Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
+    string test = "Disp 42:Wait 5:toString(42):Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
     cout << "Indented code:" << endl << TH_0x05::reindentCodeString(test) << endl;
 
 
@@ -99,6 +101,13 @@ int main(int argc, char** argv)
     testPrgm42.setContentFromString("");
     testPrgm42.setVarName("Toto");
     testPrgm42.saveVarToFile("/Users/adriweb/Downloads", "blablaTOTO");
+
+
+    TIVarFile testRealList = TIVarFile::loadFromFile("assets/testData/RealList.8xl");
+    cout << "Before: " << testRealList.getReadableContent() << "\t" << "Now: ";
+    testRealList.setContentFromString("{9, 0, .5, -6e-8}");
+    cout << testRealList.getReadableContent() << "\n";
+//testRealList.saveVarToFile("testData", "RealList_new");
 
     return 0;
 }
