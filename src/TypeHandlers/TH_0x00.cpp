@@ -5,7 +5,7 @@
  * License: MIT
  */
 
-#include "TH_0x00.h"
+#include "TypeHandlers.h"
 #include "../utils.h"
 #include <regex>
 
@@ -15,7 +15,7 @@ using namespace std;
 
 namespace tivars
 {
-    
+
     data_t TH_0x00::makeDataFromString(const string& str, const options_t options)
     {
         data_t data(TH_0x00::dataByteCount);

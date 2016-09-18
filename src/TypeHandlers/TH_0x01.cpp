@@ -5,8 +5,7 @@
  * License: MIT
  */
 
-#include "TH_0x00.h"
-#include "TH_0x01.h"
+#include "TypeHandlers.h"
 #include "../utils.h"
 #include <regex>
 
@@ -56,7 +55,7 @@ namespace tivars
         size_t byteCount = data.size();
         size_t numCount = (size_t) ((data[0] & 0xFF) + ((data[1] << 8) & 0xFF00));
         if (byteCount < 2+TH_0x00::dataByteCount || ((byteCount - 2) % TH_0x00::dataByteCount != 0)
-            || (numCount != (int)((byteCount - 2) / TH_0x00::dataByteCount)) || numCount > 999)
+            || (numCount != (size_t)((byteCount - 2) / TH_0x00::dataByteCount)) || numCount > 999)
         {
             throw invalid_argument("Invalid data array. Needs to contain 2+" + to_string(TH_0x00::dataByteCount) + "*n bytes");
         }

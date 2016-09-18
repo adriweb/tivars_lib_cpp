@@ -9,9 +9,13 @@
 #define TIVARTYPES_H
 
 #include "autoloader.h"
+#include "TIVarType.h"
+#include "TypeHandlers/DummyHandler.h"
 
 namespace tivars
 {
+    extern std::unordered_map<std::string, TIVarType> types;
+
     class TIVarTypes
     {
 
@@ -28,7 +32,7 @@ namespace tivars
         static std::string getNameFromID(int id);
 
     private:
-        static void insertType(std::string name, int id, std::vector<std::string> exts);
+        static void insertType(std::string name, int id, std::vector<std::string> exts, handler_pair_t handlers = make_handler_pair(DummyHandler));
 
     };
 }

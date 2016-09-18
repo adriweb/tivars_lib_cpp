@@ -8,7 +8,7 @@
 #include "TIVarType.h"
 #include "TIVarTypes.h"
 #include "utils.h"
-#include "TypeHandlers/TH_0x05.h"
+#include "TypeHandlers/TypeHandlers.h"
 
 using namespace std;
 
@@ -25,11 +25,7 @@ namespace tivars
     {
         if (TIVarTypes::isValidID(id))
         {
-            TIVarType varType;
-            varType.id = id;
-            varType.exts = TIVarTypes::getExtensionsFromTypeID(id);
-            varType.name = TIVarTypes::getNameFromID(id);
-            return varType;
+            return types.at(to_string(id));
         } else {
             throw invalid_argument("Invalid type ID");
         }
@@ -44,11 +40,7 @@ namespace tivars
     {
         if (TIVarTypes::isValidName(name))
         {
-            TIVarType varType;
-            varType.name = name;
-            varType.id   = TIVarTypes::getIDFromName(name);
-            varType.exts = TIVarTypes::getExtensionsFromName(name);
-            return varType;
+            return types.at(name);
         } else {
             throw invalid_argument("Invalid type name");
         }

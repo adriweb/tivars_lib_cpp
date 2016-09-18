@@ -5,14 +5,14 @@
  * License: MIT
  */
 
-#ifndef ITIVARTYPEHANDLER_H
-#define ITIVARTYPEHANDLER_H
+#ifndef DUMMY_HANDLER_H
+#define DUMMY_HANDLER_H
 
 #include "../autoloader.h"
 
 namespace tivars
 {
-    class ITIVarTypeHandler
+    class DummyHandler
     {
 
     public:
@@ -30,6 +30,13 @@ namespace tivars
         }
 
     };
+
+    typedef decltype(&DummyHandler::makeDataFromString) dataFromString_handler_t;
+    typedef decltype(&DummyHandler::makeStringFromData) stringFromData_handler_t;
+    typedef std::pair<dataFromString_handler_t, stringFromData_handler_t> handler_pair_t;
+
+#define make_handler_pair(cls)   make_pair(&cls::makeDataFromString, &cls::makeStringFromData)
+
 }
 
 #endif

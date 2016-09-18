@@ -13,8 +13,9 @@
 #include "src/TIVarTypes.h"
 #include "src/BinaryFile.h"
 #include "src/TIVarFile.h"
-#include "src/TypeHandlers/TH_0x05.h"
-#include "src/TypeHandlers/TH_0x00.h"
+#include "src/TypeHandlers/TypeHandlers.h"
+
+enum { LANG_EN = 0, LANG_FR };
 
 using namespace std;
 using namespace tivars;

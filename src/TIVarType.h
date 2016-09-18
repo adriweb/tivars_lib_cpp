@@ -9,7 +9,7 @@
 #define TIVARTYPE_H
 
 #include "autoloader.h"
-#include "TypeHandlers/ITIVarTypeHandler.h"
+#include "TypeHandlers/DummyHandler.h"
 
 namespace tivars
 {
@@ -22,7 +22,7 @@ namespace tivars
         TIVarType()
         {}
 
-        TIVarType(int id, std::string name, std::vector<std::string> exts) : id(id), name(name), exts(exts)
+        TIVarType(int id, std::string name, std::vector<std::string> exts, handler_pair_t handlers) : id(id), name(name), exts(exts), handlers(handlers)
         {}
 
         ~TIVarType()
@@ -32,6 +32,7 @@ namespace tivars
         const int& getId() const { return this->id; }
         const std::string& getName() const { return this->name; }
         const std::vector<std::string>& getExts() const { return this->exts; }
+        const handler_pair_t& getHandlers() const { return this->handlers; };
 
         /*** "Constructors" ***/
         static TIVarType createFromID(uint id);
@@ -41,6 +42,7 @@ namespace tivars
         int id = -1;
         std::string name = "Unknown";
         std::vector<std::string> exts;
+        handler_pair_t handlers;
 
     };
 

@@ -5,7 +5,7 @@
  * License: MIT
  */
 
-#include "TH_0x05.h"
+#include "TypeHandlers.h"
 #include "../utils.h"
 #include <fstream>
 #include <regex>
@@ -15,11 +15,13 @@ using namespace std;
 
 namespace tivars
 {
-
-    std::unordered_map<uint, std::vector<std::string>> tokens_BytesToName;
-    std::unordered_map<std::string, uint> tokens_NameToBytes;
-    uchar lengthOfLongestTokenName;
-    std::vector<uchar> firstByteOfTwoByteTokens;
+    namespace TH_0x05
+    {
+        std::unordered_map<uint, std::vector<std::string>> tokens_BytesToName;
+        std::unordered_map<std::string, uint> tokens_NameToBytes;
+        uchar lengthOfLongestTokenName;
+        std::vector<uchar> firstByteOfTwoByteTokens;
+    }
 
     data_t TH_0x05::makeDataFromString(const string& str, const options_t options)
     {
@@ -59,7 +61,8 @@ namespace tivars
             throw invalid_argument("Empty data array. Needs to contain at least 2 bytes (size fields)");
         }
 
-        uint langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
+        enum { LANG_EN = 0, LANG_FR };
+        uint langIdx = (uint)((has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN);
 
         int howManyBytes = (data[0] & 0xFF) + ((data[1] << 8) & 0xFF00);
         if (howManyBytes != data.size() - 2)

@@ -21,6 +21,8 @@ typedef unsigned char   uchar;
 typedef std::vector<uchar>   data_t;
 typedef std::unordered_map<std::string, uchar>   options_t;
 
+#include "TypeHandlers/TypeHandlers.h"
+
 /*
 #include "TIVarTypes.h"
 #include "TIVarType.h"
@@ -28,10 +30,6 @@ typedef std::unordered_map<std::string, uchar>   options_t;
 #include "TIModel.h"
 #include "BinaryFile.h"
 #include "TIVarFile.h"
-#include "TypeHandlers/ITIVarTypeHandler.h"
-#include "TypeHandlers/TH_0x00.h"
-#include "TypeHandlers/TH_0x05.h"
-#include "TypeHandlers/TH_0x06.h"
 */
 
 // Put all the files to include here.

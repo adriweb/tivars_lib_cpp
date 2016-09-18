@@ -9,6 +9,8 @@
 #include "TIVarType.h"
 #include "utils.h"
 
+#include "TypeHandlers/TypeHandlers.h"
+
 using namespace std;
 
 namespace tivars
@@ -19,13 +21,14 @@ namespace tivars
     /**
      *  Make and insert the associative arrays for the type.
      *
-     * @param string    name   The name of the type
-     * @param int       id     The ID of the type
-     * @param array     exts   The extensions the type can have, ordered by feature flags.
+     * @param string    name        The name of the type
+     * @param int       id          The ID of the type
+     * @param vector    exts        The extensions the type can have, ordered by feature flags.
+     * @param pair      handlers    The data2str and str2data funcs
      */
-    void TIVarTypes::insertType(string name, int id, vector<string> exts)
+    void TIVarTypes::insertType(string name, int id, vector<string> exts, handler_pair_t handlers)
     {
-        TIVarType varType(id, name, exts);
+        TIVarType varType(id, name, exts, handlers);
 
         string id_str = to_string(id);
         types[name]   = varType;
@@ -45,13 +48,13 @@ namespace tivars
         insertType("Unknown",                -1,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
 
         /* Standard types */
-        insertType("Real",                 0x00,  {"82n", "83n", "8xn", "8xn", "8xn", "8xn", "8xn"});
-        insertType("RealList",             0x01,  {"82l", "83l", "8xl", "8xl", "8xl", "8xl", "8xl"});
+        insertType("Real",                 0x00,  {"82n", "83n", "8xn", "8xn", "8xn", "8xn", "8xn"},  make_handler_pair(TH_0x00) );
+        insertType("RealList",             0x01,  {"82l", "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  make_handler_pair(TH_0x01) );
         insertType("Matrix",               0x02,  {"82m", "83m", "8xm", "8xm", "8xm", "8xm", "8xm"});
-        insertType("Equation",             0x03,  {"82y", "83y", "8xy", "8xy", "8xy", "8xy", "8xy"});
-        insertType("String",               0x04,  {"82s", "83s", "8xs", "8xs", "8xs", "8xs", "8xs"});
-        insertType("Program",              0x05,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp"});
-        insertType("ProtectedProgram",     0x06,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp"});
+        insertType("Equation",             0x03,  {"82y", "83y", "8xy", "8xy", "8xy", "8xy", "8xy"},  make_handler_pair(TH_0x03) );
+        insertType("String",               0x04,  {"82s", "83s", "8xs", "8xs", "8xs", "8xs", "8xs"},  make_handler_pair(TH_0x04) );
+        insertType("Program",              0x05,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_0x05) );
+        insertType("ProtectedProgram",     0x06,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_0x06) );
         insertType("Picture",              0x07,  {  "" ,   "" , "8xi", "8xi", "8ci", "8ci", "8ci"});
         insertType("GraphDataBase",        0x08,  {"82d", "83d", "8xd", "8xd", "8xd", "8xd", "8xd"});
 //      insertType("WindowSettings",       0x0B,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw"});
