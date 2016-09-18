@@ -1,6 +1,6 @@
 /*
  * Part of tivars_lib_cpp
- * (C) 2015 Adrien 'Adriweb' Bertrand
+ * (C) 2015-2016 Adrien 'Adriweb' Bertrand
  * https://github.com/adriweb/tivars_lib_cpp
  * License: MIT
  */
@@ -120,7 +120,7 @@ int main(int argc, char** argv)
     TIVarFile testStandardMatrix = TIVarFile::loadFromFile("assets/testData/Matrix_3x3_standard.8xm");
     cout << "Before: " << testStandardMatrix.getReadableContent() << "\t" << "Now: ";
     testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7,-8,-9]]");
-    testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7,-8,-9][1,2,3][4,5,6][-7,-8,-9]]");
+    testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7.5,-8,-9][1,2,3][4,5,6][-0.002,-8,-9]]");
     cout << testStandardMatrix.getReadableContent() << "\n";
 //testStandardMatrix.saveVarToFile('testData', 'Matrix_new');
 
