@@ -58,7 +58,7 @@ namespace tivars
         insertType("Picture",              0x07,  {  "" ,   "" , "8xi", "8xi", "8ci", "8ci", "8ci"});
         insertType("GraphDataBase",        0x08,  {"82d", "83d", "8xd", "8xd", "8xd", "8xd", "8xd"});
 //      insertType("WindowSettings",       0x0B,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw"});
-        insertType("Complex",              0x0C,  {  "" , "83c", "8xc", "8xc", "8xc", "8xc", "8xc"});
+        insertType("Complex",              0x0C,  {  "" , "83c", "8xc", "8xc", "8xc", "8xc", "8xc"},  make_handler_pair(TH_0x0C) );
         insertType("ComplexList",          0x0D,  {  "" , "83l", "8xl", "8xl", "8xl", "8xl", "8xl"});
         insertType("WindowSettings",       0x0F,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw"});
         insertType("RecallWindow",         0x10,  {"82z", "83z", "8xz", "8xz", "8xz", "8xz", "8xz"});

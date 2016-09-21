@@ -42,6 +42,9 @@ namespace tivars
     namespace TH_0x04 = TH_0x05; // String
     namespace TH_0x06 = TH_0x05; // Protected Program
 
+    namespace TH_0x0C   // Complex
+    { th(); }
+
 #undef th
 
 

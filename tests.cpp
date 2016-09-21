@@ -124,7 +124,18 @@ int main(int argc, char** argv)
     cout << testStandardMatrix.getReadableContent() << "\n";
 //testStandardMatrix.saveVarToFile('testData', 'Matrix_new');
 
+    
 
+    TIVarFile testComplex = TIVarFile::loadFromFile("assets/testData/Complex.8xc"); // -5 + 2i
+    cout << "Before: " << testComplex.getReadableContent() << "\t" << "Now: ";
+    assert(testComplex.getReadableContent() == "-5+2i");
+    TIVarFile newComplex = TIVarFile::createNew(TIVarType::createFromName("Complex"), "C");
+    newComplex.setContentFromString("-5+2i");
+    assert(newComplex.getRawContent() == newComplex.getRawContent());
+    newComplex.setContentFromString("2.5+0.001i");
+    cout << "After: " << newComplex.getReadableContent() << endl;
+//testComplex.saveVarToFile("testComplex", "Complex_new");
+    
     return 0;
 }
 
