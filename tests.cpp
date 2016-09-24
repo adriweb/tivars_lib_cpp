@@ -135,6 +135,15 @@ int main(int argc, char** argv)
     newComplex.setContentFromString("2.5+0.001i");
     cout << "After: " << newComplex.getReadableContent() << endl;
 //testComplex.saveVarToFile("testComplex", "Complex_new");
+
+
+
+    TIVarFile testComplexList = TIVarFile::loadFromFile("assets/testData/ComplexList.8xl");
+    cout << "Before: " << testComplexList.getReadableContent() << "\t" << "Now: ";
+    testComplexList.setContentFromString("{9+2i, 0i, .5, -0.5+6e-8i}");
+    cout << testComplexList.getReadableContent() << "\n";
+//testComplexList.saveVarToFile("testData", "ComplexList_new");
+
     
     return 0;
 }
