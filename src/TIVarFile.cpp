@@ -24,7 +24,7 @@ namespace tivars
      * @param   string  filePath
      * @throws  \Exception
      */
-    TIVarFile::TIVarFile(const string filePath) : BinaryFile(filePath)
+    TIVarFile::TIVarFile(const string& filePath) : BinaryFile(filePath)
     {
         if (filePath != "")
         {
@@ -43,7 +43,7 @@ namespace tivars
         }
     }
 
-    TIVarFile TIVarFile::loadFromFile(const string filePath)
+    TIVarFile TIVarFile::loadFromFile(const string& filePath)
     {
         if (filePath != "")
         {
@@ -54,7 +54,7 @@ namespace tivars
         }
     }
 
-    TIVarFile TIVarFile::createNew(const TIVarType& type, const string name, const TIModel& model)
+    TIVarFile TIVarFile::createNew(const TIVarType& type, const string& name, const TIModel& model)
     {
         TIVarFile varFile;
         varFile.type = type;
@@ -90,7 +90,7 @@ namespace tivars
         return varFile;
     }
 
-    TIVarFile TIVarFile::createNew(const TIVarType& type, const string name)
+    TIVarFile TIVarFile::createNew(const TIVarType& type, const string& name)
     {
         return createNew(type, name, TIModel::createFromName("84+"));
     }
@@ -223,7 +223,7 @@ namespace tivars
     /**
     * @param    array   data   The array of bytes
     */
-    void TIVarFile::setContentFromData(const data_t data)
+    void TIVarFile::setContentFromData(const data_t& data)
     {
         if (data.size() > 0)
         {
@@ -234,20 +234,20 @@ namespace tivars
         }
     }
 
-    void TIVarFile::setContentFromString(const string str, const options_t options)
+    void TIVarFile::setContentFromString(const string& str, const options_t& options)
     {
         this->varEntry.data = (this->type.getHandlers().first)(str, options);
         this->refreshMetadataFields();
     }
 
-    void TIVarFile::setCalcModel(const TIModel model)
+    void TIVarFile::setCalcModel(const TIModel& model)
     {
         this->calcModel = model;
         string signature = model.getSig();
         std::copy(signature.begin(), signature.end(), this->header.signature);
     }
 
-    void TIVarFile::setVarName(const std::string name)
+    void TIVarFile::setVarName(const string& name)
     {
         string varname = TIVarFile::fixVarName(name);
         std::copy(varname.begin(), varname.begin() + 7, this->varEntry.varname);
@@ -260,7 +260,7 @@ namespace tivars
         return this->varEntry.data;
     }
 
-    string TIVarFile::getReadableContent(const options_t options)
+    string TIVarFile::getReadableContent(const options_t& options)
     {
         return (this->type.getHandlers().second)(this->varEntry.data, options);
     }

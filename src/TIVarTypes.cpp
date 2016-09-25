@@ -26,7 +26,7 @@ namespace tivars
      * @param vector    exts        The extensions the type can have, ordered by feature flags.
      * @param pair      handlers    The data2str and str2data funcs
      */
-    void TIVarTypes::insertType(string name, int id, vector<string> exts, handler_pair_t handlers)
+    void TIVarTypes::insertType(string name, int id, const vector<string>& exts, const handler_pair_t& handlers)
     {
         TIVarType varType(id, name, exts, handlers);
 
@@ -156,7 +156,7 @@ namespace tivars
         return (id != -1 && is_in_umap_string_TIVarType(types, id_str));
     }
 
-    bool TIVarTypes::isValidName(string name)
+    bool TIVarTypes::isValidName(const string& name)
     {
         return (name != "" && is_in_umap_string_TIVarType(types, name));
     }

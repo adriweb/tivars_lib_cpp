@@ -43,20 +43,17 @@ namespace tivars
         TIVarFile()
         {}
 
-        TIVarFile(const std::string filePath);
-
-        ~TIVarFile()
-        { }
+        TIVarFile(const std::string& filePath);
 
         const var_header_t& getHeader() const { return header; }
         const var_entry_t& getVarEntry() const { return varEntry; }
         const TIVarType& getType() const { return type; }
         const uint16_t& getInstanceChecksum() const { return computedChecksum; }
 
-        static TIVarFile loadFromFile(const std::string filePath);
+        static TIVarFile loadFromFile(const std::string& filePath);
 
-        static TIVarFile createNew(const TIVarType& type, const std::string name, const TIModel& model);
-        static TIVarFile createNew(const TIVarType& type, const std::string name);
+        static TIVarFile createNew(const TIVarType& type, const std::string& name, const TIModel& model);
+        static TIVarFile createNew(const TIVarType& type, const std::string& name);
         static TIVarFile createNew(const TIVarType& type);
 
         void makeHeaderFromFile();
@@ -67,16 +64,16 @@ namespace tivars
 
         uint16_t getChecksumValueFromFile();
 
-        void setContentFromData(const data_t data);
+        void setContentFromData(const data_t& data);
 
-        void setContentFromString(const std::string str, const options_t options = {});
+        void setContentFromString(const std::string& str, const options_t& options = {});
 
-        void setCalcModel(const TIModel model);
-        void setVarName(const std::string name);
+        void setCalcModel(const TIModel& model);
+        void setVarName(const std::string& name);
 
         data_t getRawContent();
 
-        std::string getReadableContent(const options_t options = {});
+        std::string getReadableContent(const options_t& options = {});
 
         void fixChecksumInFile();
 

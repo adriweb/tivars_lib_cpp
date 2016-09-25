@@ -70,14 +70,14 @@ int main(int argc, char** argv)
     try
     {
         auto goodTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("Program"), "Bla", TIModel::createFromName("83PCE"));
-    } catch (runtime_error e) {
+    } catch (runtime_error& e) {
         cout << "Caught unexpected exception: " << e.what() << endl;
     }
 
     try
     {
         auto badTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("ExactComplexFrac"), "Bla", TIModel::createFromName("84+"));
-    } catch (runtime_error e) {
+    } catch (runtime_error& e) {
         cout << "Caught expected exception: " << e.what() << endl;
     }
 

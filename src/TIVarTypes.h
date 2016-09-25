@@ -21,7 +21,7 @@ namespace tivars
     public:
         static void initTIVarTypesArray();
 
-        static bool isValidName(std::string name);
+        static bool isValidName(const std::string& name);
 
         static bool isValidID(int id);
 
@@ -31,7 +31,7 @@ namespace tivars
         static std::string getNameFromID(int id);
 
     private:
-        static void insertType(std::string name, int id, std::vector<std::string> exts, handler_pair_t handlers = make_handler_pair(DummyHandler));
+        static void insertType(std::string name, int id, const std::vector<std::string>& exts, const handler_pair_t& handlers = make_handler_pair(DummyHandler));
 
     };
 }

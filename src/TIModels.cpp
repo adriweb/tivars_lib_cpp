@@ -23,7 +23,7 @@ namespace tivars
      * @param string    name    The name of the calc using this model
      * @param string    sig     The signature (magic bytes) used for this model
      */
-    void TIModels::insertModel(int orderID, uint flags, const string name, const string sig)
+    void TIModels::insertModel(int orderID, uint flags, const string& name, const string& sig)
     {
         TIModel model(orderID, name, flags, sig);
 
@@ -76,7 +76,7 @@ namespace tivars
      * @param   string  name   The model name
      * @return  int             The model flags for that name
      */
-    uint TIModels::getFlagsFromName(string name)
+    uint TIModels::getFlagsFromName(const string& name)
     {
         return isValidName(name) ? models[name].getFlags() : 0;
     }
@@ -95,7 +95,7 @@ namespace tivars
      * @param   string  name
      * @return  string          The signature for that name
      */
-    string TIModels::getSignatureFromName(string name)
+    string TIModels::getSignatureFromName(const string& name)
     {
         return isValidName(name) ? models[name].getSig() : "";
     }
@@ -104,7 +104,7 @@ namespace tivars
      * @param   string  sig    The signature
      * @return  string          The default calc name whose file formats use that signature
      */
-    string TIModels::getDefaultNameFromSignature(string sig)
+    string TIModels::getDefaultNameFromSignature(const string& sig)
     {
         return isValidSignature(sig) ? models[sig].getName() : "";
     }
@@ -113,7 +113,7 @@ namespace tivars
      * @param   string  sig    The signature
      * @return  int             The default calc order ID whose file formats use that signature
      */
-    int TIModels::getDefaultOrderIDFromSignature(string sig)
+    int TIModels::getDefaultOrderIDFromSignature(const string& sig)
     {
         return isValidSignature(sig) ? models[sig].getOrderId() : -1;
     }
@@ -141,7 +141,7 @@ namespace tivars
      * @param   string  sig    The signature
      * @return  string          The minimum compatibility flags for that signaure
      */
-    uint TIModels::getMinFlagsFromSignature(string sig)
+    uint TIModels::getMinFlagsFromSignature(const string& sig)
     {
         return isValidSignature(sig) ? models[sig].getFlags() : 0;
     }
@@ -153,12 +153,12 @@ namespace tivars
         return (flags != 0 && is_in_umap_string_TIModel(models, flags_str));
     }
 
-    bool TIModels::isValidName(string name)
+    bool TIModels::isValidName(const string& name)
     {
         return (name != "" && is_in_umap_string_TIModel(models, name));
     }
 
-    bool TIModels::isValidSignature(string sig)
+    bool TIModels::isValidSignature(const string& sig)
     {
         return (sig != "" && is_in_umap_string_TIModel(models, sig));
     }

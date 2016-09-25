@@ -22,7 +22,7 @@ namespace tivars
         TIModel()
         {}
 
-        TIModel(int orderId, std::string name, uint flags, std::string sig) : orderID(orderId), name(name), flags(flags), sig(sig)
+        TIModel(int orderId, const std::string& name, uint flags, const std::string& sig) : orderID(orderId), name(name), flags(flags), sig(sig)
         {}
 
         ~TIModel()

@@ -23,32 +23,32 @@ bool is_in_vector_uint(const std::vector<unsigned int>& v, unsigned int element)
     return find(v.begin(), v.end(), element) != v.end();
 }
 
-bool is_in_vector_string(const std::vector<std::string>& v, std::string element)
+bool is_in_vector_string(const std::vector<string>& v, const string& element)
 {
     return find(v.begin(), v.end(), element) != v.end();
 }
 
-bool is_in_umap_string_uchar(const unordered_map<string, unsigned char>& m, const string element)
+bool is_in_umap_string_uchar(const unordered_map<string, unsigned char>& m, const string& element)
 {
     return m.find(element) != m.end();
 }
 
-bool is_in_umap_string_uint(const unordered_map<string, unsigned int>& m, const string element)
+bool is_in_umap_string_uint(const unordered_map<string, unsigned int>& m, const string& element)
 {
     return m.find(element) != m.end();
 }
 
-bool is_in_umap_string_TIModel(const std::unordered_map<std::string, tivars::TIModel>& m, const std::string element)
+bool is_in_umap_string_TIModel(const std::unordered_map<string, tivars::TIModel>& m, const string& element)
 {
     return m.find(element) != m.end();
 }
 
-bool is_in_umap_string_TIVarType(const std::unordered_map<std::string, tivars::TIVarType>& m, const std::string element)
+bool is_in_umap_string_TIVarType(const std::unordered_map<string, tivars::TIVarType>& m, const string& element)
 {
     return m.find(element) != m.end();
 }
 
-bool has_option(const unordered_map<string, unsigned char>& m, const string element)
+bool has_option(const unordered_map<string, unsigned char>& m, const string& element)
 {
     return m.find(element) != m.end();
 }
@@ -58,9 +58,9 @@ unsigned char hexdec(const string& str)
     return (unsigned char) stoul(str, nullptr, 16);
 }
 
-std::string dechex(unsigned char i)
+string dechex(unsigned char i)
 {
-    std::stringstream stream;
+    stringstream stream;
     stream << std::hex << (unsigned int)i;
     return stream.str();
 }
@@ -87,21 +87,21 @@ vector<string> explode(const string& str, char delim)
 }
 
 // trim from start
-std::string ltrim(std::string s, const char* t)
+string ltrim(string s, const char* t)
 {
     s.erase(0, s.find_first_not_of(t));
     return s;
 }
 
 // trim from end
-std::string rtrim(std::string s, const char* t)
+string rtrim(string s, const char* t)
 {
     s.erase(s.find_last_not_of(t) + 1);
     return s;
 }
 
 // trim from both ends
-std::string trim(std::string s, const char* t)
+string trim(const string& s, const char* t)
 {
     return ltrim(rtrim(s, t), t);
 }
@@ -193,7 +193,7 @@ void ParseCSV(const string& csvSource, vector<vector<string>>& lines)
         lines.push_back(line);
 }
 
-bool is_numeric(const std::string& str)
+bool is_numeric(const string& str)
 {
     char* p;
     double ignored = ::strtod(str.c_str(), &p);
@@ -202,15 +202,22 @@ bool is_numeric(const std::string& str)
 }
 
 // From http://rosettacode.org/wiki/Strip_a_set_of_characters_from_a_string#C.2B.2B
-std::string stripchars(std::string str, const std::string& chars)
+string stripchars(string str, const string& chars)
 {
-    str.erase(std::remove_if(str.begin(), str.end(), [&](char c){ return chars.find(c) != std::string::npos; }), str.end());
+    str.erase(std::remove_if(str.begin(), str.end(), [&](char c){ return chars.find(c) != string::npos; }), str.end());
     return str;
 }
 
-bool file_exists(const std::string filePath)
-{
-    return access(filePath.c_str(), F_OK) != -1;
+bool file_exists(const string& path) {
+    if (path.empty()) {
+        return false;
+    }
+    if (FILE *file = fopen(path.c_str(), "r")) {
+        fclose(file);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 string str_pad(const string& str, unsigned long pad_length, string pad_string)

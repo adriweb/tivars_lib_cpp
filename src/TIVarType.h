@@ -21,7 +21,7 @@ namespace tivars
         TIVarType()
         {}
 
-        TIVarType(int id, std::string name, std::vector<std::string> exts, handler_pair_t handlers) : id(id), name(name), exts(exts), handlers(handlers)
+        TIVarType(int id, const std::string& name, const std::vector<std::string>& exts, const handler_pair_t& handlers) : id(id), name(name), exts(exts), handlers(handlers)
         {}
 
         ~TIVarType()

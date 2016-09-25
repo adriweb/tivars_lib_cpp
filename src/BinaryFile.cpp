@@ -18,7 +18,7 @@ namespace tivars
      * @param null filePath
      * @throws \Exception
      */
-    BinaryFile::BinaryFile(const string filePath)
+    BinaryFile::BinaryFile(const string& filePath)
     {
         if (filePath != "")
         {

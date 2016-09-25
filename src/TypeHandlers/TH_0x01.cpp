@@ -14,7 +14,7 @@ using namespace std;
 namespace tivars
 {
     
-    data_t TH_0x01::makeDataFromString(const string& str, const options_t options)
+    data_t TH_0x01::makeDataFromString(const string& str, const options_t& options)
     {
         data_t data(2); // reserve 2 bytes for size fields
 
@@ -48,7 +48,7 @@ namespace tivars
         return data;
     }
 
-    string TH_0x01::makeStringFromData(const data_t& data, const options_t options)
+    string TH_0x01::makeStringFromData(const data_t& data, const options_t& options)
     {
         string str;
 

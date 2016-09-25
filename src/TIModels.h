@@ -40,7 +40,7 @@ namespace tivars
          * @param   std::string  name   The model name
          * @return  int             The model flags for that name
          */
-        static uint getFlagsFromName(std::string name);
+        static uint getFlagsFromName(const std::string& name);
 
         /**
          * @param   int     flags  The model flags
@@ -52,18 +52,18 @@ namespace tivars
          * @param   std::string  name
          * @return  std::string          The signature for that name
          */
-        static std::string getSignatureFromName(std::string name);
+        static std::string getSignatureFromName(const std::string& name);
         /**
          * @param   std::string  sig    The signature
          * @return  std::string          The default calc name whose file formats use that signature
          */
-        static std::string getDefaultNameFromSignature(std::string sig);
+        static std::string getDefaultNameFromSignature(const std::string& sig);
 
         /**
          * @param   std::string  sig    The signature
          * @return  int             The default calc order ID whose file formats use that signature
          */
-        static int getDefaultOrderIDFromSignature(std::string sig);
+        static int getDefaultOrderIDFromSignature(const std::string& sig);
 
         /**
          * @param   std::string  name
@@ -81,17 +81,17 @@ namespace tivars
          * @param   std::string  sig    The signature
          * @return  std::string          The minimum compatibility flags for that signaure
          */
-        static uint getMinFlagsFromSignature(std::string sig);
+        static uint getMinFlagsFromSignature(const std::string& sig);
 
 
         static bool isValidFlags(uint flags);
 
-        static bool isValidName(std::string name);
+        static bool isValidName(const std::string& name);
 
-        static bool isValidSignature(std::string sig);
+        static bool isValidSignature(const std::string& sig);
 
     private:
-        static void insertModel(int orderID, uint flags, const std::string name, const std::string sig);
+        static void insertModel(int orderID, uint flags, const std::string& name, const std::string& sig);
 
     };
 

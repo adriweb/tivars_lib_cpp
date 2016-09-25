@@ -18,7 +18,7 @@ namespace tivars
         BinaryFile()
         {}
 
-        BinaryFile(const std::string filePath);
+        BinaryFile(const std::string& filePath);
 
         ~BinaryFile()
         {
