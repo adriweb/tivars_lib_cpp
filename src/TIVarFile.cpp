@@ -251,55 +251,31 @@ namespace tivars
         return (this->type.getHandlers().second)(this->varEntry.data, options);
     }
 
-    data_t TIVarFile::bindata_maker()
+    data_t TIVarFile::make_bin_data()
     {
         data_t bin_data;
 
         // Header
         {
-            for (uint i = 0; i < 8; i++)
-            {
-                bin_data.push_back(this->header.signature[i]);
-            }
-            for (uint i = 0; i < 3; i++)
-            {
-                bin_data.push_back(this->header.sig_extra[i]);
-            }
-            for (uint i = 0; i < 42; i++)
-            {
-                bin_data.push_back(this->header.comment[i]);
-            }
-            bin_data.push_back((uchar) (this->header.entries_len & 0xFF));
-            bin_data.push_back((uchar) ((this->header.entries_len >> 8) & 0xFF));
+            bin_data.insert(bin_data.end(), this->header.signature, this->header.signature + 8);
+            bin_data.insert(bin_data.end(), this->header.sig_extra, this->header.sig_extra + 3);
+            bin_data.insert(bin_data.end(), this->header.comment,   this->header.comment   + 42);
+            bin_data.push_back((uchar) (this->header.entries_len & 0xFF)); bin_data.push_back((uchar) ((this->header.entries_len >> 8) & 0xFF));
         }
 
         // Var entry
         {
-            for (uint i = 0; i < 2; i++)
-            {
-                bin_data.push_back(this->varEntry.constBytes[i]);
-            }
-            bin_data.push_back((uchar) (this->varEntry.data_length & 0xFF));
-            bin_data.push_back((uchar) ((this->varEntry.data_length >> 8) & 0xFF));
+            bin_data.push_back((uchar) (this->varEntry.meta_length & 0xFF)); bin_data.push_back((uchar) ((this->varEntry.meta_length >> 8) & 0xFF));
+            bin_data.push_back((uchar) (this->varEntry.data_length & 0xFF)); bin_data.push_back((uchar) ((this->varEntry.data_length >> 8) & 0xFF));
             bin_data.push_back(this->varEntry.typeID);
-            for (uint i = 0; i < 8; i++)
-            {
-                bin_data.push_back(this->varEntry.varname[i]);
-            }
-            if (this->varEntry.version != (uchar)-1)
+            bin_data.insert(bin_data.end(), this->varEntry.varname, this->varEntry.varname + 8);
+            if (this->calcModel.getFlags() >= TIFeatureFlags::hasFlash)
             {
                 bin_data.push_back(this->varEntry.version);
-            }
-            if (this->varEntry.archivedFlag != (uchar)-1)
-            {
                 bin_data.push_back(this->varEntry.archivedFlag);
             }
-            bin_data.push_back((uchar) (this->varEntry.data_length2 & 0xFF));
-            bin_data.push_back((uchar) ((this->varEntry.data_length2 >> 8) & 0xFF));
-            for (uint i = 0; i < this->varEntry.data_length; i++)
-            {
-                bin_data.push_back(this->varEntry.data[i]);
-            }
+            bin_data.push_back((uchar) (this->varEntry.data_length2 & 0xFF)); bin_data.push_back((uchar) ((this->varEntry.data_length2 >> 8) & 0xFF));
+            bin_data.insert(bin_data.end(), this->varEntry.data.begin(), this->varEntry.data.end());
         }
 
         return bin_data;
@@ -351,7 +327,7 @@ namespace tivars
 
         this->refreshMetadataFields();
 
-        data_t bin_data = bindata_maker();
+        data_t bin_data = make_bin_data();
 
         uchar* buf_bin = &bin_data[0];
         fwrite(buf_bin, bin_data.size(), sizeof(uchar), handle);

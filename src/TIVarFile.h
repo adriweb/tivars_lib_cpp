@@ -97,7 +97,7 @@ namespace tivars
         bool         isFromFile       = false;
         bool         corrupt          = false;
 
-        data_t bindata_maker();
+        data_t make_bin_data();
 
     };
 }
