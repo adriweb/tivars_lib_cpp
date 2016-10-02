@@ -153,7 +153,7 @@ namespace tivars
             long dataSectionOffset = (8 + 3 + 42 + 2); // after header
             fseek(this->file, dataSectionOffset, SEEK_SET);
             uint16_t sum = 0;
-            for (long i = dataSectionOffset; i < this->fileSize - 2; i++)
+            for (size_t i = dataSectionOffset; i < this->fileSize - 2; i++)
             {
                 sum += this->get_raw_bytes(1)[0];
             }

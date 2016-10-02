@@ -65,7 +65,7 @@ namespace tivars
         uint langIdx = (uint)((has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN);
 
         int howManyBytes = (data[0] & 0xFF) + ((data[1] << 8) & 0xFF00);
-        if (howManyBytes != data.size() - 2)
+        if (howManyBytes != (int)data.size() - 2)
         {
             cerr << "[Warning] Token count (" << (data.size() - 2) << ") and size field (" << howManyBytes  << ") mismatch!";
         }
@@ -73,7 +73,7 @@ namespace tivars
         uint errCount = 0;
         string str("");
         size_t dataSize = data.size();
-        for (uint i = 2; i < howManyBytes + 2; i++)
+        for (uint i = 2; i < (uint)howManyBytes + 2; i++)
         {
             uint currentToken = data[i];
             uint nextToken = (i < dataSize-1) ? data[i+1] : (uint)-1;
