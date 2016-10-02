@@ -35,6 +35,11 @@ namespace tivars
             this->makeVarEntryFromFile();
             this->computedChecksum = this->computeChecksumFromFileData();
             this->inFileChecksum = this->getChecksumValueFromFile();
+            if (this->computedChecksum != this->inFileChecksum)
+            {
+                // puts("[Warning] File is corrupt (read and calculated checksums differ)");
+                this->corrupt = true;
+            }
             this->type = TIVarType::createFromID(this->varEntry.typeID);
         } else {
             this->isFromFile = false;
@@ -65,24 +70,15 @@ namespace tivars
             throw runtime_error("This calculator model (" + varFile.calcModel.getName() + ") does not support the type " + varFile.type.getName());
         }
 
-        string signature = varFile.calcModel.getSig();
-        std::copy(signature.begin(), signature.end(), varFile.header.signature);
-        uchar sig_extra[3] = {0x1A, 0x0A, 0x00};
-        std::copy(sig_extra, sig_extra + 3, varFile.header.sig_extra);
-        string comment = str_pad("Created by tivars_lib_cpp", 42, "\0");
-        std::copy(comment.begin(), comment.end(), varFile.header.comment);
+        string signature = varFile.calcModel.getSig(); std::copy(signature.begin(), signature.end(), varFile.header.signature);
+        uchar sig_extra[3] = {0x1A, 0x0A, 0x00};       std::copy(sig_extra, sig_extra + 3, varFile.header.sig_extra);
+        string comment = str_pad("Created by tivars_lib_cpp", 42, "\0"); std::copy(comment.begin(), comment.end(), varFile.header.comment);
         varFile.header.entries_len = 0; // will have to be overwritten later
 
-        uint calcFlags = varFile.calcModel.getFlags();
-
-        uchar constBytes[2] = {0x0D, 0x00};
-        std::copy(constBytes, constBytes + 2, varFile.varEntry.constBytes);
+        varFile.varEntry.meta_length  = (varFile.calcModel.getFlags() >= TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength;
         varFile.varEntry.data_length  = 0; // will have to be overwritten later
         varFile.varEntry.typeID       = (uchar) type.getId();
-        string varname = str_pad(newName, 8, "\0");
-        std::copy(varname.begin(), varname.begin() + 7, varFile.varEntry.varname);
-        varFile.varEntry.version      = (calcFlags >= TIFeatureFlags::hasFlash) ? (uchar)0 : (uchar)-1;
-        varFile.varEntry.archivedFlag = (calcFlags >= TIFeatureFlags::hasFlash) ? (uchar)0 : (uchar)-1; // TODO: check when that needs to be 1.
+        string varname = str_pad(newName, 8, "\0");    std::copy(varname.begin(), varname.begin() + 7, varFile.varEntry.varname);
         varFile.varEntry.data_length2 = 0; // will have to be overwritten later
 
         return varFile;
@@ -104,33 +100,28 @@ namespace tivars
     {
         rewind(this->file);
 
-        string signature = this->get_string_bytes(8);
-        std::copy(signature.begin(), signature.end(), this->header.signature);
-        auto sig_extra = this->get_raw_bytes(3);
-        std::copy(sig_extra.begin(), sig_extra.end(), this->header.sig_extra);
-        string comment = this->get_string_bytes(42);
-        std::copy(comment.begin(), comment.end(), this->header.comment);
-        this->header.entries_len = (uint16_t)(this->get_raw_bytes(1)[0] & 0xFF);
-        this->header.entries_len += (uint16_t)(this->get_raw_bytes(1)[0] << 8);
+        string signature = this->get_string_bytes(8);  std::copy(signature.begin(), signature.end(), this->header.signature);
+        auto sig_extra   = this->get_raw_bytes(3);     std::copy(sig_extra.begin(), sig_extra.end(), this->header.sig_extra);
+        string comment   = this->get_string_bytes(42); std::copy(comment.begin(),   comment.end(),   this->header.comment);
+        this->header.entries_len  = (uint16_t)((this->get_raw_bytes(1)[0] & 0xFF) + (this->get_raw_bytes(1)[0] << 8));
         this->calcModel = TIModel::createFromSignature(signature);
     }
 
     void TIVarFile::makeVarEntryFromFile()
     {
-        uint calcFlags = this->calcModel.getFlags();
-        long dataSectionOffset = (8+3+42+2); // after header
-        fseek(this->file, dataSectionOffset, SEEK_SET);
+        fseek(this->file, TIVarFile::dataSectionOffset, SEEK_SET);
 
-        auto constBytes             = this->get_raw_bytes(2);
-        std::copy(constBytes.begin(), constBytes.end(), this->varEntry.constBytes);
-        this->varEntry.data_length  = this->get_raw_bytes(1)[0] + (this->get_raw_bytes(1)[0] << 8);
+        this->varEntry.meta_length  = (uint16_t)((this->get_raw_bytes(1)[0] & 0xFF) + (this->get_raw_bytes(1)[0] << 8));
+        this->varEntry.data_length  = (uint16_t)((this->get_raw_bytes(1)[0] & 0xFF) + (this->get_raw_bytes(1)[0] << 8));
         this->varEntry.typeID       = this->get_raw_bytes(1)[0];
-        string varname              = this->get_string_bytes(8);
-        std::copy(varname.begin(), varname.begin() + 7, this->varEntry.varname);
-        this->varEntry.version      = (calcFlags >= TIFeatureFlags::hasFlash) ? this->get_raw_bytes(1)[0] : (uchar)-1;
-        this->varEntry.archivedFlag = (calcFlags >= TIFeatureFlags::hasFlash) ? this->get_raw_bytes(1)[0] : (uchar)-1;
-        this->varEntry.data_length2 = this->get_raw_bytes(1)[0] + (this->get_raw_bytes(1)[0] << 8);
-        this->varEntry.data         = this->get_raw_bytes(this->varEntry.data_length);
+        string varname              = this->get_string_bytes(8); std::copy(varname.begin(), varname.begin() + 7, this->varEntry.varname);
+        if (this->calcModel.getFlags() >= TIFeatureFlags::hasFlash)
+        {
+            this->varEntry.version      = this->get_raw_bytes(1)[0];
+            this->varEntry.archivedFlag = this->get_raw_bytes(1)[0];
+        }
+        this->varEntry.data_length2  = (uint16_t)((this->get_raw_bytes(1)[0] & 0xFF) + (this->get_raw_bytes(1)[0] << 8));
+        this->varEntry.data          = this->get_raw_bytes(this->varEntry.data_length);
     }
 
 
@@ -140,8 +131,8 @@ namespace tivars
     {
         if (this->isFromFile)
         {
-            long dataSectionOffset = (8 + 3 + 42 + 2); // after header
-            fseek(this->file, dataSectionOffset, SEEK_SET);
+            fseek(this->file, TIVarFile::dataSectionOffset, SEEK_SET);
+
             uint16_t sum = 0;
             for (size_t i = dataSectionOffset; i < this->fileSize - 2; i++)
             {
@@ -156,13 +147,15 @@ namespace tivars
     uint16_t TIVarFile::computeChecksumFromInstanceData()
     {
         uint16_t sum = 0;
-        sum += std::accumulate(this->varEntry.constBytes, this->varEntry.constBytes + 2, 0);
+        sum += this->varEntry.meta_length;
+        sum += this->varEntry.typeID;
         sum += 2 * ((this->varEntry.data_length & 0xFF) + ((this->varEntry.data_length >> 8) & 0xFF));
-        sum += this->varEntry.typeID + (int)this->varEntry.version + (int)this->varEntry.archivedFlag;
         sum += std::accumulate(this->varEntry.varname, this->varEntry.varname + 8, 0);
-        for (uint16_t i=0; i<this->varEntry.data_length; i++)
+        sum += std::accumulate(this->varEntry.data.begin(), this->varEntry.data.end(), 0);
+        if (this->calcModel.getFlags() >= TIFeatureFlags::hasFlash)
         {
-            sum += this->varEntry.data[i];
+            sum += this->varEntry.version;
+            sum += this->varEntry.archivedFlag;
         }
         return (uint16_t) (sum & 0xFFFF);
     }
@@ -183,8 +176,11 @@ namespace tivars
      */
     void TIVarFile::refreshMetadataFields()
     {
-        this->varEntry.data_length = this->varEntry.data_length2 = (uint16_t) this->varEntry.data.size();
-        this->header.entries_len = (uint16_t) (this->varEntry.data_length + 17); // 17 == sum of the individual sizes.
+        // todo : recompute correctly for multiple var entries
+        this->varEntry.data_length2 = this->varEntry.data_length = (uint16_t) this->varEntry.data.size();
+        this->header.entries_len = this->varEntry.data_length
+                                 + ((this->calcModel.getFlags() >= TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength);
+
         this->computedChecksum = this->computeChecksumFromInstanceData();
     }
 
@@ -364,6 +360,8 @@ namespace tivars
         fwrite(buf, sizeof(char), sizeof(buf), handle);
 
         fclose(handle);
+
+        this->corrupt = false;
     }
 
     void TIVarFile::saveVarToFile()

@@ -18,7 +18,6 @@ namespace tivars
 
     class TIVarFile : public BinaryFile
     {
-
         struct var_header_t
         {
             uchar    signature[8]  = {0};
@@ -29,15 +28,20 @@ namespace tivars
 
         struct var_entry_t
         {
-            uchar    constBytes[2] = {0};
+            uint16_t meta_length   = {0}; // byte count of the next 3 or 5 fields (== 11 or 13) depending on calcFlags, see below
             uint16_t data_length   = {0};
             uchar    typeID        = 0;
             uchar    varname[8]    = {0};
-            uchar    version       = 0;
-            uchar    archivedFlag  = 0;
-            uint16_t data_length2  = {0};
+            uchar    version       = 0;   // present only if calcFlags >= TIFeatureFlags::hasFlash
+            uchar    archivedFlag  = 0;   // present only if calcFlags >= TIFeatureFlags::hasFlash
+            uint16_t data_length2  = {0}; // same as data_length
             data_t   data;
         };
+
+        static const constexpr uint16_t headerLength      = 55;   // size of packed struct var_header_t
+        static const constexpr uint16_t dataSectionOffset = 55;   // == headerLength;
+        static const constexpr uint16_t varEntryOldLength = 0x0B; // 2+1+8     (if calcFlags <  TIFeatureFlags::hasFlash)
+        static const constexpr uint16_t varEntryNewLength = 0x0D; // 2+1+8+1+1 (if calcFlags >= TIFeatureFlags::hasFlash)
 
     public:
         TIVarFile()
@@ -91,6 +95,7 @@ namespace tivars
         uint16_t     computedChecksum = 0;
         uint16_t     inFileChecksum   = 0;
         bool         isFromFile       = false;
+        bool         corrupt          = false;
 
         data_t bindata_maker();
 

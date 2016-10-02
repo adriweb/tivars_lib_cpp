@@ -46,7 +46,7 @@ namespace tivars
 
     /* Additional things */
 
-    namespace TH_0x00
+    namespace TH_0x00   // Real
     {
         const constexpr size_t dataByteCount = 9;
         const std::string validPattern = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]{1,2})?)";
@@ -58,7 +58,7 @@ namespace tivars
         void initTokens();
     }
 
-    namespace TH_0x0C
+    namespace TH_0x0C   // Complex
     {
         const constexpr size_t dataByteCount = 2 * TH_0x00::dataByteCount;
         bool checkValidString(const std::string& str);
