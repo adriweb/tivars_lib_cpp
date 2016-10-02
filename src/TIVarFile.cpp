@@ -133,14 +133,6 @@ namespace tivars
         this->varEntry.data         = this->get_raw_bytes(this->varEntry.data_length);
     }
 
-    /*** Utils. ***/
-
-    bool TIVarFile::isValid()
-    {
-        return (this->isFromFile) ? (this->computedChecksum == this->inFileChecksum)
-                                  : (this->computedChecksum != 0);
-    }
-
 
     /*** Private actions ***/
 
@@ -261,22 +253,6 @@ namespace tivars
     string TIVarFile::getReadableContent(const options_t& options)
     {
         return (this->type.getHandlers().second)(this->varEntry.data, options);
-    }
-
-    void TIVarFile::fixChecksumInFile()
-    {
-        if (this->isFromFile)
-        {
-            if (!this->isValid())
-            {
-                fseek(this->file, this->fileSize - 2, SEEK_SET);
-                char buf[2] = {(char) (this->computedChecksum & 0xFF), (char) ((this->computedChecksum >> 8) & 0xFF)};
-                fwrite(buf, sizeof(char), sizeof(buf), this->file);
-                this->inFileChecksum = this->getChecksumValueFromFile();
-            }
-        } else {
-            throw runtime_error("[Error] No file loaded");
-        }
     }
 
     data_t TIVarFile::bindata_maker()

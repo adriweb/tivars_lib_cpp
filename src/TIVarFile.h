@@ -60,8 +60,6 @@ namespace tivars
 
         void makeVarEntryFromFile();
 
-        bool isValid();
-
         uint16_t getChecksumValueFromFile();
 
         void setContentFromData(const data_t& data);
@@ -74,8 +72,6 @@ namespace tivars
         data_t getRawContent();
 
         std::string getReadableContent(const options_t& options = {});
-
-        void fixChecksumInFile();
 
         void saveVarToFile(std::string directory, std::string name);
         void saveVarToFile();
