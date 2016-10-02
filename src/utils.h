@@ -8,9 +8,7 @@
 #ifndef TIVARSLIB_UTILS_H
 #define TIVARSLIB_UTILS_H
 
-#include <unordered_map>
-#include <vector>
-#include <string>
+#include "autoloader.h"
 #include "TIModel.h"
 #include "TIVarType.h"
 

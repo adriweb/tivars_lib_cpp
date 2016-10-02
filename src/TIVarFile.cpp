@@ -8,8 +8,6 @@
 #include "TIVarFile.h"
 #include "utils.h"
 #include "TIModels.h"
-#include "TypeHandlers/TypeHandlers.h"
-#include <regex>
 #include <numeric>
 
 using namespace std;

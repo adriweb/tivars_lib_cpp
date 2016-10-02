@@ -7,7 +7,6 @@
 
 #include "TypeHandlers.h"
 #include "../utils.h"
-#include <cfloat>
 
 // TODO : check if the models have different exponent offsets
 // TODO : redo float creation more correctly...
