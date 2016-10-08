@@ -21,7 +21,7 @@ namespace tivars
 
         if (str == "" || !is_numeric(str))
         {
-            throw runtime_error("Invalid input string. Needs to be a valid Exact Complex Radical");
+            throw invalid_argument("Invalid input string. Needs to be a valid Exact Complex Radical");
         }
     }
 
@@ -29,9 +29,9 @@ namespace tivars
     {
         (void)options;
 
-        if (data.size() != TH_0x1D::dataByteCount)
+        if (data.size() != dataByteCount)
         {
-            throw invalid_argument("Empty data array. Needs to contain " + to_string(TH_0x1D::dataByteCount) + " bytes");
+            throw invalid_argument("Empty data array. Needs to contain " + to_string(dataByteCount) + " bytes");
         }
 
         string coeffR = TH_0x1C::makeStringFromData(data_t(data.begin(), data.begin() + TH_0x1C::dataByteCount));

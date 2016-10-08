@@ -58,9 +58,9 @@ namespace tivars
     {
         (void)options;
 
-        if (data.size() != TH_0x0C::dataByteCount)
+        if (data.size() != dataByteCount)
         {
-            throw invalid_argument("Empty data array. Needs to contain " + to_string(TH_0x0C::dataByteCount) + " bytes");
+            throw invalid_argument("Empty data array. Needs to contain " + to_string(dataByteCount) + " bytes");
         }
 
         string coeffR = TH_0x00::makeStringFromData(data_t(data.begin(), data.begin() + TH_0x00::dataByteCount));

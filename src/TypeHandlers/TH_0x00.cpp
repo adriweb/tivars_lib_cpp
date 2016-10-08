@@ -53,10 +53,11 @@ namespace tivars
     {
         (void)options;
 
-        if (data.size() != TH_0x00::dataByteCount)
+        if (data.size() != dataByteCount)
         {
-            throw invalid_argument("Invalid data array. Needs to contain " + to_string(TH_0x00::dataByteCount) + " bytes");
+            throw invalid_argument("Empty data array. Needs to contain " + to_string(dataByteCount) + " bytes");
         }
+
         uint flags      = data[0];
         bool isNegative = (flags >> 7 == 1);
 //      bool isSeqInit  = (flags  & 1 == 1); // if true, "used for initial sequence values"

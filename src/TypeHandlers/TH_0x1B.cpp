@@ -21,7 +21,7 @@ namespace tivars
 
         if (str == "" || !is_numeric(str))
         {
-            throw runtime_error("Invalid input string. Needs to be a valid Exact Complex Fraction");
+            throw invalid_argument("Invalid input string. Needs to be a valid Exact Complex Fraction");
         }
     }
 
@@ -29,13 +29,13 @@ namespace tivars
     {
         (void)options;
 
-        if (data.size() != TH_0x1B::dataByteCount)
+        if (data.size() != dataByteCount)
         {
-            throw invalid_argument("Empty data array. Needs to contain " + to_string(TH_0x1B::dataByteCount) + " bytes");
+            throw invalid_argument("Empty data array. Needs to contain " + to_string(dataByteCount) + " bytes");
         }
 
         string coeffR = TH_0x00::makeStringFromData(data_t(data.begin(), data.begin() + TH_0x00::dataByteCount));
-        string coeffI = TH_0x00::makeStringFromData(data_t(data.begin() + TH_0x00::dataByteCount, data.begin() + TH_0x1B::dataByteCount));
+        string coeffI = TH_0x00::makeStringFromData(data_t(data.begin() + TH_0x00::dataByteCount, data.begin() + 2 * TH_0x00::dataByteCount));
 
         string str = dec2frac(atof(coeffR.c_str())) + "+" + dec2frac(atof(coeffI.c_str())) + "i";
         str = regex_replace(str, regex("\\+-"), "-");
