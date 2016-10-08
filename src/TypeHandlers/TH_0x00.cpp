@@ -18,6 +18,8 @@ namespace tivars
 
     data_t TH_0x00::makeDataFromString(const string& str, const options_t& options)
     {
+        (void)options;
+
         data_t data(TH_0x00::dataByteCount);
 
         if (str == "" || !is_numeric(str))
@@ -49,6 +51,8 @@ namespace tivars
 
     string TH_0x00::makeStringFromData(const data_t& data, const options_t& options)
     {
+        (void)options;
+
         if (data.size() != TH_0x00::dataByteCount)
         {
             throw invalid_argument("Invalid data array. Needs to contain " + to_string(TH_0x00::dataByteCount) + " bytes");

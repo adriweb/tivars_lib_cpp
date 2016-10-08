@@ -15,6 +15,8 @@ namespace tivars
     
     data_t TH_0x02::makeDataFromString(const string& str, const options_t& options)
     {
+        (void)options;
+
         data_t data(2); // reserve 2 bytes for size fields
 
         if (str.length() < 5 || str.substr(0, 2) != "[[" || str.substr(str.length()-2, 2) != "]]")
@@ -73,6 +75,8 @@ namespace tivars
 
     string TH_0x02::makeStringFromData(const data_t& data, const options_t& options)
     {
+        (void)options; // TODO: prettified option
+
         size_t byteCount = data.size();
         size_t colCount = data[0];
         size_t rowCount = data[1];
@@ -102,8 +106,6 @@ namespace tivars
 
         str += "]";
 
-        // TODO: prettified option
-        
         return str;
     }
 }

@@ -22,6 +22,8 @@ namespace tivars
 
     data_t TH_0x05::makeDataFromString(const string& str, const options_t& options)
     {
+        (void)options;
+
         data_t data;
 
         // two bytes reserved for the size. Filled later

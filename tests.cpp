@@ -22,6 +22,9 @@ using namespace tivars;
 
 int main(int argc, char** argv)
 {
+    (void)argc;
+    (void)argv;
+
     /* Init Stuff */
 
     TIModels::initTIModelsArray();
@@ -60,7 +63,7 @@ int main(int argc, char** argv)
     testReal42.setContentFromString("-0.00000008");
     cout << "testReal42.getReadableContent() : " << testReal42.getReadableContent() << endl;
     assert(atof(testReal42.getReadableContent().c_str()) == -8e-08);
-    //testReal42.saveVarToFile("/Users/adriweb/Downloads", "Real9001dot42");
+testReal42.saveVarToFile("assets/testData", "Real_new");
 
 
     string test = "Disp 42:Wait 5:toString(42):Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
@@ -95,7 +98,7 @@ int main(int argc, char** argv)
     string newPrgmcontent = newPrgm.getReadableContent({{"lang", LANG_FR}});
 
     assert(testPrgmcontent == newPrgmcontent);
-    //newPrgm.saveVarToFile();
+newPrgm.saveVarToFile("assets/testData", "Program_new");
 
     cout << endl << "testPrgmcontent : " << endl << testPrgmcontent << endl;
 
@@ -107,14 +110,14 @@ int main(int argc, char** argv)
     testPrgm42.setCalcModel(TIModel::createFromName("82"));
     testPrgm42.setContentFromString("");
     testPrgm42.setVarName("Toto");
-    //testPrgm42.saveVarToFile("/Users/adriweb/Downloads", "blablaTOTO");
+testPrgm42.saveVarToFile("assets/testData", "blablaTOTO_new");
 
 
     TIVarFile testRealList = TIVarFile::loadFromFile("assets/testData/RealList.8xl");
     cout << "Before: " << testRealList.getReadableContent() << "\t" << "Now: ";
     testRealList.setContentFromString("{9, 0, .5, -6e-8}");
     cout << testRealList.getReadableContent() << "\n";
-//testRealList.saveVarToFile("testData", "RealList_new");
+testRealList.saveVarToFile("assets/testData", "RealList_new");
 
 
     TIVarFile testStandardMatrix = TIVarFile::loadFromFile("assets/testData/Matrix_3x3_standard.8xm");
@@ -122,7 +125,7 @@ int main(int argc, char** argv)
     testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7,-8,-9]]");
     testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7.5,-8,-9][1,2,3][4,5,6][-0.002,-8,-9]]");
     cout << testStandardMatrix.getReadableContent() << "\n";
-//testStandardMatrix.saveVarToFile('testData', 'Matrix_new');
+testStandardMatrix.saveVarToFile("assets/testData", "Matrix_new");
 
     
 
@@ -134,7 +137,7 @@ int main(int argc, char** argv)
     assert(newComplex.getRawContent() == newComplex.getRawContent());
     newComplex.setContentFromString("2.5+0.001i");
     cout << "After: " << newComplex.getReadableContent() << endl;
-//testComplex.saveVarToFile("testComplex", "Complex_new");
+testComplex.saveVarToFile("assets/testData", "Complex_new");
 
 
 
@@ -142,7 +145,7 @@ int main(int argc, char** argv)
     cout << "Before: " << testComplexList.getReadableContent() << "\t" << "Now: ";
     testComplexList.setContentFromString("{9+2i, 0i, .5, -0.5+6e-8i}");
     cout << testComplexList.getReadableContent() << "\n";
-//testComplexList.saveVarToFile("testData", "ComplexList_new");
+testComplexList.saveVarToFile("assets/testData", "ComplexList_new");
 
     
     return 0;

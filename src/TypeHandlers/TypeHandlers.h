@@ -12,8 +12,10 @@
 
 namespace tivars
 {
+
 #define th()    data_t      makeDataFromString(const std::string& str,  const options_t& options = options_t()); \
                 std::string makeStringFromData(const data_t& data,      const options_t& options = options_t())
+
 
     namespace DummyHandler
     { th(); }
@@ -65,9 +67,10 @@ namespace tivars
         bool checkValidStringAndGetMatches(const std::string& str, std::smatch& matches);
     }
 
-typedef decltype(&DummyHandler::makeDataFromString) dataFromString_handler_t;
-typedef decltype(&DummyHandler::makeStringFromData) stringFromData_handler_t;
-typedef std::pair<dataFromString_handler_t, stringFromData_handler_t> handler_pair_t;
+
+    typedef decltype(&DummyHandler::makeDataFromString) dataFromString_handler_t;
+    typedef decltype(&DummyHandler::makeStringFromData) stringFromData_handler_t;
+    typedef std::pair<dataFromString_handler_t, stringFromData_handler_t> handler_pair_t;
 
 #define make_handler_pair(cls)   make_pair(&cls::makeDataFromString, &cls::makeStringFromData)
 

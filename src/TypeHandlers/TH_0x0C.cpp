@@ -14,6 +14,8 @@ namespace tivars
 
     data_t TH_0x0C::makeDataFromString(const string& str, const options_t& options)
     {
+        (void)options;
+
         data_t data;
 
         string newStr = str;
@@ -54,6 +56,8 @@ namespace tivars
 
     string TH_0x0C::makeStringFromData(const data_t& data, const options_t& options)
     {
+        (void)options;
+
         if (data.size() != 2 * TH_0x00::dataByteCount)
         {
             throw invalid_argument("Empty data array. Needs to contain " + to_string(2 * TH_0x00::dataByteCount) + " bytes");

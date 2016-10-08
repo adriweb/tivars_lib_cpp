@@ -15,6 +15,8 @@ namespace tivars
     
     data_t TH_0x0D::makeDataFromString(const string& str, const options_t& options)
     {
+        (void)options;
+
         data_t data(2); // reserve 2 bytes for size fields
 
         auto arr = explode(trim(str, "{}"), ',');
@@ -49,6 +51,8 @@ namespace tivars
 
     string TH_0x0D::makeStringFromData(const data_t& data, const options_t& options)
     {
+        (void)options;
+
         string str;
 
         size_t byteCount = data.size();
