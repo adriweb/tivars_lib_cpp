@@ -16,32 +16,26 @@ namespace tivars
 #define th()    data_t      makeDataFromString(const std::string& str,  const options_t& options = options_t()); \
                 std::string makeStringFromData(const data_t& data,      const options_t& options = options_t())
 
+    namespace DummyHandler { th(); }
 
-    namespace DummyHandler
-    { th(); }
 
-    namespace TH_0x00   // Real
-    { th(); }
+    namespace TH_0x00 { th(); }  // Real
 
-    namespace TH_0x01   // Real list
-    { th(); }
+    namespace TH_0x01 { th(); }  // Real list
 
-    namespace TH_0x02   // Matrix
-    { th(); }
+    namespace TH_0x02 { th(); }  // Matrix
 
-    namespace TH_0x05   // Program
-    { th(); }
+    namespace TH_0x05 { th(); }  // Program
 
     /* The following ones use the same handlers as 0x05 */
     namespace TH_0x03 = TH_0x05; // Y-Variable
     namespace TH_0x04 = TH_0x05; // String
     namespace TH_0x06 = TH_0x05; // Protected Program
 
-    namespace TH_0x0C   // Complex
-    { th(); }
+    namespace TH_0x0C { th(); }  // Complex
 
-    namespace TH_0x0D   // Complex list
-    { th(); }
+    namespace TH_0x0D { th(); }  // Complex list
+
 
 #undef th
 
