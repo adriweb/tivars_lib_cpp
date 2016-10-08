@@ -26,26 +26,6 @@ bool is_in_vector_string(const std::vector<string>& v, const string& element)
     return find(v.begin(), v.end(), element) != v.end();
 }
 
-bool is_in_umap_string_uchar(const unordered_map<string, unsigned char>& m, const string& element)
-{
-    return m.find(element) != m.end();
-}
-
-bool is_in_umap_string_uint(const unordered_map<string, unsigned int>& m, const string& element)
-{
-    return m.find(element) != m.end();
-}
-
-bool is_in_umap_string_TIModel(const std::unordered_map<string, tivars::TIModel>& m, const string& element)
-{
-    return m.find(element) != m.end();
-}
-
-bool is_in_umap_string_TIVarType(const std::unordered_map<string, tivars::TIVarType>& m, const string& element)
-{
-    return m.find(element) != m.end();
-}
-
 bool has_option(const unordered_map<string, unsigned char>& m, const string& element)
 {
     return m.find(element) != m.end();

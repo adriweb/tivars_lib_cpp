@@ -32,7 +32,7 @@ namespace tivars
         types[id_str] = varType;
         for (const string ext : exts)
         {
-            if (ext != "" && !is_in_umap_string_TIVarType(types, ext))
+            if (ext != "" && !types.count(ext))
             {
                 types[ext] = varType;
             }
@@ -96,7 +96,7 @@ namespace tivars
     string TIVarTypes::getNameFromID(int id)
     {
         string id_str = to_string(id);
-        if (id != -1 && is_in_umap_string_TIVarType(types, id_str))
+        if (id != -1 && types.count(id_str))
         {
             return types[id_str].getName();
         } else {
@@ -110,7 +110,7 @@ namespace tivars
      */
     int TIVarTypes::getIDFromName(string name)
     {
-        if (name != "" && is_in_umap_string_TIVarType(types, name))
+        if (name != "" && types.count(name))
         {
             return types[name].getId();
         } else {
@@ -125,7 +125,7 @@ namespace tivars
     vector<string> TIVarTypes::getExtensionsFromTypeID(int id)
     {
         string id_str = to_string(id);
-        if (id != -1 && is_in_umap_string_TIVarType(types, id_str))
+        if (id != -1 && types.count(id_str))
         {
             return types[id_str].getExts();
         } else {
@@ -139,7 +139,7 @@ namespace tivars
      */
     vector<string> TIVarTypes::getExtensionsFromName(string name)
     {
-        if (name != "" && is_in_umap_string_TIVarType(types, name))
+        if (name != "" && types.count(name))
         {
             return types[name].getExts();
         } else {
@@ -150,12 +150,12 @@ namespace tivars
     bool TIVarTypes::isValidID(int id)
     {
         string id_str = to_string(id);
-        return (id != -1 && is_in_umap_string_TIVarType(types, id_str));
+        return (id != -1 && types.count(id_str));
     }
 
     bool TIVarTypes::isValidName(const string& name)
     {
-        return (name != "" && is_in_umap_string_TIVarType(types, name));
+        return (name != "" && types.count(name));
     }
 }
 

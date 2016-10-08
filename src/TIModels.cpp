@@ -27,14 +27,14 @@ namespace tivars
     {
         TIModel model(orderID, name, flags, sig);
 
-        if (!is_in_umap_string_TIModel(models, name))
+        if (!models.count(name))
             models[name] = model;
 
         string flags_str = to_string(flags);
-        if (!is_in_umap_string_TIModel(models, flags_str))
+        if (!models.count(flags_str))
             models[flags_str] = model;
 
-        if (!is_in_umap_string_TIModel(models, sig))
+        if (!models.count(sig))
             models[sig] = model;
     }
 
@@ -150,17 +150,17 @@ namespace tivars
     bool TIModels::isValidFlags(uint flags)
     {
         string flags_str = to_string(flags);
-        return (flags != 0 && is_in_umap_string_TIModel(models, flags_str));
+        return (flags != 0 && models.count(flags_str));
     }
 
     bool TIModels::isValidName(const string& name)
     {
-        return (name != "" && is_in_umap_string_TIModel(models, name));
+        return (name != "" && models.count(name));
     }
 
     bool TIModels::isValidSignature(const string& sig)
     {
-        return (sig != "" && is_in_umap_string_TIModel(models, sig));
+        return (sig != "" && models.count(sig));
     }
 
 };
