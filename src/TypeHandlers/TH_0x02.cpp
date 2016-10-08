@@ -21,7 +21,7 @@ namespace tivars
 
         if (str.length() < 5 || str.substr(0, 2) != "[[" || str.substr(str.length()-2, 2) != "]]")
         {
-            throw new invalid_argument("Invalid input string. Needs to be a valid matrix");
+            throw invalid_argument("Invalid input string. Needs to be a valid matrix");
         }
 
         size_t rowCount, colCount;

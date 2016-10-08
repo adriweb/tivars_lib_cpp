@@ -327,13 +327,13 @@ namespace tivars
 
         this->refreshMetadataFields();
 
+        // Make and write file data
         data_t bin_data = make_bin_data();
+        fwrite(&bin_data[0], bin_data.size(), sizeof(uchar), handle);
 
-        uchar* buf_bin = &bin_data[0];
-        fwrite(buf_bin, bin_data.size(), sizeof(uchar), handle);
-
-        char buf[2] = {(char) (this->computedChecksum & 0xFF), (char) ((this->computedChecksum >> 8) & 0xFF)};
-        fwrite(buf, sizeof(char), sizeof(buf), handle);
+        // Write checksum
+        const char buf[2] = {(char) (this->computedChecksum & 0xFF), (char) ((this->computedChecksum >> 8) & 0xFF)};
+        fwrite(buf, sizeof(char), 2, handle);
 
         fclose(handle);
 

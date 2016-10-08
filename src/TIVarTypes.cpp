@@ -40,7 +40,8 @@ namespace tivars
     }
 
     // 82+/83+/84+ are grouped since only the clock is the difference, and it doesn't have an actual varType.
-    void TIVarTypes::initTIVarTypesArray() // order: 82     83   82A 82+/83+/84+ 84+CSE 84+CE 83PCE
+    void TIVarTypes::initTIVarTypesArray() // order: 82     83    82A  82+/83+  84+C  84+CE  83PCE
+                                           //                     84+T   84+         84+CE-T
     {
         insertType("Unknown",                -1,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
 
@@ -54,7 +55,6 @@ namespace tivars
         insertType("ProtectedProgram",     0x06,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_0x06) );
         insertType("Picture",              0x07,  {  "" ,   "" , "8xi", "8xi", "8ci", "8ci", "8ci"});
         insertType("GraphDataBase",        0x08,  {"82d", "83d", "8xd", "8xd", "8xd", "8xd", "8xd"});
-//      insertType("WindowSettings",       0x0B,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw"});
         insertType("Complex",              0x0C,  {  "" , "83c", "8xc", "8xc", "8xc", "8xc", "8xc"},  make_handler_pair(TH_0x0C) );
         insertType("ComplexList",          0x0D,  {  "" , "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  make_handler_pair(TH_0x0D) );
         insertType("WindowSettings",       0x0F,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw"});
