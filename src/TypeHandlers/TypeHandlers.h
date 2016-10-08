@@ -36,6 +36,19 @@ namespace tivars
 
     namespace TH_0x0D { th(); }  // Complex list
 
+    namespace TH_0x1B { th(); }  // Exact Complex Fraction
+
+    namespace TH_0x1C { th(); }  // Exact Real Radical
+
+    namespace TH_0x1D { th(); }  // Exact Complex Radical
+
+    namespace TH_0x1E { th(); }  // Exact Complex Pi
+
+    namespace TH_0x1F { th(); }  // Exact Complex Pi Fraction
+
+    namespace TH_0x20 { th(); }  // Exact Real Pi
+
+    namespace TH_0x21 { th(); }  // Exact Real Pi Fraction
 
 #undef th
 
@@ -59,6 +72,41 @@ namespace tivars
         const constexpr size_t dataByteCount = 2 * TH_0x00::dataByteCount;
         bool checkValidString(const std::string& str);
         bool checkValidStringAndGetMatches(const std::string& str, std::smatch& matches);
+    }
+
+    namespace TH_0x1B   // Exact Complex Fraction
+    {
+        const constexpr size_t dataByteCount = 2 * TH_0x00::dataByteCount; // 18
+    }
+
+    namespace TH_0x1C   // Exact Real Radical
+    {
+        const constexpr size_t dataByteCount =     TH_0x00::dataByteCount; // 9;
+    }
+
+    namespace TH_0x1D   // Exact Complex Radical
+    {
+        const constexpr size_t dataByteCount = 2 * TH_0x1C::dataByteCount; // 18
+    }
+
+    namespace TH_0x1E   // Exact Complex Pi
+    {
+        const constexpr size_t dataByteCount = 2 * TH_0x00::dataByteCount; // 18
+    }
+
+    namespace TH_0x1F   // Exact Complex Pi Fraction
+    {
+        const constexpr size_t dataByteCount = 2 * TH_0x00::dataByteCount; // 18
+    }
+
+    namespace TH_0x20   // Exact Real Pi
+    {
+        const constexpr size_t dataByteCount =     TH_0x00::dataByteCount; // 9;
+    }
+
+    namespace TH_0x21   // Exact Real Pi Fraction
+    {
+        const constexpr size_t dataByteCount =     TH_0x00::dataByteCount; // 9;
     }
 
 

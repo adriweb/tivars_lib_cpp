@@ -69,13 +69,13 @@ namespace tivars
 
         /* Exact values (TI-83 Premium CE) */
         /* See https://docs.google.com/document/d/1P_OUbnZMZFg8zuOPJHAx34EnwxcQZ8HER9hPeOQ_dtI */
-        insertType("ExactComplexFrac",     0x1B,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"});
-        insertType("ExactRealRadical",     0x1C,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"});
-        insertType("ExactComplexRadical",  0x1D,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"});
-        insertType("ExactComplexPi",       0x1E,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"});
-        insertType("ExactComplexPiFrac",   0x1F,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"});
-        insertType("ExactRealPi",          0x20,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"});
-        insertType("ExactRealPiFrac",      0x21,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"});
+        insertType("ExactComplexFrac",     0x1B,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  make_handler_pair(TH_0x1B) );
+        insertType("ExactRealRadical",     0x1C,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  make_handler_pair(TH_0x1C) );
+        insertType("ExactComplexRadical",  0x1D,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  make_handler_pair(TH_0x1D) );
+        insertType("ExactComplexPi",       0x1E,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  make_handler_pair(TH_0x1E) );
+        insertType("ExactComplexPiFrac",   0x1F,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  make_handler_pair(TH_0x1F) );
+        insertType("ExactRealPi",          0x20,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  make_handler_pair(TH_0x20) );
+        insertType("ExactRealPiFrac",      0x21,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  make_handler_pair(TH_0x21) );
 
         /* System/Flash-related things */
         insertType("OperatingSystem",      0x23,  {"82u", "83u", "82u", "8xu", "8cu", "8eu", "8pu"});
