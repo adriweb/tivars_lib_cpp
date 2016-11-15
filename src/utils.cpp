@@ -292,3 +292,8 @@ string dec2frac(double num, double err)
         }
     }
 }
+
+std::string trimZeros(const std::string& str)
+{
+    return to_string(stoi(str));
+}
