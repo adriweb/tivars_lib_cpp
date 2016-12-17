@@ -18,6 +18,7 @@ namespace tivars
         std::unordered_map<std::string, uint> tokens_NameToBytes;
         uchar lengthOfLongestTokenName;
         std::vector<uchar> firstByteOfTwoByteTokens;
+        const uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
     }
 
     data_t TH_0x05::makeDataFromString(const string& str, const options_t& options)
@@ -67,6 +68,12 @@ namespace tivars
         if (howManyBytes != (int)data.size() - 2)
         {
             cerr << "[Warning] Byte count (" << (data.size() - 2) << ") and size field (" << howManyBytes  << ") mismatch!";
+        }
+
+        const uint16_t twoFirstBytes = (uint16_t) ((data[3] & 0xFF) + ((data[2] & 0xFF) << 8));
+        if (find(begin(squishedASMTokens), end(squishedASMTokens), twoFirstBytes) != end(squishedASMTokens))
+        {
+            return "[Error] This is a squished ASM program - cannnot preview it!";
         }
 
         uint errCount = 0;
