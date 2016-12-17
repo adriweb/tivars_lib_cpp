@@ -56,7 +56,7 @@ namespace tivars
         string str;
 
         size_t byteCount = data.size();
-        size_t numCount = (size_t) ((data[0] & 0xFF) + ((data[1] << 8) & 0xFF00));
+        size_t numCount = (size_t) ((data[0] & 0xFF) + ((data[1] & 0xFF) << 8));
         if (byteCount < 2+TH_0x0C::dataByteCount || ((byteCount - 2) % TH_0x0C::dataByteCount != 0)
             || (numCount != (size_t)((byteCount - 2) / TH_0x0C::dataByteCount)) || numCount > 999)
         {

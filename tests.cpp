@@ -114,14 +114,14 @@ testPrgm42.saveVarToFile("assets/testData", "blablaTOTO_new");
 
 
     TIVarFile testRealList = TIVarFile::loadFromFile("assets/testData/RealList.8xl");
-    cout << "Before: " << testRealList.getReadableContent() << "\t" << "Now: ";
+    cout << "Before: " << testRealList.getReadableContent() << "\n   Now: ";
     testRealList.setContentFromString("{9, 0, .5, -6e-8}");
     cout << testRealList.getReadableContent() << "\n";
 testRealList.saveVarToFile("assets/testData", "RealList_new");
 
 
     TIVarFile testStandardMatrix = TIVarFile::loadFromFile("assets/testData/Matrix_3x3_standard.8xm");
-    cout << "Before: " << testStandardMatrix.getReadableContent() << "\t" << "Now: ";
+    cout << "Before: " << testStandardMatrix.getReadableContent() << "\n   Now: ";
     testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7,-8,-9]]");
     testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7.5,-8,-9][1,2,3][4,5,6][-0.002,-8,-9]]");
     cout << testStandardMatrix.getReadableContent() << "\n";
@@ -130,7 +130,7 @@ testStandardMatrix.saveVarToFile("assets/testData", "Matrix_new");
     
 
     TIVarFile testComplex = TIVarFile::loadFromFile("assets/testData/Complex.8xc"); // -5 + 2i
-    cout << "Before: " << testComplex.getReadableContent() << "\t" << "Now: ";
+    cout << "Before: " << testComplex.getReadableContent() << "\n   Now: ";
     assert(testComplex.getReadableContent() == "-5+2i");
     TIVarFile newComplex = TIVarFile::createNew(TIVarType::createFromName("Complex"), "C");
     newComplex.setContentFromString("-5+2i");
@@ -142,7 +142,7 @@ testComplex.saveVarToFile("assets/testData", "Complex_new");
 
 
     TIVarFile testComplexList = TIVarFile::loadFromFile("assets/testData/ComplexList.8xl");
-    cout << "Before: " << testComplexList.getReadableContent() << "\t" << "Now: ";
+    cout << "Before: " << testComplexList.getReadableContent() << "\n   Now: ";
     testComplexList.setContentFromString("{9+2i, 0i, .5, -0.5+6e-8i}");
     cout << testComplexList.getReadableContent() << "\n";
 testComplexList.saveVarToFile("assets/testData", "ComplexList_new");

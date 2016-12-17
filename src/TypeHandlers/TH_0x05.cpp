@@ -63,15 +63,15 @@ namespace tivars
         enum { LANG_EN = 0, LANG_FR };
         uint langIdx = (uint)((has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN);
 
-        int howManyBytes = (data[0] & 0xFF) + ((data[1] << 8) & 0xFF00);
+        const int howManyBytes = (data[0] & 0xFF) + ((data[1] & 0xFF) << 8);
         if (howManyBytes != (int)data.size() - 2)
         {
-            cerr << "[Warning] Token count (" << (data.size() - 2) << ") and size field (" << howManyBytes  << ") mismatch!";
+            cerr << "[Warning] Byte count (" << (data.size() - 2) << ") and size field (" << howManyBytes  << ") mismatch!";
         }
 
         uint errCount = 0;
         string str("");
-        size_t dataSize = data.size();
+        const size_t dataSize = data.size();
         for (uint i = 2; i < (uint)howManyBytes + 2; i++)
         {
             uint currentToken = data[i];
