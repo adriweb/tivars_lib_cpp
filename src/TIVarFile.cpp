@@ -178,7 +178,9 @@ namespace tivars
     {
         // todo : recompute correctly for multiple var entries
         this->varEntry.data_length2 = this->varEntry.data_length = (uint16_t) this->varEntry.data.size();
-        this->header.entries_len = this->varEntry.data_length
+
+        // The + 2 + 2 is because of the length of both length field themselves
+        this->header.entries_len = (uint16_t)2 + (uint16_t)2 + this->varEntry.data_length
                                  + ((this->calcModel.getFlags() >= TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength);
 
         this->computedChecksum = this->computeChecksumFromInstanceData();
