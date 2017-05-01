@@ -75,7 +75,7 @@ testReal42.saveVarToFile("assets/testData", "Real_new");
     string test = "Disp 42:Wait 5:toString(42):Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
     cout << "Indented code:" << endl << TH_0x05::reindentCodeString(test) << endl;
 
-
+#ifndef __EMSCRIPTEN__
     try
     {
         auto goodTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("Program"), "Bla", TIModel::createFromName("83PCE"));
@@ -89,7 +89,7 @@ testReal42.saveVarToFile("assets/testData", "Real_new");
     } catch (runtime_error& e) {
         cout << "Caught expected exception: " << e.what() << endl;
     }
-
+#endif
 
     assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
 

@@ -1,16 +1,25 @@
-# Quick and dirty Makefile for Desktop + Emscripten build
+CC := g++
 
-EMCC := em++
-GCC := g++
-CPPFLAGS := -O3 -std=c++11 -Wall
-SOURCES := tests.cpp src/*.cpp src/TypeHandlers/*.cpp
+CXXFLAGS := -O3 -std=c++11 -W -Wall -Wextra
+
+SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp) tests.cpp
+
 OUTPUT := tivars_test
 
-lib:
-	$(GCC) $(CPPFLAGS) -o $(OUTPUT) $(SOURCES)
+OBJS = $(patsubst %.cpp, %.o, $(SOURCES))
 
-js:
-	$(EMCC) -s DISABLE_EXCEPTION_CATCHING=1 $(CPPFLAGS) $(SOURCES) -o $(OUTPUT).html --preload-file assets
+OUTPUT := tivars_test
+
+all: $(OUTPUT)
+
+%.o: %.cpp
+	$(CC) $(CXXFLAGS) -c $< -o $@
+
+$(OUTPUT): $(OBJS)
+	$(CC) $(CXXFLAGS) $(LFLAGS) $^ -o $@
 
 clean:
-	rm -rf *.o cmake_install.cmake CMakeCache.txt CMakeFiles $(OUTPUT).html $(OUTPUT).js $(OUTPUT).data $(OUTPUT).html.mem
+	$(RM) -f $(OBJS) $(OUTPUT)
+
+.PHONY: all clean
+

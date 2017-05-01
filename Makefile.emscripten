@@ -1,0 +1,44 @@
+CC := em++
+
+# Emscripten stuff - todo: add -s INVOKE_RUN=0 for lib version (not .html)
+EMFLAGS := --bind --llvm-lto 3 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 --preload-file assets
+
+CXXFLAGS := -O3 -std=c++11 -W -Wall -Wextra $(EMFLAGS)
+
+asmjs:      CXXFLAGS += --closure 1 -s WASM=0
+asmjs-html: CXXFLAGS += --closure 1 -s WASM=0
+
+wasm:       CXXFLAGS += --closure 0 -s WASM=1 -s "BINARYEN_METHOD='native-wasm,asmjs'"
+wasm-html:  CXXFLAGS += --closure 0 -s WASM=1 -s "BINARYEN_METHOD='native-wasm,asmjs'"
+
+SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp) tests.cpp
+
+OUTPUT := tivars_test
+
+OBJS = $(patsubst %.cpp, %.bc, $(SOURCES))
+
+OUTPUT := tivars_test
+
+asmjs: $(OUTPUT).html
+wasm:  $(OUTPUT).html
+
+$(OUTPUT).html: $(OUTPUT).js
+
+asmjs-html: $(OBJS)
+	$(CC) $(CXXFLAGS) $(LFLAGS) $^ -o $(OUTPUT).html
+
+wasm-html: $(OBJS)
+	$(CC) $(CXXFLAGS) $(LFLAGS) $^ -o $(OUTPUT).html
+
+all: asmjs-html
+
+%.bc: %.cpp
+	$(CC) $(CXXFLAGS) -c $< -o $@
+
+$(OUTPUT).js: $(OBJS)
+	$(CC) $(CXXFLAGS) $(LFLAGS) $^ -o $@
+
+clean:
+	$(RM) -f $(OBJS) $(OUTPUT).js* $(OUTPUT).html* $(OUTPUT).data $(OUTPUT).asm.js $(OUTPUT).was*
+
+.PHONY: all clean asmjs wasm asmjs-html wasm-html
