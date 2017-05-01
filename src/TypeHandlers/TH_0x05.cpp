@@ -84,7 +84,7 @@ namespace tivars
             uint currentToken = data[i];
             uint nextToken = (i < dataSize-1) ? data[i+1] : (uint)-1;
             uint bytesKey = currentToken;
-            if (is_in_vector_uchar(firstByteOfTwoByteTokens, (uchar)currentToken))
+            if (is_in_vector(firstByteOfTwoByteTokens, (uchar)currentToken))
             {
                 if (nextToken == (uint)-1)
                 {
@@ -167,7 +167,7 @@ namespace tivars
 
             lines[key].first = nextIndent;
 
-            if (is_in_vector_string(increaseIndentAfter, firstCommand))
+            if (is_in_vector(increaseIndentAfter, firstCommand))
             {
                 nextIndent++;
             }
@@ -205,7 +205,7 @@ namespace tivars
                 uint bytes;
                 if (tokenInfo[6] == "2") // number of bytes for the token
                 {
-                    if (!is_in_vector_uchar(firstByteOfTwoByteTokens, hexdec(tokenInfo[7])))
+                    if (!is_in_vector(firstByteOfTwoByteTokens, hexdec(tokenInfo[7])))
                     {
                         firstByteOfTwoByteTokens.push_back(hexdec(tokenInfo[7]));
                     }

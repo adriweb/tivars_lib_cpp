@@ -7,24 +7,8 @@
 
 #include "utils.h"
 #include <sstream>
-#include <iomanip>
 
 using namespace std;
-
-bool is_in_vector_uchar(const std::vector<unsigned char>& v, unsigned char element)
-{
-    return find(v.begin(), v.end(), element) != v.end();
-}
-
-bool is_in_vector_uint(const std::vector<unsigned int>& v, unsigned int element)
-{
-    return find(v.begin(), v.end(), element) != v.end();
-}
-
-bool is_in_vector_string(const std::vector<string>& v, const string& element)
-{
-    return find(v.begin(), v.end(), element) != v.end();
-}
 
 bool has_option(const unordered_map<string, unsigned char>& m, const string& element)
 {
@@ -171,7 +155,7 @@ void ParseCSV(const string& csvSource, vector<vector<string>>& lines)
                 break;
         }
 
-        aChar++;
+        ++aChar;
     }
 
     if (field.size())
