@@ -37,6 +37,12 @@ int main(int argc, char** argv)
     assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
 
 
+    TIVarFile testAppVar = TIVarFile::createNew(TIVarType::createFromName("AppVar"), "TEST");
+    testAppVar.setContentFromString("ABCD1234C9C8C7C6"); // random but valid hex string
+    assert(testAppVar.getReadableContent() == "ABCD1234C9C8C7C6");
+    assert(testAppVar.getRawContent().size() == strlen("ABCD1234C9C8C7C6") / 2 + 2);
+testAppVar.saveVarToFile("assets/testData", "testAVnew");
+
     TIVarFile testString = TIVarFile::loadFromFile("assets/testData/String.8xs");
     assert(testString.getReadableContent() == "Hello World");
 

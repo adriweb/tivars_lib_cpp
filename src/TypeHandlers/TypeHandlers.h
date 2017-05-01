@@ -36,6 +36,8 @@ namespace tivars
 
     namespace TH_0x0D { th(); }  // Complex list
 
+    namespace TH_0x15 { th(); }  // Application variable
+
     namespace TH_0x1B { th(); }  // Exact Complex Fraction
 
     namespace TH_0x1C { th(); }  // Exact Real Radical
