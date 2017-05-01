@@ -22,6 +22,8 @@ unsigned char hexdec(const std::string& str);
 
 std::string dechex(unsigned char i);
 
+std::string strtoupper(const std::string& str);
+
 std::vector<std::string> explode(const std::string& str, const std::string& delim);
 std::vector<std::string> explode(const std::string& str, char delim);
 

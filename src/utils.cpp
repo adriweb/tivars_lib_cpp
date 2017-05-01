@@ -43,6 +43,16 @@ string dechex(unsigned char i)
     return stream.str();
 }
 
+string strtoupper(const string& str)
+{
+    string newStr(str);
+    for (char& c : newStr)
+    {
+        c = (char) toupper(c);
+    }
+    return newStr;
+}
+
 vector<string> explode(const string& str, const string& delim)
 {
     vector<string> result;
