@@ -52,7 +52,7 @@ namespace tivars
         const var_header_t& getHeader() const { return header; }
         const var_entry_t& getVarEntry() const { return varEntry; }
         const TIVarType& getType() const { return type; }
-        const uint16_t& getInstanceChecksum() const { return computedChecksum; }
+        uint16_t getInstanceChecksum() const { return computedChecksum; }
 
         static TIVarFile loadFromFile(const std::string& filePath);
 

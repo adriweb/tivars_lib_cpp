@@ -28,8 +28,8 @@ namespace tivars
         {}
 
         /* Getters */
-        const int& getId() const { return this->id; }
-        const std::string& getName() const { return this->name; }
+        int getId() const { return this->id; }
+        std::string getName() const { return this->name; }
         const std::vector<std::string>& getExts() const { return this->exts; }
         const handler_pair_t& getHandlers() const { return this->handlers; };
 

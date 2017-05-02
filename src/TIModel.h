@@ -29,10 +29,10 @@ namespace tivars
         {}
 
         /* Getters */
-        const int& getOrderId() const { return this->orderID; }
-        const std::string& getName() const { return this->name; }
-        const uint& getFlags() const { return this->flags; }
-        const std::string& getSig() const { return this->sig; }
+        int getOrderId() const { return this->orderID; }
+        std::string getName() const { return this->name; }
+        uint getFlags() const { return this->flags; }
+        std::string getSig() const { return this->sig; }
 
         bool supportsType(const TIVarType& type);
 
