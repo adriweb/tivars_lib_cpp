@@ -44,4 +44,24 @@ namespace tivars
         }
     }
 
+
+#ifdef __EMSCRIPTEN__
+    using namespace emscripten;
+    EMSCRIPTEN_BINDINGS(_tivartype) {
+            class_<TIVarType>("TIVarType")
+                    .constructor<>()
+                    .constructor<int, const std::string&, const std::vector<std::string>&, const handler_pair_t&>()
+
+                    .function("getId"      , &TIVarType::getId)
+                    .function("getName"    , &TIVarType::getName)
+                    .function("getExts"    , &TIVarType::getExts)
+                    .function("getHandlers", &TIVarType::getHandlers)
+
+                    .class_function("createFromID",   &TIVarType::createFromID)
+                    .class_function("createFromName", &TIVarType::createFromName)
+            ;
+    }
+#endif
+
+
 }

@@ -31,4 +31,8 @@ typedef std::unordered_map<std::string, uchar>   options_t;
 
 #include "TypeHandlers/TypeHandlers.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten/bind.h>
+#endif
+
 #endif

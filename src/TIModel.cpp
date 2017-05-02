@@ -84,4 +84,25 @@ namespace tivars
         }
     }
 
+
+#ifdef __EMSCRIPTEN__
+    using namespace emscripten;
+    EMSCRIPTEN_BINDINGS(_timodel) {
+            class_<TIModel>("TIModel")
+                    .constructor<>()
+                    .constructor<int, const std::string&, uint, const std::string&>()
+
+                    .function("getOrderId"  , &TIModel::getOrderId)
+                    .function("getName"     , &TIModel::getName)
+                    .function("getFlags"    , &TIModel::getFlags)
+                    .function("getSig"      , &TIModel::getSig)
+                    .function("supportsType", &TIModel::supportsType)
+
+                    .class_function("createFromFlags",      &TIModel::createFromFlags)
+                    .class_function("createFromName",       &TIModel::createFromName)
+                    .class_function("createFromSignature",  &TIModel::createFromSignature)
+            ;
+    }
+#endif
+
 }

@@ -1,17 +1,17 @@
 CC := em++
 
-# Emscripten stuff - todo: add -s INVOKE_RUN=0 for lib version (not .html)
-EMFLAGS := --bind --llvm-lto 3 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 --preload-file assets
+# Emscripten stuff
+EMFLAGS := --bind --llvm-lto 3 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 --preload-file assets --pre-js tivars_test_utils.js
 
 CXXFLAGS := -O3 -std=c++11 -W -Wall -Wextra $(EMFLAGS)
 
-asmjs:      CXXFLAGS += --closure 1 -s WASM=0
-asmjs-html: CXXFLAGS += --closure 1 -s WASM=0
+asmjs:      CXXFLAGS += --closure 0 -s WASM=0
+asmjs-html: CXXFLAGS += --closure 0 -s WASM=0
 
 wasm:       CXXFLAGS += --closure 0 -s WASM=1 -s "BINARYEN_METHOD='native-wasm,asmjs'"
 wasm-html:  CXXFLAGS += --closure 0 -s WASM=1 -s "BINARYEN_METHOD='native-wasm,asmjs'"
 
-SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp) tests.cpp
+SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp) emscripten.cpp
 
 OUTPUT := tivars_test
 

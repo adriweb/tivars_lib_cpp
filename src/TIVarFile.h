@@ -68,14 +68,16 @@ namespace tivars
 
         void setContentFromData(const data_t& data);
 
-        void setContentFromString(const std::string& str, const options_t& options = {});
+        void setContentFromString(const std::string& str, const options_t& options);
+        void setContentFromString(const std::string& str);
 
         void setCalcModel(const TIModel& model);
         void setVarName(const std::string& name);
 
         data_t getRawContent();
 
-        std::string getReadableContent(const options_t& options = {});
+        std::string getReadableContent(const options_t& options);
+        std::string getReadableContent();
 
         void saveVarToFile(std::string directory, std::string name);
         void saveVarToFile();
