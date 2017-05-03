@@ -23,31 +23,53 @@ namespace tivars
 
     data_t TH_0x05::makeDataFromString(const string& str, const options_t& options)
     {
-        (void)options;
-
         data_t data;
 
         // two bytes reserved for the size. Filled later
         data.push_back(0); data.push_back(0);
 
-        for (uint strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
+        if ((has_option(options, "useShortestTokens") && options.at("useShortestTokens") == 1))
         {
-            for (uint currentLength = lengthOfLongestTokenName; currentLength > 0; currentLength--)
+            for (uint strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
             {
-                string currentSubString = str.substr(strCursorPos, currentLength);
-                if (tokens_NameToBytes.count(currentSubString))
+                // why < and not <= ... ? todo fix me
+                for (uint currentLength = 1; currentLength < lengthOfLongestTokenName; currentLength++)
                 {
-                    uint tokenValue = tokens_NameToBytes[currentSubString];
-                    if (tokenValue > 0xFF)
+                    string currentSubString = str.substr(strCursorPos, currentLength);
+                    if (tokens_NameToBytes.count(currentSubString))
                     {
-                        data.push_back((uchar)(tokenValue >> 8));
+                        uint tokenValue = tokens_NameToBytes[currentSubString];
+                        if (tokenValue > 0xFF)
+                        {
+                            data.push_back((uchar)(tokenValue >> 8));
+                        }
+                        data.push_back((uchar)(tokenValue & 0xFF));
+                        strCursorPos += currentLength - 1;
+                        break;
                     }
-                    data.push_back((uchar)(tokenValue & 0xFF));
-                    strCursorPos += currentLength - 1;
-                    break;
+                }
+            }
+        } else {
+            for (uint strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
+            {
+                for (uint currentLength = lengthOfLongestTokenName; currentLength > 0; currentLength--)
+                {
+                    string currentSubString = str.substr(strCursorPos, currentLength);
+                    if (tokens_NameToBytes.count(currentSubString))
+                    {
+                        uint tokenValue = tokens_NameToBytes[currentSubString];
+                        if (tokenValue > 0xFF)
+                        {
+                            data.push_back((uchar)(tokenValue >> 8));
+                        }
+                        data.push_back((uchar)(tokenValue & 0xFF));
+                        strCursorPos += currentLength - 1;
+                        break;
+                    }
                 }
             }
         }
+
         uint actualDataLen = (uint) (data.size() - 2);
         data[0] = (uchar)(actualDataLen & 0xFF);
         data[1] = (uchar)((actualDataLen >> 8) & 0xFF);
@@ -97,7 +119,7 @@ namespace tivars
             if (tokens_BytesToName.find(bytesKey) != tokens_BytesToName.end())
             {
                 str += tokens_BytesToName[bytesKey][langIdx];
-            } else  {
+            } else {
                 str += " [???] ";
                 errCount++;
             }

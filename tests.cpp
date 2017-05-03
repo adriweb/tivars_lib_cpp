@@ -113,8 +113,8 @@ newPrgm.saveVarToFile("testData", "Program_new");
 
 
     TIVarFile testPrgm42 = TIVarFile::createNew(TIVarType::createFromName("Program"), "asdf");
-    testPrgm42.setCalcModel(TIModel::createFromName("82"));
-    testPrgm42.setContentFromString("");
+    testPrgm42.setCalcModel(TIModel::createFromName("84+"));
+    testPrgm42.setContentFromString("grande blabla", { {"useShortestTokens", 1} });
     testPrgm42.setVarName("Toto");
 testPrgm42.saveVarToFile("testData", "blablaTOTO_new");
 
