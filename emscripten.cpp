@@ -15,13 +15,15 @@
 
 using namespace tivars;
 
-extern "C" void EMSCRIPTEN_KEEPALIVE initlib(void)
+extern "C" int EMSCRIPTEN_KEEPALIVE main(int, char**)
 {
     TIModels::initTIModelsArray();
     TIVarTypes::initTIVarTypesArray();
     TH_0x05::initTokens();
 
     puts("tivars_lib ready!");
+
+    return 0;
 }
 
 #endif
