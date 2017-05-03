@@ -5,12 +5,10 @@ EMFLAGS := --bind --memory-init-file 0 --llvm-lto 3 -s NO_EXIT_RUNTIME=1 -s ASSE
 
 CXXFLAGS := -O3 -std=c++11 -W -Wall -Wextra $(EMFLAGS)
 
-wasm:       CXXFLAGS += --closure 0 -s WASM=1 -s "BINARYEN_METHOD='native-wasm,asmjs'"
-wasm-html:  CXXFLAGS += --closure 0 -s WASM=1 -s "BINARYEN_METHOD='native-wasm,asmjs'"
+wasm:       CXXFLAGS += -s WASM=1 -s "BINARYEN_METHOD='native-wasm,asmjs'"
+wasm-html:  CXXFLAGS += -s WASM=1 -s "BINARYEN_METHOD='native-wasm,asmjs'"
 
-SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp) emscripten.cpp
-
-OUTPUT := tivars_test
+SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp)
 
 OBJS = $(patsubst %.cpp, %.bc, $(SOURCES))
 

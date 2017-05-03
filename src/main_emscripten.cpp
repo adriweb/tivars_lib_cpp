@@ -7,9 +7,9 @@
 
 #ifdef __EMSCRIPTEN__
 
-#include "src/TIModels.h"
-#include "src/TIVarTypes.h"
-#include "src/TypeHandlers/TypeHandlers.h"
+#include "TIModels.h"
+#include "TIVarTypes.h"
+#include "TypeHandlers/TypeHandlers.h"
 
 #include <emscripten.h>
 
