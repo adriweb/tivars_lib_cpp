@@ -192,7 +192,7 @@ namespace tivars
 
     void TH_0x05::initTokens()
     {
-        ifstream t("assets/programs_tokens.csv");
+        ifstream t("programs_tokens.csv");
         string csvFileStr((istreambuf_iterator<char>(t)), istreambuf_iterator<char>());
 
         if (csvFileStr.length() > 0)

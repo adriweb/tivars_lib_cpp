@@ -41,20 +41,20 @@ int main(int argc, char** argv)
     testAppVar.setContentFromString("ABCD1234C9C8C7C6"); // random but valid hex string
     assert(testAppVar.getReadableContent() == "ABCD1234C9C8C7C6");
     assert(testAppVar.getRawContent().size() == strlen("ABCD1234C9C8C7C6") / 2 + 2);
-testAppVar.saveVarToFile("assets/testData", "testAVnew");
+testAppVar.saveVarToFile("testData", "testAVnew");
 
-    TIVarFile testString = TIVarFile::loadFromFile("assets/testData/String.8xs");
+    TIVarFile testString = TIVarFile::loadFromFile("testData/String.8xs");
     assert(testString.getReadableContent() == "Hello World");
 
-    TIVarFile testPrgmQuotes = TIVarFile::loadFromFile("assets/testData/testPrgmQuotes.8xp");
+    TIVarFile testPrgmQuotes = TIVarFile::loadFromFile("testData/testPrgmQuotes.8xp");
     cout << "testPrgmQuotes.getReadableContent() : " << testPrgmQuotes.getReadableContent() << endl;
     assert(testPrgmQuotes.getReadableContent() == "Pause \"2 SECS\",2");
 
-    TIVarFile testEquation = TIVarFile::loadFromFile("assets/testData/Equation_Y1T.8xy");
+    TIVarFile testEquation = TIVarFile::loadFromFile("testData/Equation_Y1T.8xy");
     assert(testEquation.getReadableContent() == "3sin(T)+4");
 
 
-    TIVarFile testReal = TIVarFile::loadFromFile("assets/testData/Real.8xn");
+    TIVarFile testReal = TIVarFile::loadFromFile("testData/Real.8xn");
     assert(testReal.getReadableContent() == "-42.1337");
     testReal.setContentFromString(".5");
     cout << "testReal.getReadableContent() : " << testReal.getReadableContent() << endl;
@@ -69,7 +69,7 @@ testAppVar.saveVarToFile("assets/testData", "testAVnew");
     testReal42.setContentFromString("-0.00000008");
     cout << "testReal42.getReadableContent() : " << testReal42.getReadableContent() << endl;
     assert(atof(testReal42.getReadableContent().c_str()) == -8e-08);
-testReal42.saveVarToFile("assets/testData", "Real_new");
+testReal42.saveVarToFile("testData", "Real_new");
 
 
     string test = "Disp 42:Wait 5:toString(42):Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
@@ -94,7 +94,7 @@ testReal42.saveVarToFile("assets/testData", "Real_new");
     assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
 
 
-    TIVarFile testPrgm = TIVarFile::loadFromFile("assets/testData/Program.8xp");
+    TIVarFile testPrgm = TIVarFile::loadFromFile("testData/Program.8xp");
     cout << "testPrgm.getHeader().entries_len = " << testPrgm.getHeader().entries_len << "\t testPrgm.size() - 57 == " << (testPrgm.size() - 57) << endl;
     assert(testPrgm.getHeader().entries_len == testPrgm.size() - 57);
     string testPrgmcontent = testPrgm.getReadableContent({{"lang", LANG_FR}});
@@ -104,7 +104,7 @@ testReal42.saveVarToFile("assets/testData", "Real_new");
     string newPrgmcontent = newPrgm.getReadableContent({{"lang", LANG_FR}});
 
     assert(testPrgmcontent == newPrgmcontent);
-newPrgm.saveVarToFile("assets/testData", "Program_new");
+newPrgm.saveVarToFile("testData", "Program_new");
 
     cout << endl << "testPrgmcontent : " << endl << testPrgmcontent << endl;
 
@@ -116,26 +116,26 @@ newPrgm.saveVarToFile("assets/testData", "Program_new");
     testPrgm42.setCalcModel(TIModel::createFromName("82"));
     testPrgm42.setContentFromString("");
     testPrgm42.setVarName("Toto");
-testPrgm42.saveVarToFile("assets/testData", "blablaTOTO_new");
+testPrgm42.saveVarToFile("testData", "blablaTOTO_new");
 
 
-    TIVarFile testRealList = TIVarFile::loadFromFile("assets/testData/RealList.8xl");
+    TIVarFile testRealList = TIVarFile::loadFromFile("testData/RealList.8xl");
     cout << "Before: " << testRealList.getReadableContent() << "\n   Now: ";
     testRealList.setContentFromString("{9, 0, .5, -6e-8}");
     cout << testRealList.getReadableContent() << "\n";
-testRealList.saveVarToFile("assets/testData", "RealList_new");
+testRealList.saveVarToFile("testData", "RealList_new");
 
 
-    TIVarFile testStandardMatrix = TIVarFile::loadFromFile("assets/testData/Matrix_3x3_standard.8xm");
+    TIVarFile testStandardMatrix = TIVarFile::loadFromFile("testData/Matrix_3x3_standard.8xm");
     cout << "Before: " << testStandardMatrix.getReadableContent() << "\n   Now: ";
     testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7,-8,-9]]");
     testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7.5,-8,-9][1,2,3][4,5,6][-0.002,-8,-9]]");
     cout << testStandardMatrix.getReadableContent() << "\n";
-testStandardMatrix.saveVarToFile("assets/testData", "Matrix_new");
+testStandardMatrix.saveVarToFile("testData", "Matrix_new");
 
     
 
-    TIVarFile testComplex = TIVarFile::loadFromFile("assets/testData/Complex.8xc"); // -5 + 2i
+    TIVarFile testComplex = TIVarFile::loadFromFile("testData/Complex.8xc"); // -5 + 2i
     cout << "Before: " << testComplex.getReadableContent() << "\n   Now: ";
     assert(testComplex.getReadableContent() == "-5+2i");
     TIVarFile newComplex = TIVarFile::createNew(TIVarType::createFromName("Complex"), "C");
@@ -143,19 +143,19 @@ testStandardMatrix.saveVarToFile("assets/testData", "Matrix_new");
     assert(newComplex.getRawContent() == newComplex.getRawContent());
     newComplex.setContentFromString("2.5+0.001i");
     cout << "After: " << newComplex.getReadableContent() << endl;
-testComplex.saveVarToFile("assets/testData", "Complex_new");
+testComplex.saveVarToFile("testData", "Complex_new");
 
 
 
-    TIVarFile testComplexList = TIVarFile::loadFromFile("assets/testData/ComplexList.8xl");
+    TIVarFile testComplexList = TIVarFile::loadFromFile("testData/ComplexList.8xl");
     cout << "Before: " << testComplexList.getReadableContent() << "\n   Now: ";
     testComplexList.setContentFromString("{9+2i, 0i, .5, -0.5+6e-8i}");
     cout << testComplexList.getReadableContent() << "\n";
-testComplexList.saveVarToFile("assets/testData", "ComplexList_new");
+testComplexList.saveVarToFile("testData", "ComplexList_new");
 
 
 
-    TIVarFile testExact_RealRadical = TIVarFile::loadFromFile("assets/testData/Exact_RealRadical.8xn");
+    TIVarFile testExact_RealRadical = TIVarFile::loadFromFile("testData/Exact_RealRadical.8xn");
     cout << "Before: " << testExact_RealRadical.getReadableContent() << endl;
     assert(testExact_RealRadical.getReadableContent() == "(41*√(789)+14*√(654))/259");
     TIVarFile newExact_RealRadical = TIVarFile::createNew(TIVarType::createFromName("ExactRealRadical"), "A", TIModel::createFromName("83PCE"));
@@ -165,7 +165,7 @@ testComplexList.saveVarToFile("assets/testData", "ComplexList_new");
 
 
 
-    TIVarFile testExactComplexFrac = TIVarFile::loadFromFile("assets/testData/Exact_ComplexFrac.8xc");
+    TIVarFile testExactComplexFrac = TIVarFile::loadFromFile("testData/Exact_ComplexFrac.8xc");
     cout << "Before: " << testExactComplexFrac.getReadableContent() << endl;
     assert(testExactComplexFrac.getReadableContent() == "1/5-2/5i");
     TIVarFile newExactComplexFrac = TIVarFile::createNew(TIVarType::createFromName("ExactComplexFrac"), "A", TIModel::createFromName("83PCE"));
@@ -175,7 +175,7 @@ testComplexList.saveVarToFile("assets/testData", "ComplexList_new");
 
 
 
-    TIVarFile testExactComplexPi = TIVarFile::loadFromFile("assets/testData/Exact_ComplexPi.8xc");
+    TIVarFile testExactComplexPi = TIVarFile::loadFromFile("testData/Exact_ComplexPi.8xc");
     cout << "Before: " << testExactComplexPi.getReadableContent() << endl;
     assert(testExactComplexPi.getReadableContent() == "1/5-3*π*i");
     TIVarFile newExactComplexPi = TIVarFile::createNew(TIVarType::createFromName("ExactComplexPi"), "A", TIModel::createFromName("83PCE"));
@@ -185,7 +185,7 @@ testComplexList.saveVarToFile("assets/testData", "ComplexList_new");
 
 
 
-    TIVarFile testExactComplexPiFrac = TIVarFile::loadFromFile("assets/testData/Exact_ComplexPiFrac.8xc");
+    TIVarFile testExactComplexPiFrac = TIVarFile::loadFromFile("testData/Exact_ComplexPiFrac.8xc");
     cout << "Before: " << testExactComplexPiFrac.getReadableContent() << endl;
     assert(testExactComplexPiFrac.getReadableContent() == "2/7*π*i");
     TIVarFile newExactComplexPiFrac = TIVarFile::createNew(TIVarType::createFromName("ExactComplexPiFrac"), "A", TIModel::createFromName("83PCE"));
@@ -195,7 +195,7 @@ testComplexList.saveVarToFile("assets/testData", "ComplexList_new");
 
 
 
-    TIVarFile testExactComplexRadical = TIVarFile::loadFromFile("assets/testData/Exact_ComplexRadical.8xc");
+    TIVarFile testExactComplexRadical = TIVarFile::loadFromFile("testData/Exact_ComplexRadical.8xc");
     cout << "Before: " << testExactComplexRadical.getReadableContent() << endl;
     assert(testExactComplexRadical.getReadableContent() == "((√(6)+√(2))/4)+((√(6)-√(2))/4)*i");
     TIVarFile newExactComplexRadical = TIVarFile::createNew(TIVarType::createFromName("ExactComplexRadical"), "A", TIModel::createFromName("83PCE"));
@@ -205,7 +205,7 @@ testComplexList.saveVarToFile("assets/testData", "ComplexList_new");
 
 
 
-    TIVarFile testExactRealPi = TIVarFile::loadFromFile("assets/testData/Exact_RealPi.8xn");
+    TIVarFile testExactRealPi = TIVarFile::loadFromFile("testData/Exact_RealPi.8xn");
     cout << "Before: " << testExactRealPi.getReadableContent() << endl;
     assert(testExactRealPi.getReadableContent() == "30*π");
     TIVarFile newExactRealPi = TIVarFile::createNew(TIVarType::createFromName("ExactRealPi"), "A", TIModel::createFromName("83PCE"));
@@ -215,7 +215,7 @@ testComplexList.saveVarToFile("assets/testData", "ComplexList_new");
 
 
 
-    TIVarFile testExactRealPiFrac = TIVarFile::loadFromFile("assets/testData/Exact_RealPiFrac.8xn");
+    TIVarFile testExactRealPiFrac = TIVarFile::loadFromFile("testData/Exact_RealPiFrac.8xn");
     cout << "Before: " << testExactRealPiFrac.getReadableContent() << endl;
     assert(testExactRealPiFrac.getReadableContent() == "2/7*π");
     TIVarFile newExactRealPiFrac = TIVarFile::createNew(TIVarType::createFromName("ExactRealPiFrac"), "A", TIModel::createFromName("83PCE"));
