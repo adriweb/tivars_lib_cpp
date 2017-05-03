@@ -359,6 +359,9 @@ namespace tivars
 #ifdef __EMSCRIPTEN__
     using namespace emscripten;
     EMSCRIPTEN_BINDINGS(_tivarfile) {
+
+            register_map<std::string, int>("options_t");
+
             class_<TIVarFile>("TIVarFile")
                     .constructor<>()
                     .constructor<const std::string &>()

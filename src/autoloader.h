@@ -22,12 +22,13 @@
 #include <vector>
 #include <regex>
 #include <algorithm>
+#include <map>
 #include <unordered_map>
 
 typedef unsigned int    uint;
 typedef unsigned char   uchar;
 typedef std::vector<uchar>   data_t;
-typedef std::unordered_map<std::string, uchar>   options_t;
+typedef std::map<std::string, int>   options_t;
 
 #include "TypeHandlers/TypeHandlers.h"
 

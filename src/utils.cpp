@@ -10,7 +10,7 @@
 
 using namespace std;
 
-bool has_option(const unordered_map<string, unsigned char>& m, const string& element)
+bool has_option(const options_t& m, const string& element)
 {
     return m.find(element) != m.end();
 }

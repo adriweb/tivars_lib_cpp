@@ -18,7 +18,7 @@ bool is_in_vector(const std::vector<T>& v, T element)
     return std::find(v.begin(), v.end(), element) != v.end();
 }
 
-bool has_option(const std::unordered_map<std::string, unsigned char>& m, const std::string& element);
+bool has_option(const options_t& m, const std::string& element);
 
 unsigned char hexdec(const std::string& str);
 
