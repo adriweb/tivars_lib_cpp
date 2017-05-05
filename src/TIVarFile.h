@@ -79,8 +79,8 @@ namespace tivars
         std::string getReadableContent(const options_t& options);
         std::string getReadableContent();
 
-        void saveVarToFile(std::string directory, std::string name);
-        void saveVarToFile();
+        std::string saveVarToFile(std::string directory, std::string name);
+        std::string saveVarToFile();
 
     private:
         void refreshMetadataFields();

@@ -299,12 +299,15 @@ namespace tivars
      * @param   string  directory  Directory to save the file to
      * @param   string  name       Name of the file, without the extension
      */
-    void TIVarFile::saveVarToFile(string directory, string name)
+    string TIVarFile::saveVarToFile(string directory, string name)
     {
+        string fullPath;
         FILE* handle;
+
         if (this->isFromFile && directory == "")
         {
             this->close();
+            fullPath = this->filePath;
             handle = fopen(this->filePath.c_str(), "wb");
         } else {
             if (name == "")
@@ -331,7 +334,7 @@ namespace tivars
             {
                 directory = ".";
             }
-            string fullPath = directory + "/" + fileName;
+            fullPath = directory + "/" + fileName;
             handle = fopen(fullPath.c_str(), "wb");
         }
 
@@ -348,11 +351,13 @@ namespace tivars
         fclose(handle);
 
         this->corrupt = false;
+
+        return fullPath;
     }
 
-    void TIVarFile::saveVarToFile()
+    string TIVarFile::saveVarToFile()
     {
-        saveVarToFile("", "");
+        return saveVarToFile("", "");
     }
 
 
@@ -381,8 +386,8 @@ namespace tivars
                     .function("getReadableContent"       , select_overload<std::string(const options_t&)>(&TIVarFile::getReadableContent))
                     .function("getReadableContent"       , select_overload<std::string(void)>(&TIVarFile::getReadableContent))
 
-                    .function("saveVarToFile"            , select_overload<void(std::string, std::string)>(&TIVarFile::saveVarToFile))
-                    .function("saveVarToFile"            , select_overload<void(void)>(&TIVarFile::saveVarToFile))
+                    .function("saveVarToFile"            , select_overload<std::string(std::string, std::string)>(&TIVarFile::saveVarToFile))
+                    .function("saveVarToFile"            , select_overload<std::string(void)>(&TIVarFile::saveVarToFile))
 
                     .class_function("loadFromFile", &TIVarFile::loadFromFile)
                     .class_function("createNew", select_overload<TIVarFile(const TIVarType&, const std::string&, const TIModel&)>(&TIVarFile::createNew))
