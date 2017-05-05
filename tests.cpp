@@ -113,10 +113,11 @@ newPrgm.saveVarToFile("testData", "Program_new");
 
 
     TIVarFile testPrgm42 = TIVarFile::createNew(TIVarType::createFromName("Program"), "asdf");
-    testPrgm42.setCalcModel(TIModel::createFromName("84+"));
-    testPrgm42.setContentFromString("grande blabla", { {"useShortestTokens", 1} });
+    testPrgm42.setCalcModel(TIModel::createFromName("82A"));
+    testPrgm42.setContentFromString("Grande blabla", { {"useShortestTokens", 1} });
     testPrgm42.setVarName("Toto");
-testPrgm42.saveVarToFile("testData", "blablaTOTO_new");
+    assert(testPrgm42.getReadableContent() == "Grande blabla");
+    testPrgm42.saveVarToFile("testData", "testMinTok_new");
 
 
     TIVarFile testRealList = TIVarFile::loadFromFile("testData/RealList.8xl");
@@ -133,7 +134,6 @@ testRealList.saveVarToFile("testData", "RealList_new");
     cout << testStandardMatrix.getReadableContent() << "\n";
 testStandardMatrix.saveVarToFile("testData", "Matrix_new");
 
-    
 
     TIVarFile testComplex = TIVarFile::loadFromFile("testData/Complex.8xc"); // -5 + 2i
     cout << "Before: " << testComplex.getReadableContent() << "\n   Now: ";

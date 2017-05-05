@@ -28,12 +28,13 @@ namespace tivars
         // two bytes reserved for the size. Filled later
         data.push_back(0); data.push_back(0);
 
+        const uchar maxTokSearchLen = min((uchar)str.length(), lengthOfLongestTokenName);
+
         if ((has_option(options, "useShortestTokens") && options.at("useShortestTokens") == 1))
         {
             for (uint strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
             {
-                // why < and not <= ... ? todo fix me
-                for (uint currentLength = 1; currentLength < lengthOfLongestTokenName; currentLength++)
+                for (uint currentLength = 1; currentLength <= maxTokSearchLen; currentLength++)
                 {
                     string currentSubString = str.substr(strCursorPos, currentLength);
                     if (tokens_NameToBytes.count(currentSubString))
@@ -52,7 +53,7 @@ namespace tivars
         } else {
             for (uint strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
             {
-                for (uint currentLength = lengthOfLongestTokenName; currentLength > 0; currentLength--)
+                for (uint currentLength = maxTokSearchLen; currentLength > 0; currentLength--)
                 {
                     string currentSubString = str.substr(strCursorPos, currentLength);
                     if (tokens_NameToBytes.count(currentSubString))
