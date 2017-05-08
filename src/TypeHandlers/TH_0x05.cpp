@@ -21,8 +21,10 @@ namespace tivars
         const uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
     }
 
+    /* TODO: handle TI-Innovator Send( exception for in-strings tokenization (=> not shortest tokens) */
     data_t TH_0x05::makeDataFromString(const string& str, const options_t& options)
     {
+        (void)options;
         data_t data;
 
         // two bytes reserved for the size. Filled later
@@ -30,43 +32,34 @@ namespace tivars
 
         const uchar maxTokSearchLen = min((uchar)str.length(), lengthOfLongestTokenName);
 
-        if ((has_option(options, "useShortestTokens") && options.at("useShortestTokens") == 1))
+        bool isWithinString = false;
+
+        for (uint strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
         {
-            for (uint strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
+            const string currChar = str.substr(strCursorPos, 1);
+            if (currChar == "\"")
             {
-                for (uint currentLength = 1; currentLength <= maxTokSearchLen; currentLength++)
-                {
-                    string currentSubString = str.substr(strCursorPos, currentLength);
-                    if (tokens_NameToBytes.count(currentSubString))
-                    {
-                        uint tokenValue = tokens_NameToBytes[currentSubString];
-                        if (tokenValue > 0xFF)
-                        {
-                            data.push_back((uchar)(tokenValue >> 8));
-                        }
-                        data.push_back((uchar)(tokenValue & 0xFF));
-                        strCursorPos += currentLength - 1;
-                        break;
-                    }
-                }
+                isWithinString = !isWithinString;
+            } else if (currChar == "\n" || currChar == "→")
+            {
+                isWithinString = false;
             }
-        } else {
-            for (uint strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
+            /* isWithinString => minimum token length, otherwise maximal munch */
+            for (uint currentLength = isWithinString ? 1 : maxTokSearchLen;
+                 isWithinString ? (currentLength <= maxTokSearchLen) : (currentLength > 0);
+                 currentLength += (isWithinString ? 1 : -1))
             {
-                for (uint currentLength = maxTokSearchLen; currentLength > 0; currentLength--)
+                string currentSubString = str.substr(strCursorPos, currentLength);
+                if (tokens_NameToBytes.count(currentSubString))
                 {
-                    string currentSubString = str.substr(strCursorPos, currentLength);
-                    if (tokens_NameToBytes.count(currentSubString))
+                    uint tokenValue = tokens_NameToBytes[currentSubString];
+                    if (tokenValue > 0xFF)
                     {
-                        uint tokenValue = tokens_NameToBytes[currentSubString];
-                        if (tokenValue > 0xFF)
-                        {
-                            data.push_back((uchar)(tokenValue >> 8));
-                        }
-                        data.push_back((uchar)(tokenValue & 0xFF));
-                        strCursorPos += currentLength - 1;
-                        break;
+                        data.push_back((uchar)(tokenValue >> 8));
                     }
+                    data.push_back((uchar)(tokenValue & 0xFF));
+                    strCursorPos += currentLength - 1;
+                    break;
                 }
             }
         }

@@ -114,9 +114,9 @@ newPrgm.saveVarToFile("testData", "Program_new");
 
     TIVarFile testPrgm42 = TIVarFile::createNew(TIVarType::createFromName("Program"), "asdf");
     testPrgm42.setCalcModel(TIModel::createFromName("82A"));
-    testPrgm42.setContentFromString("Grande blabla", { {"useShortestTokens", 1} });
+    testPrgm42.setContentFromString("Grande blabla:Disp \"Grande blabla");
     testPrgm42.setVarName("Toto");
-    assert(testPrgm42.getReadableContent() == "Grande blabla");
+    assert(testPrgm42.getReadableContent() == "Grande blabla:Disp \"Grande blabla");
     testPrgm42.saveVarToFile("testData", "testMinTok_new");
 
 
