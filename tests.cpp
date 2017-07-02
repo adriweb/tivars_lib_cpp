@@ -15,8 +15,6 @@
 #include "src/TIVarFile.h"
 #include "src/TypeHandlers/TypeHandlers.h"
 
-enum { LANG_EN = 0, LANG_FR };
-
 using namespace std;
 using namespace tivars;
 
@@ -31,6 +29,9 @@ int main(int argc, char** argv)
     TIVarTypes::initTIVarTypesArray();
     TH_0x05::initTokens();
 
+
+    using tivars::TH_0x05::LANG_FR;
+    using tivars::TH_0x05::LANG_EN;
 
     /* Tests */
 

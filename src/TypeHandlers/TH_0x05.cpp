@@ -77,7 +77,6 @@ namespace tivars
             throw invalid_argument("Empty data array. Needs to contain at least 2 bytes (size fields)");
         }
 
-        enum { LANG_EN = 0, LANG_FR };
         uint langIdx = (uint)((has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN);
 
         const int howManyBytes = (data[0] & 0xFF) + ((data[1] & 0xFF) << 8);
@@ -137,8 +136,16 @@ namespace tivars
         return str;
     }
 
-    string TH_0x05::reindentCodeString(const string& str_orig)
+    string TH_0x05::reindentCodeString(const string& str_orig, const options_t& options)
     {
+        int lang;
+        if (has_option(options, "lang"))
+        {
+            lang = options.at("lang");
+        } else {
+            lang = (str_orig.size() > 1 && str_orig[0] == '.' && ::isalpha(str_orig[1])) ? PRGMLANG_AXE : PRGMLANG_BASIC;
+        }
+
         string str(str_orig);
 
         regex eolRegex("\"[^→\"\\n]+[→\"\\n]|(\\:)");
@@ -157,7 +164,9 @@ namespace tivars
             lines.push_back(make_pair(0, lines_tmp[i]));
         }
 
-        vector<string> increaseIndentAfter = { "If", "For", "While", "Repeat" };
+        vector<string> increaseIndentAfter   = { "If", "For", "While", "Repeat" };
+        vector<string> decreaseIndentOfToken = { "Then", "Else", "End", "ElseIf", "EndIf", "End!If" };
+        vector<string> closingTokens         = { "End", "EndIf", "End!If" };
         uint nextIndent = 0;
         string oldFirstCommand = "", firstCommand = "";
         for (uint key=0; key<lines.size(); key++)
@@ -187,11 +196,11 @@ namespace tivars
             {
                 nextIndent++;
             }
-            if (lines[key].first > 0 && (firstCommand == "Then" || firstCommand == "Else" || firstCommand == "End"))
+            if (lines[key].first > 0 && is_in_vector(decreaseIndentOfToken, firstCommand))
             {
                 lines[key].first--;
             }
-            if (nextIndent > 0 && (firstCommand == "End" || (oldFirstCommand == "If" && firstCommand != "Then")))
+            if (nextIndent > 0 && (is_in_vector(closingTokens, firstCommand) || (oldFirstCommand == "If" && firstCommand != "Then" && lang != PRGMLANG_AXE)))
             {
                 nextIndent--;
             }
@@ -200,7 +209,7 @@ namespace tivars
         str = "";
         for (const auto& line : lines)
         {
-            str += str_repeat(" ", line.first * 4) + line.second + '\n';
+            str += str_repeat(" ", line.first * 3) + line.second + '\n';
         }
 
         return str;
