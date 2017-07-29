@@ -118,7 +118,9 @@ newPrgm.saveVarToFile("testData", "Program_new");
     testPrgm42.setContentFromString("Grande blabla:Disp \"Grande blabla");
     testPrgm42.setVarName("Toto");
     assert(testPrgm42.getReadableContent() == "Grande blabla:Disp \"Grande blabla");
-    testPrgm42.saveVarToFile("testData", "testMinTok_new");
+testPrgm42.saveVarToFile("testData", "testMinTok_new");
+    testPrgm42.setArchived(true);
+testPrgm42.saveVarToFile("testData", "testMinTok_archived_new");
 
 
     TIVarFile testRealList = TIVarFile::loadFromFile("testData/RealList.8xl");

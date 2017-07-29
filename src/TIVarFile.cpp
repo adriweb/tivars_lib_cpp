@@ -246,6 +246,17 @@ namespace tivars
         this->refreshMetadataFields();
     }
 
+    void TIVarFile::setArchived(bool flag)
+    {
+        if (this->calcModel.getFlags() >= TIFeatureFlags::hasFlash)
+        {
+            this->varEntry.archivedFlag = (uchar)(flag ? 1 : 0);
+            this->refreshMetadataFields();
+        } else {
+            throw runtime_error("[Error] Archived flag not supported on this calculator model");
+        }
+    }
+
 
     data_t TIVarFile::getRawContent()
     {
@@ -382,6 +393,7 @@ namespace tivars
                     .function("setContentFromString"     , select_overload<void(const std::string&)>(&TIVarFile::setContentFromString))
                     .function("setCalcModel"             , &TIVarFile::setCalcModel)
                     .function("setVarName"               , &TIVarFile::setVarName)
+                    .function("setArchived"              , &TIVarFile::setArchived)
                     .function("getRawContent"            , &TIVarFile::getRawContent)
                     .function("getReadableContent"       , select_overload<std::string(const options_t&)>(&TIVarFile::getReadableContent))
                     .function("getReadableContent"       , select_overload<std::string(void)>(&TIVarFile::getReadableContent))

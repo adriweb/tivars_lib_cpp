@@ -73,6 +73,7 @@ namespace tivars
 
         void setCalcModel(const TIModel& model);
         void setVarName(const std::string& name);
+        void setArchived(bool flag);
 
         data_t getRawContent();
 
