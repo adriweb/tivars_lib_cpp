@@ -37,6 +37,8 @@ int main(int argc, char** argv)
 
     assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
 
+    TIVarFile toksPrgm = TIVarFile::loadFromFile("testData/ALLTOKS.8Xp");
+    cout << toksPrgm.getReadableContent() << "\n" << endl;
 
     TIVarFile testAppVar = TIVarFile::createNew(TIVarType::createFromName("AppVar"), "TEST");
     testAppVar.setContentFromString("ABCD1234C9C8C7C6"); // random but valid hex string
