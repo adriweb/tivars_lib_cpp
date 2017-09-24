@@ -14,6 +14,7 @@
 #include "src/BinaryFile.h"
 #include "src/TIVarFile.h"
 #include "src/TypeHandlers/TypeHandlers.h"
+#include "src/utils.h"
 
 using namespace std;
 using namespace tivars;
@@ -77,6 +78,12 @@ testReal42.saveVarToFile("testData", "Real_new");
 
     string test = "Disp 42:Wait 5:toString(42):Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
     cout << "Indented code:" << endl << TH_0x05::reindentCodeString(test) << endl;
+
+
+    TIVarFile testPrgmReindent = TIVarFile::createNew(TIVarType::createFromName("Program"), "asdf");
+    testPrgmReindent.setContentFromString("\"http://TIPlanet.org");
+    assert(trim(testPrgmReindent.getReadableContent({ {"prettify", true}, {"reindent", true} })) == "\"http://TIPlanet.org");
+
 
 #ifndef __EMSCRIPTEN__
     try

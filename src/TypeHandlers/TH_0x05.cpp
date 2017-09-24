@@ -148,7 +148,7 @@ namespace tivars
 
         string str(str_orig);
 
-        regex eolRegex("\"[^→\"\\n]+[→\"\\n]|(\\:)");
+        regex eolRegex("\"[^→\"\\n]+[→\"\\n]|(\\:)|(^\"[^→]*$)");
         string output_text;
         sregex_token_iterator begin(str.begin(), str.end(), eolRegex, {-1, 0});
         sregex_token_iterator end;
