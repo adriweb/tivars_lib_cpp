@@ -132,6 +132,12 @@ testPrgm42.saveVarToFile("testData", "testMinTok_new");
 testPrgm42.saveVarToFile("testData", "testMinTok_archived_new");
 
 
+    testPrgm = TIVarFile::createNew(TIVarType::createFromName("Program"), "asdf");
+    testPrgm.setContentFromString("Pause 42:Pause 43:Disp \"\",\"Bouh la =/*: déf\",\"suite :\",\" OK");
+    testPrgmcontent = testPrgm.getReadableContent({ {"prettify", true}, {"reindent", true} });
+    assert(trim(testPrgmcontent) == "Pause 42\nPause 43\nDisp \"\",\"Bouh la =/*: déf\",\"suite :\",\" OK");
+
+
     TIVarFile testRealList = TIVarFile::loadFromFile("testData/RealList.8xl");
     cout << "Before: " << testRealList.getReadableContent() << "\n   Now: ";
     testRealList.setContentFromString("{9, 0, .5, -6e-8}");

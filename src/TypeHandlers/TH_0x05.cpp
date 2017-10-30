@@ -148,16 +148,31 @@ namespace tivars
 
         string str(str_orig);
 
-        regex eolRegex("\"[^→\"\\n]+[→\"\\n]|(\\:)|(^\"[^→]*$)");
-        string output_text;
-        sregex_token_iterator begin(str.begin(), str.end(), eolRegex, {-1, 0});
-        sregex_token_iterator end;
-        for_each(begin, end, [&](const string& m) { output_text += (m == ":") ? "\n" : m; });
-        str = output_text;
-
         str = regex_replace(str, regex("([^\\s])(Del|Eff)Var "), "$1\n$2Var");
 
         vector<string> lines_tmp = explode(str, '\n');
+
+        // Inplace-replace the appropriate ":" by new-line chars (ie, by inserting the split string in the lines_tmp array)
+        for (uint16_t idx = 0; idx < (uint16_t)lines_tmp.size(); idx++)
+        {
+            const auto line = lines_tmp[idx];
+            bool isWithinString = false;
+            for (uint16_t strIdx = 0; strIdx < (uint16_t)line.size(); strIdx++)
+            {
+                const auto currChar = line.substr(strIdx, 1);
+                if (currChar == ":" && !isWithinString)
+                {
+                    lines_tmp[idx] = line.substr(0, strIdx); // replace "old" line by lhs
+                    lines_tmp.insert(lines_tmp.begin() + idx + 1, line.substr(strIdx + 1)); // inserting rhs
+                    break;
+                } else if (currChar == "\"") {
+                    isWithinString = !isWithinString;
+                } else if (currChar == "\n" || currChar == "→") {
+                    isWithinString = false;
+                }
+            }
+        }
+
         vector<pair<uint, string>> lines; // indent, text
         for (uint i=0; i<lines_tmp.size(); i++)
         {
