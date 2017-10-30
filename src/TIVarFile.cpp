@@ -24,7 +24,7 @@ namespace tivars
      */
     TIVarFile::TIVarFile(const string& filePath) : BinaryFile(filePath)
     {
-        if (filePath != "")
+        if (!filePath.empty())
         {
             this->isFromFile = true;
             if (this->fileSize < 76) // bare minimum for header + a var entry
@@ -48,7 +48,7 @@ namespace tivars
 
     TIVarFile TIVarFile::loadFromFile(const string& filePath)
     {
-        if (filePath != "")
+        if (!filePath.empty())
         {
             TIVarFile varFile(filePath);
             return varFile;
@@ -189,12 +189,12 @@ namespace tivars
     string TIVarFile::fixVarName(const string& name)
     {
         string newName(name);
-        if (newName == "")
+        if (newName.empty())
         {
-            newName = "FILE" + ((type.getExts().size() > 0) ? type.getExts()[0] : "");
+            newName = "FILE" + (type.getExts().empty() ? "" : type.getExts()[0]);
         }
         newName = regex_replace(newName, regex("[^a-zA-Z0-9]"), "");
-        if (newName.length() > 8 || newName == "" || is_numeric(newName.substr(0, 1)))
+        if (newName.length() > 8 || newName.empty() || is_numeric(newName.substr(0, 1)))
         {
             throw invalid_argument("Invalid name given. 8 chars (A-Z, 0-9) max, starting by a letter");
         }
@@ -213,7 +213,7 @@ namespace tivars
     */
     void TIVarFile::setContentFromData(const data_t& data)
     {
-        if (data.size() > 0)
+        if (!data.empty())
         {
             this->varEntry.data = data;
             this->refreshMetadataFields();
@@ -315,20 +315,20 @@ namespace tivars
         string fullPath;
         FILE* handle;
 
-        if (this->isFromFile && directory == "")
+        if (this->isFromFile && directory.empty())
         {
             this->close();
             fullPath = this->filePath;
             handle = fopen(this->filePath.c_str(), "wb");
         } else {
-            if (name == "")
+            if (name.empty())
             {
-                string tmp("");
-                for (uint i=0; i<8; i++)
+                string tmp;
+                for (unsigned char c : this->varEntry.varname)
                 {
-                    if (this->varEntry.varname[i])
+                    if (c)
                     {
-                        tmp += this->varEntry.varname[i];
+                        tmp += c;
                     } else {
                         break;
                     }
@@ -341,7 +341,7 @@ namespace tivars
                 extIndex = 0;
             }
             string fileName = name + "." + this->getType().getExts()[extIndex];
-            if (directory == "")
+            if (directory.empty())
             {
                 directory = ".";
             }

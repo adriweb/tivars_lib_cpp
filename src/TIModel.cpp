@@ -80,7 +80,7 @@ namespace tivars
             return model;
         } else
         {
-            throw new invalid_argument("Invalid version signature");
+            throw invalid_argument("Invalid version signature");
         }
     }
 

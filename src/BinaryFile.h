@@ -15,10 +15,9 @@ namespace tivars
     class BinaryFile
     {
     public:
-        BinaryFile()
-        {}
+        BinaryFile() = default;
 
-        BinaryFile(const std::string& filePath);
+        explicit BinaryFile(const std::string& filePath);
 
         ~BinaryFile()
         {
@@ -33,7 +32,7 @@ namespace tivars
     protected:
         FILE* file = nullptr;
         std::string filePath;
-        size_t fileSize;
+        size_t fileSize = 0;
 
     };
 }

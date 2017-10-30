@@ -37,7 +37,7 @@ namespace tivars
                 throw runtime_error("No such file");
             }
         } else {
-            throw new invalid_argument("No file path given");
+            throw invalid_argument("No file path given");
         }
     }
 
@@ -55,11 +55,11 @@ namespace tivars
             if (bytes > 0)
             {
                 uchar buf[bytes];
-                fread(buf, sizeof(uchar), bytes, file);
+                (void)fread(buf, sizeof(uchar), bytes, file);
                 data_t v(buf, buf + bytes);
                 return v;
             } else {
-                throw new invalid_argument("Invalid number of bytes to read");
+                throw invalid_argument("Invalid number of bytes to read");
             }
         } else {
             throw runtime_error("No file loaded");
@@ -80,7 +80,7 @@ namespace tivars
             if (bytes > 0)
             {
                 char buf[bytes+1];
-                fread(buf, sizeof(char), bytes, file);
+                (void)fread(buf, sizeof(char), bytes, file);
                 buf[bytes] = '\0';
                 return string(buf);
             } else {

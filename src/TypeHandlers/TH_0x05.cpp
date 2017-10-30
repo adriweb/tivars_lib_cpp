@@ -174,9 +174,9 @@ namespace tivars
         }
 
         vector<pair<uint, string>> lines; // indent, text
-        for (uint i=0; i<lines_tmp.size(); i++)
+        for (auto& line : lines_tmp)
         {
-            lines.push_back(make_pair(0, lines_tmp[i]));
+            lines.emplace_back(0, line);
         }
 
         vector<string> increaseIndentAfter   = { "If", "For", "While", "Repeat" };

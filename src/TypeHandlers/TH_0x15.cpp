@@ -24,7 +24,7 @@ namespace tivars
 
         if (length == 0 || !formatOk || bytes > 0xFFFF)
         {
-            throw new invalid_argument("Invalid input string. Needs to be a valid hex data block");
+            throw invalid_argument("Invalid input string. Needs to be a valid hex data block");
         }
 
         data_t data = { (uchar)(bytes & 0xFF), (uchar)((bytes >> 8) & 0xFF) };
@@ -47,7 +47,7 @@ namespace tivars
 
         if (lengthExp != lengthDat)
         {
-            throw new invalid_argument("Invalid data array. Expected " + to_string(lengthExp) + " bytes, got " + to_string(lengthDat));
+            throw invalid_argument("Invalid data array. Expected " + to_string(lengthExp) + " bytes, got " + to_string(lengthDat));
         }
 
         string str;

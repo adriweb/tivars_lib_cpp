@@ -6,7 +6,6 @@
  */
 
 #include "utils.h"
-#include <sstream>
 
 using namespace std;
 
@@ -158,10 +157,10 @@ void ParseCSV(const string& csvSource, vector<vector<string>>& lines)
         ++aChar;
     }
 
-    if (field.size())
+    if (!field.empty())
         line.push_back(field);
 
-    if (line.size())
+    if (!line.empty())
         lines.push_back(line);
 }
 
