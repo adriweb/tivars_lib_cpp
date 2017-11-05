@@ -44,11 +44,6 @@ namespace tivars
         static const constexpr uint16_t varEntryNewLength = 0x0D; // 2+1+8+1+1 (if calcFlags >= TIFeatureFlags::hasFlash)
 
     public:
-        TIVarFile()
-        {}
-
-        TIVarFile(const std::string& filePath);
-
         const var_header_t& getHeader() const { return header; }
         const var_entry_t& getVarEntry() const { return varEntry; }
         const TIVarType& getType() const { return type; }
@@ -84,6 +79,9 @@ namespace tivars
         std::string saveVarToFile();
 
     private:
+        TIVarFile() = default;
+        explicit TIVarFile(const std::string& filePath);
+
         void refreshMetadataFields();
         std::string fixVarName(const std::string& name);
 
@@ -105,4 +103,4 @@ namespace tivars
     };
 }
 
-#endif //TIVARS_LIB_CPP_BINARYFILE_H
+#endif //TIVARS_LIB_CPP_TIVARFILE_H

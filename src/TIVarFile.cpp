@@ -19,31 +19,28 @@ namespace tivars
 
     /**
      * Internal constructor, called from loadFromFile and createNew.
+     * If filePath empty or not given, it's a programmer error, and it will throw in BinaryFile(filePath) anyway.
+     * To create a TIVarFile not from a file, use TIVarFile::createNew
      * @param   string  filePath
      * @throws  \Exception
      */
     TIVarFile::TIVarFile(const string& filePath) : BinaryFile(filePath)
     {
-        if (!filePath.empty())
+        this->isFromFile = true;
+        if (this->fileSize < 76) // bare minimum for header + a var entry
         {
-            this->isFromFile = true;
-            if (this->fileSize < 76) // bare minimum for header + a var entry
-            {
-                throw runtime_error("This file is not a valid TI-[e]z80 variable file");
-            }
-            this->makeHeaderFromFile();
-            this->makeVarEntryFromFile();
-            this->computedChecksum = this->computeChecksumFromFileData();
-            this->inFileChecksum = this->getChecksumValueFromFile();
-            if (this->computedChecksum != this->inFileChecksum)
-            {
-                // puts("[Warning] File is corrupt (read and calculated checksums differ)");
-                this->corrupt = true;
-            }
-            this->type = TIVarType::createFromID(this->varEntry.typeID);
-        } else {
-            this->isFromFile = false;
+            throw runtime_error("This file is not a valid TI-[e]z80 variable file");
         }
+        this->makeHeaderFromFile();
+        this->makeVarEntryFromFile();
+        this->computedChecksum = this->computeChecksumFromFileData();
+        this->inFileChecksum = this->getChecksumValueFromFile();
+        if (this->computedChecksum != this->inFileChecksum)
+        {
+            // puts("[Warning] File is corrupt (read and calculated checksums differ)");
+            this->corrupt = true;
+        }
+        this->type = TIVarType::createFromID(this->varEntry.typeID);
     }
 
     TIVarFile TIVarFile::loadFromFile(const string& filePath)
@@ -379,9 +376,6 @@ namespace tivars
             register_map<std::string, int>("options_t");
 
             class_<TIVarFile>("TIVarFile")
-                    .constructor<>()
-                    .constructor<const std::string &>()
-
                     .function("getHeader"                , &TIVarFile::getHeader)
                     .function("getVarEntry"              , &TIVarFile::getVarEntry)
                     .function("getType"                  , &TIVarFile::getType)
