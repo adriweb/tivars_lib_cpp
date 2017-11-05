@@ -100,13 +100,8 @@ namespace tivars
         }
     }
 
-    size_t BinaryFile::size()
+    size_t BinaryFile::size() const
     {
-        if (file)
-        {
-            return fileSize;
-        } else {
-            throw runtime_error("No file loaded");
-        }
+        return fileSize;
     }
 }

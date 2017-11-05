@@ -26,7 +26,7 @@ namespace tivars
 
         data_t get_raw_bytes(uint bytes);
         std::string get_string_bytes(uint bytes);
-        size_t size();
+        size_t size() const;
         void close();
 
     protected:

@@ -41,6 +41,7 @@ namespace tivars
             this->corrupt = true;
         }
         this->type = TIVarType::createFromID(this->varEntry.typeID);
+        this->close(); // let's free the resource up as early as possible
     }
 
     TIVarFile TIVarFile::loadFromFile(const string& filePath)
@@ -311,7 +312,6 @@ namespace tivars
 
         if (this->isFromFile && directory.empty())
         {
-            this->close();
             fullPath = this->filePath;
             handle = fopen(this->filePath.c_str(), "wb");
         } else {
