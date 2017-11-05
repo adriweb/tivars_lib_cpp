@@ -346,6 +346,11 @@ namespace tivars
             handle = fopen(fullPath.c_str(), "wb");
         }
 
+        if (!handle)
+        {
+            throw runtime_error("Can't open the input file");
+        }
+
         this->refreshMetadataFields();
 
         // Make and write file data
