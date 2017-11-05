@@ -47,8 +47,7 @@ namespace tivars
     {
         if (!filePath.empty())
         {
-            TIVarFile varFile(filePath);
-            return varFile;
+            return TIVarFile(filePath);
         } else {
             throw runtime_error("No file path given");
         }
