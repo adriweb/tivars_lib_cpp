@@ -19,6 +19,12 @@ namespace tivars
 
         explicit BinaryFile(const std::string& filePath);
 
+        BinaryFile(const BinaryFile&) = delete;
+        BinaryFile& operator=(const BinaryFile) = delete;
+
+        BinaryFile(BinaryFile&& o) noexcept : file(o.file), fileSize(o.fileSize)
+        { o.file = nullptr; }
+
         ~BinaryFile()
         {
             close();
@@ -31,7 +37,7 @@ namespace tivars
 
     protected:
         FILE* file = nullptr;
-        std::string filePath;
+        std::string filePath = "";
         size_t fileSize = 0;
 
     };
