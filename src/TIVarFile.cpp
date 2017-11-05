@@ -313,7 +313,6 @@ namespace tivars
         if (this->isFromFile && directory.empty())
         {
             fullPath = this->filePath;
-            handle = fopen(this->filePath.c_str(), "wb");
         } else {
             if (name.empty())
             {
@@ -340,9 +339,9 @@ namespace tivars
                 directory = ".";
             }
             fullPath = directory + "/" + fileName;
-            handle = fopen(fullPath.c_str(), "wb");
         }
 
+        handle = fopen(fullPath.c_str(), "wb");
         if (!handle)
         {
             throw runtime_error("Can't open the input file");
