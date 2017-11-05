@@ -53,31 +53,29 @@ namespace tivars
         }
     }
 
-    TIVarFile TIVarFile::createNew(const TIVarType& type, const string& name, const TIModel& model)
+    TIVarFile::TIVarFile(const TIVarType& type, const string& name, const TIModel& model) : type(type), calcModel(model)
     {
-        TIVarFile varFile;
-        varFile.type = type;
-        varFile.calcModel = model;
-
-        string newName = varFile.fixVarName(name);
-
-        if (!varFile.calcModel.supportsType(varFile.type))
+        if (!this->calcModel.supportsType(this->type))
         {
-            throw runtime_error("This calculator model (" + varFile.calcModel.getName() + ") does not support the type " + varFile.type.getName());
+            throw runtime_error("This calculator model (" + this->calcModel.getName() + ") does not support the type " + this->type.getName());
         }
 
-        string signature = varFile.calcModel.getSig(); std::copy(signature.begin(), signature.end(), varFile.header.signature);
-        uchar sig_extra[3] = {0x1A, 0x0A, 0x00};       std::copy(sig_extra, sig_extra + 3, varFile.header.sig_extra);
-        string comment = str_pad("Created by tivars_lib_cpp", 42, "\0"); std::copy(comment.begin(), comment.end(), varFile.header.comment);
-        varFile.header.entries_len = 0; // will have to be overwritten later
+        string newName = this->fixVarName(name);
+        string signature = this->calcModel.getSig(); std::copy(signature.begin(), signature.end(), this->header.signature);
+        uchar sig_extra[3] = {0x1A, 0x0A, 0x00};       std::copy(sig_extra, sig_extra + 3, this->header.sig_extra);
+        string comment = str_pad("Created by tivars_lib_cpp", 42, "\0"); std::copy(comment.begin(), comment.end(), this->header.comment);
+        this->header.entries_len = 0; // will have to be overwritten later
 
-        varFile.varEntry.meta_length  = (varFile.calcModel.getFlags() >= TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength;
-        varFile.varEntry.data_length  = 0; // will have to be overwritten later
-        varFile.varEntry.typeID       = (uchar) type.getId();
-        string varname = str_pad(newName, 8, "\0");    std::copy(varname.begin(), varname.begin() + 7, varFile.varEntry.varname);
-        varFile.varEntry.data_length2 = 0; // will have to be overwritten later
+        this->varEntry.meta_length  = (this->calcModel.getFlags() >= TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength;
+        this->varEntry.data_length  = 0; // will have to be overwritten later
+        this->varEntry.typeID       = (uchar) type.getId();
+        string varname = str_pad(newName, 8, "\0");    std::copy(varname.begin(), varname.begin() + 7, this->varEntry.varname);
+        this->varEntry.data_length2 = 0; // will have to be overwritten later
+    }
 
-        return varFile;
+    TIVarFile TIVarFile::createNew(const TIVarType& type, const string& name, const TIModel& model)
+    {
+        return TIVarFile(type, name, model);
     }
 
     TIVarFile TIVarFile::createNew(const TIVarType& type, const string& name)
