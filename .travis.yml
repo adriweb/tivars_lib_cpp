@@ -3,5 +3,13 @@ sudo: false
 
 language: cpp
 
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-6
+
 script:
-  - make && ./tivars_test
+  - CC=gcc-6 && CXX=g++-6 make
+  - ./tivars_test

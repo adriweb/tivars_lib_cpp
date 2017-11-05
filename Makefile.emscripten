@@ -1,4 +1,4 @@
-CC := em++
+CXX := em++
 
 # Emscripten stuff
 EMFLAGS := --bind --memory-init-file 0 --llvm-lto 3 -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 --embed-file programs_tokens.csv
@@ -20,18 +20,18 @@ wasm:  $(OUTPUT).html
 $(OUTPUT).html: $(OUTPUT).js
 
 asmjs-html: $(OBJS)
-	$(CC) $(CXXFLAGS) $(LFLAGS) $^ -o $(OUTPUT).html
+	$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $(OUTPUT).html
 
 wasm-html: $(OBJS)
-	$(CC) $(CXXFLAGS) $(LFLAGS) $^ -o $(OUTPUT).html
+	$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $(OUTPUT).html
 
 all: asmjs-html
 
 %.bc: %.cpp
-	$(CC) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OUTPUT).js: $(OBJS)
-	$(CC) $(CXXFLAGS) $(LFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $@
 
 clean:
 	$(RM) -f $(OBJS) $(OUTPUT).js* $(OUTPUT).html* $(OUTPUT).data $(OUTPUT).asm.js $(OUTPUT).was*
