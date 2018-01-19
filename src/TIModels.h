@@ -8,7 +8,7 @@
 #ifndef TIMODELS_H
 #define TIMODELS_H
 
-#include "autoloader.h"
+#include "CommonTypes.h"
 #include "TIModel.h"
 #include "TIVarType.h"
 

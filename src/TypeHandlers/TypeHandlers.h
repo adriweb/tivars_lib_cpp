@@ -8,7 +8,7 @@
 #ifndef TYPE_HANDLERS_H
 #define TYPE_HANDLERS_H
 
-#include "../autoloader.h"
+#include "../CommonTypes.h"
 
 namespace tivars
 {
@@ -75,7 +75,6 @@ namespace tivars
     {
         const constexpr size_t dataByteCount = 2 * TH_0x00::dataByteCount;
         bool checkValidString(const std::string& str);
-        bool checkValidStringAndGetMatches(const std::string& str, std::smatch& matches);
     }
 
     namespace TH_0x1B   // Exact Complex Fraction

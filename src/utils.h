@@ -8,7 +8,11 @@
 #ifndef TIVARSLIB_UTILS_H
 #define TIVARSLIB_UTILS_H
 
-#include "autoloader.h"
+#include <vector>
+#include <string>
+#include <algorithm>
+
+#include "CommonTypes.h"
 #include "TIModel.h"
 #include "TIVarType.h"
 

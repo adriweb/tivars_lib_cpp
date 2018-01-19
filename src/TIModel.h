@@ -8,7 +8,7 @@
 #ifndef TIMODEL_H
 #define TIMODEL_H
 
-#include "autoloader.h"
+#include "CommonTypes.h"
 #include "TIVarType.h"
 
 namespace tivars

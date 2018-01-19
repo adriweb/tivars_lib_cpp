@@ -5,12 +5,14 @@
  * License: MIT
  */
 
+#include <regex>
 #include "TypeHandlers.h"
 
 using namespace std;
 
 namespace tivars
 {
+    static bool checkValidStringAndGetMatches(const string& str, smatch& matches);
 
     data_t TH_0x0C::makeDataFromString(const string& str, const options_t& options)
     {
@@ -78,7 +80,7 @@ namespace tivars
         return checkValidStringAndGetMatches(str, matches);
     }
 
-    bool TH_0x0C::checkValidStringAndGetMatches(const string& str, smatch& matches)
+    static bool checkValidStringAndGetMatches(const string& str, smatch& matches)
     {
         if (str.empty())
         {

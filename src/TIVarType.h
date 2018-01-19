@@ -8,7 +8,8 @@
 #ifndef TIVARTYPE_H
 #define TIVARTYPE_H
 
-#include "autoloader.h"
+#include "CommonTypes.h"
+#include "TypeHandlers/TypeHandlers.h"
 
 namespace tivars
 {

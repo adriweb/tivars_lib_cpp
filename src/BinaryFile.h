@@ -8,7 +8,7 @@
 #ifndef TIVARS_LIB_CPP_BINARYFILE_H
 #define TIVARS_LIB_CPP_BINARYFILE_H
 
-#include "autoloader.h"
+#include "CommonTypes.h"
 
 namespace tivars
 {

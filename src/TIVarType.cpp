@@ -46,6 +46,7 @@ namespace tivars
 
 
 #ifdef __EMSCRIPTEN__
+    #include <emscripten/bind.h>
     using namespace emscripten;
     EMSCRIPTEN_BINDINGS(_tivartype) {
             class_<TIVarType>("TIVarType")

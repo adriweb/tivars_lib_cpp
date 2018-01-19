@@ -6,6 +6,8 @@
  */
 
 #include "utils.h"
+#include <sstream>
+#include <cmath>
 
 using namespace std;
 

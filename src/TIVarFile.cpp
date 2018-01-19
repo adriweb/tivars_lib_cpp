@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "TIModels.h"
 #include <numeric>
+#include <regex>
 
 using namespace std;
 
@@ -371,6 +372,7 @@ namespace tivars
 
 
 #ifdef __EMSCRIPTEN__
+    #include <emscripten/bind.h>
     using namespace emscripten;
     EMSCRIPTEN_BINDINGS(_tivarfile) {
 

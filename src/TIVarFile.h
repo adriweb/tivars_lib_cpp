@@ -8,7 +8,7 @@
 #ifndef TIVARS_LIB_CPP_TIVARFILE_H
 #define TIVARS_LIB_CPP_TIVARFILE_H
 
-#include "autoloader.h"
+#include "CommonTypes.h"
 #include "BinaryFile.h"
 #include "TIVarType.h"
 #include "TIModel.h"

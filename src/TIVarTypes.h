@@ -8,8 +8,9 @@
 #ifndef TIVARTYPES_H
 #define TIVARTYPES_H
 
-#include "autoloader.h"
+#include "CommonTypes.h"
 #include "TIVarType.h"
+#include <unordered_map>
 
 namespace tivars
 {

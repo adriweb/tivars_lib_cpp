@@ -5,9 +5,10 @@
  * License: MIT
  */
 
-#include <assert.h>
-
-#include "src/autoloader.h"
+#include <cassert>
+#include <cstring>
+#include <string>
+#include <iostream>
 
 #include "src/TIModels.h"
 #include "src/TIVarTypes.h"

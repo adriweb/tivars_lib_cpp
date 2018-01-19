@@ -7,6 +7,10 @@
 
 #include "TypeHandlers.h"
 #include "../utils.h"
+#include <unordered_map>
+#include <iostream>
+#include <regex>
+#include <fstream>
 
 using namespace std;
 

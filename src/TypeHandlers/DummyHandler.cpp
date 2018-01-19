@@ -5,7 +5,8 @@
  * License: MIT
  */
 
-#include "../autoloader.h"
+#include "../CommonTypes.h"
+#include "TypeHandlers.h"
 
 namespace tivars
 {
