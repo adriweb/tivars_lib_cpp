@@ -55,7 +55,10 @@ namespace tivars
             if (bytes > 0)
             {
                 uchar buf[bytes];
-                (void)fread(buf, sizeof(uchar), bytes, file);
+                size_t n = fread(buf, sizeof(uchar), bytes, file);
+                if (n < 1) {
+                    return data_t{};
+                }
                 data_t v(buf, buf + bytes);
                 return v;
             } else {
@@ -80,7 +83,10 @@ namespace tivars
             if (bytes > 0)
             {
                 char buf[bytes+1];
-                (void)fread(buf, sizeof(char), bytes, file);
+                size_t n = fread(buf, sizeof(char), bytes, file);
+                if (n < 1) {
+                    return string{};
+                }
                 buf[bytes] = '\0';
                 return string(buf);
             } else {

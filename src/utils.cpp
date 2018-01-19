@@ -174,13 +174,6 @@ bool is_numeric(const string& str)
     return (bool)!*p;
 }
 
-// From http://rosettacode.org/wiki/Strip_a_set_of_characters_from_a_string#C.2B.2B
-string stripchars(string str, const string& chars)
-{
-    str.erase(std::remove_if(str.begin(), str.end(), [&](char c){ return chars.find(c) != string::npos; }), str.end());
-    return str;
-}
-
 bool file_exists(const string& path) {
     if (path.empty()) {
         return false;

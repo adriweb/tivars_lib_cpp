@@ -45,8 +45,6 @@ void ParseCSV(const std::string& csvSource, std::vector<std::vector<std::string>
 
 bool is_numeric(const std::string& str);
 
-std::string stripchars(std::string str, const std::string& chars);
-
 bool file_exists(const std::string& filePath);
 
 std::string str_pad(const std::string& str, unsigned long pad_length, std::string pad_string = " ");
