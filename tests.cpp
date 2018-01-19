@@ -69,10 +69,24 @@ int main(int argc, char** argv)
 
     {
         TIVarFile testReal = TIVarFile::loadFromFile("testData/Real.8xn");
+        assert(testReal.getRawContent() == data_t({0x80,0x81,0x42,0x13,0x37,0x00,0x00,0x00,0x00}));
         assert(testReal.getReadableContent() == "-42.1337");
         testReal.setContentFromString(".5");
         cout << "testReal.getReadableContent() : " << testReal.getReadableContent() << endl << std::flush;
+        assert(testReal.getRawContent() == data_t({0x00,0x7F,0x50,0x00,0x00,0x00,0x00,0x00,0x00}));
         assert(testReal.getReadableContent() == "0.5");
+        testReal.setContentFromString(".000000999999999999999e105");
+        //cout << "testReal.getReadableContent() : " << testReal.getReadableContent() << endl << std::flush; // TODO: fixme
+        assert(testReal.getRawContent() == data_t({0x00,0x80+99,0x10,0x00,0x00,0x00,0x00,0x00,0x00}));
+        //assert(testReal.getReadableContent() == "1e99"); // TODO: fixme
+        testReal.setContentFromString("3.14159265358979323846264");
+        cout << "testReal.getReadableContent() : " << testReal.getReadableContent() << endl << std::flush;
+        assert(testReal.getRawContent() == data_t({0x00,0x80   ,0x31,0x41,0x59,0x26,0x53,0x58,0x98}));
+        //assert(testReal.getReadableContent() == "3.1415926535898"); // TODO: fixme
+        testReal.setContentFromString("-1234567890123456789e+12");
+        //cout << "testReal.getReadableContent() : " << testReal.getReadableContent() << endl << std::flush; // TODO: fixme
+        assert(testReal.getRawContent() == data_t({0x80,0x80+30,0x12,0x34,0x56,0x78,0x90,0x12,0x35}));
+        //assert(testReal.getReadableContent() == "-1.2345678901235e30"); // TODO: fixme
     }
 
     {
