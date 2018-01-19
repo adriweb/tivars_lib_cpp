@@ -13,6 +13,20 @@
 
 using namespace std;
 
+namespace
+{
+    static bool parseSign(string::const_iterator &i, const string::const_iterator &e) {
+      bool sign = false;
+      if (i != e && (*i == '+' || *i == '-')) {
+	sign = *i++ == '-';
+      }
+      if (i == e) {
+	throw invalid_argument("Unexpected end of string.");
+      }
+      return sign;
+    }
+}
+
 namespace tivars
 {
 
@@ -21,31 +35,76 @@ namespace tivars
         (void)options;
 
         data_t data(TH_0x00::dataByteCount);
-
-        if (str == "" || !is_numeric(str))
-        {
-            throw invalid_argument("Invalid input string. Needs to be a valid real number");
-        }
-
-        double number = atof(str.c_str());
-
-        int exponent = (int)floor(log10(abs(number)));
-        number *= pow(10.0, -exponent);
-        char tmp[20];
-        sprintf(tmp, "%0.14f", number);
-        string newStr = stripchars(tmp, "-.");
-
-        uchar flags = 0;
-        flags |= (number < 0) ? (1 << 7) : 0;
-        flags |= (has_option(options, "seqInit") && options.at("seqInit") == 1) ? 1 : 0;
-
-        data[0] = flags;
-        data[1] = (uchar)(exponent + 0x80);
-        for (uint i = 2; i < TH_0x00::dataByteCount; i++)
-        {
-            data[i] = (uchar)(hexdec(newStr.substr(2*(i-2), 2)) & 0xFF);
-        }
-
+	bool beforePoint = true, noDigits = true, zero = true;
+	int exponent = 0x7F;
+	unsigned index = 4;
+	string::const_iterator i = str.begin();
+	const string::const_iterator e = str.end();
+	if (parseSign(i, e)) {
+	  data[0] = 1 << 7;
+	}
+	do {
+	  char c = *i++;
+	  if (c == '.') {
+	    if (!beforePoint) {
+	      throw invalid_argument("Extra decimal points.");
+	    }
+	    beforePoint = false;
+	  } else if (c == '0') {
+	    noDigits = false;
+	    if (zero) {
+	      exponent -= !beforePoint;
+	    } else {
+	      exponent += beforePoint;
+	      index += index <= TH_0x00::dataByteCount << 1;
+	    }
+	  } else if (c >= '1' && c <= '9') {
+	    noDigits = zero = false;
+	    exponent += beforePoint;
+	    if (index < TH_0x00::dataByteCount << 1) {
+	      data[index >> 1] |= (c - '0') << ((~index & 1) << 2);
+	      index++;
+	    } else if (index == TH_0x00::dataByteCount << 1) {
+	      if (c >= '5') {
+		while (true) {
+		  if (--index < 4) {
+		    data[2] = 0x10;
+		    exponent++;
+		    break;
+		  }
+		  if ((data[index >> 1] >> ((~index & 1) << 2) & 0xF) < 9) {
+		    data[index >> 1] += 1 << ((~index & 1) << 2);
+		    break;
+		  }
+		  data[index >> 1] &= 0xF << ((index & 1) << 2);
+		}
+	      }
+	      index = (TH_0x00::dataByteCount << 1) + 1;
+	    }
+	  } else if (c == 'e') {
+	    bool sign = parseSign(i, e);
+	    int offset = 0;
+	    do {
+	      char c = *i++;
+	      if (c >= '0' && c <= '9') {
+		offset *= 10;
+		offset += c - '0';
+	      } else {
+		throw invalid_argument("Unexpected character.");
+	      }
+	    } while (i != e);
+	    exponent = sign ? exponent - offset : exponent + offset;
+	  } else {
+	      throw invalid_argument("Unexpected character.");
+	  }
+	} while (i != e);
+	if (noDigits) {
+	  throw invalid_argument("No digits found.");
+	}
+	if (exponent < 0x80 - 99 || exponent > 0x80 + 99) {
+	  throw invalid_argument("Exponent out of range.");
+	}
+	data[1] = exponent;
         return data;
     }
 
