@@ -5,7 +5,6 @@
  * License: MIT
  */
 
-#include <sys/stat.h>
 #include "BinaryFile.h"
 #include "utils.h"
 

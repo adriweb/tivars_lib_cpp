@@ -305,6 +305,7 @@ namespace tivars
      *
      * @param   string  directory  Directory to save the file to
      * @param   string  name       Name of the file, without the extension
+     * @return  string  the full path
      */
     string TIVarFile::saveVarToFile(string directory, string name)
     {
