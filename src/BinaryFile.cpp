@@ -19,7 +19,7 @@ namespace tivars
      */
     BinaryFile::BinaryFile(const string& filePath)
     {
-        if (filePath != "")
+        if (!filePath.empty())
         {
             if (file_exists(filePath))
             {
@@ -36,7 +36,7 @@ namespace tivars
                 throw runtime_error("No such file");
             }
         } else {
-            throw invalid_argument("No file path given");
+            throw invalid_argument("Empty file path given");
         }
     }
 
