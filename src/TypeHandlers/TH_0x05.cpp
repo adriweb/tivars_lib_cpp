@@ -233,7 +233,7 @@ namespace tivars
             str += str_repeat(" ", line.first * 3) + line.second + '\n';
         }
 
-        return str;
+        return ltrim(rtrim(str, "\t\n\r\f\v"));
     }
 
     void TH_0x05::initTokens()
