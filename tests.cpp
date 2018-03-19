@@ -91,6 +91,11 @@ int main(int argc, char** argv)
     }
 
     {
+        data_t bad_real = data_t({0, 0, 0, 0, 0, 0, 0, 0, 0});
+        assert(TH_0x00::makeStringFromData(bad_real) == "NaN");
+    }
+
+    {
         TIVarFile testReal42 = TIVarFile::createNew(TIVarType::createFromName("Real"), "R");
         testReal42.setCalcModel(TIModel::createFromName("84+"));
         testReal42.setContentFromString("9001.42");
