@@ -258,7 +258,7 @@ int main(int argc, char** argv)
     {
         TIVarFile testExactComplexPiFrac = TIVarFile::loadFromFile("testData/Exact_ComplexPiFrac.8xc");
         cout << "Before: " << testExactComplexPiFrac.getReadableContent() << endl;
-        assert(testExactComplexPiFrac.getReadableContent() == "2/7πi");
+        assert(testExactComplexPiFrac.getReadableContent() == "2π/7i");
         //TIVarFile newExactComplexPiFrac = TIVarFile::createNew(TIVarType::createFromName("ExactComplexPiFrac"), "A", TIModel::createFromName("83PCE"));
         //newExactComplexPiFrac.setContentFromString("-42.1337");
         //assert(testExactComplexPiFrac.getRawContent() == newExactComplexPiFrac.getRawContent());
@@ -288,7 +288,7 @@ int main(int argc, char** argv)
     {
         TIVarFile testExactRealPiFrac = TIVarFile::loadFromFile("testData/Exact_RealPiFrac.8xn");
         cout << "Before: " << testExactRealPiFrac.getReadableContent() << endl;
-        assert(testExactRealPiFrac.getReadableContent() == "2/7π");
+        assert(testExactRealPiFrac.getReadableContent() == "2π/7");
         //TIVarFile newExactRealPiFrac = TIVarFile::createNew(TIVarType::createFromName("ExactRealPiFrac"), "A", TIModel::createFromName("83PCE"));
         //newExactRealPiFrac.setContentFromString("-42.1337");
         //assert(testExactRealPiFrac.getRawContent() == newExactRealPiFrac.getRawContent());
