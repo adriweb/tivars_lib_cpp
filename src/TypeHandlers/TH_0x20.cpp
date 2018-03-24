@@ -35,22 +35,7 @@ namespace tivars
             throw invalid_argument("Empty data array. Needs to contain " + to_string(dataByteCount) + " bytes");
         }
 
-        string coeff = TH_0x00::makeStringFromData(data);
-
-        string str = ((coeff != "0") ? (coeff + "*π") : "");
-
-        // Improve final display
-        str = regex_replace(str, regex("\\+1\\*"), "+");  str = regex_replace(str, regex("\\(1\\*"),  "(");
-        str = regex_replace(str, regex("-1\\*"),   "-");  str = regex_replace(str, regex("\\(-1\\*"), "(-");
-        str = regex_replace(str, regex("\\+-"),    "-");
-
-        // Shouldn't happen - I don't believe the calc generate such files.
-        if (str == "")
-        {
-            str = "0";
-        }
-
-        return str;
+        return multiple(stoi(TH_0x00::makeStringFromData(data, options)), "π");
     }
 
 }

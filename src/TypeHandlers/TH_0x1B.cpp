@@ -26,22 +26,20 @@ namespace tivars
         }
     }
 
+    static string makeStringFromComp(data_t data, const options_t& options)
+    {
+        data_t::reference type = data[0];
+        if ((type & ~0x80) != 0x1B)
+        {
+            throw invalid_argument("Unknown type");
+        }
+        type &= 0x80;
+        return dec2frac(stod(TH_0x00::makeStringFromData(data, options)));
+    }
+
     string TH_0x1B::makeStringFromData(const data_t& data, const options_t& options)
     {
-        (void)options;
-
-        if (data.size() != dataByteCount)
-        {
-            throw invalid_argument("Empty data array. Needs to contain " + to_string(dataByteCount) + " bytes");
-        }
-
-        string coeffR = TH_0x00::makeStringFromData(data_t(data.begin(), data.begin() + TH_0x00::dataByteCount));
-        string coeffI = TH_0x00::makeStringFromData(data_t(data.begin() + TH_0x00::dataByteCount, data.begin() + 2 * TH_0x00::dataByteCount));
-
-        string str = dec2frac(atof(coeffR.c_str())) + "+" + dec2frac(atof(coeffI.c_str())) + "i";
-        str = regex_replace(str, regex("\\+-"), "-");
-
-        return str;
+        return makeStringFromComplex(data, options, makeStringFromComp, makeStringFromComp);
     }
 
 }

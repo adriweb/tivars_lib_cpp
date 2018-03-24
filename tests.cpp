@@ -72,6 +72,10 @@ int main(int argc, char** argv)
         TIVarFile testReal = TIVarFile::loadFromFile("testData/Real.8xn");
         assert(testReal.getRawContent() == data_t({0x80,0x81,0x42,0x13,0x37,0x00,0x00,0x00,0x00}));
         assert(testReal.getReadableContent() == "-42.1337");
+        testReal.setContentFromString("5");
+        cout << "testReal.getReadableContent() : " << testReal.getReadableContent() << endl;
+        assert(testReal.getRawContent() == data_t({0x00,0x80,0x50,0x00,0x00,0x00,0x00,0x00,0x00}));
+        assert(testReal.getReadableContent() == "5");
         testReal.setContentFromString(".5");
         cout << "testReal.getReadableContent() : " << testReal.getReadableContent() << endl;
         assert(testReal.getRawContent() == data_t({0x00,0x7F,0x50,0x00,0x00,0x00,0x00,0x00,0x00}));
@@ -91,8 +95,16 @@ int main(int argc, char** argv)
     }
 
     {
-        data_t bad_real = data_t({0, 0, 0, 0, 0, 0, 0, 0, 0});
-        assert(TH_0x00::makeStringFromData(bad_real) == "NaN");
+        try
+        {
+            data_t bad_real = data_t({1, 0, 0, 0, 0, 0, 0, 0, 0});
+            TH_0x00::makeStringFromData(bad_real);
+            assert(false);
+        }
+        catch (invalid_argument& e)
+        {
+            cout << "Caught expected exception: " << e.what() << endl;
+        }
     }
 
     {
@@ -125,10 +137,12 @@ int main(int argc, char** argv)
             auto goodTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("Program"), "Bla", TIModel::createFromName("83PCE"));
         } catch (runtime_error& e) {
             cout << "Caught unexpected exception: " << e.what() << endl;
+            assert(false);
         }
         try
         {
             auto badTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("ExactComplexFrac"), "Bla", TIModel::createFromName("84+"));
+            assert(false);
         } catch (runtime_error& e) {
             cout << "Caught expected exception: " << e.what() << endl;
         }
@@ -234,7 +248,7 @@ int main(int argc, char** argv)
     {
         TIVarFile testExactComplexPi = TIVarFile::loadFromFile("testData/Exact_ComplexPi.8xc");
         cout << "Before: " << testExactComplexPi.getReadableContent() << endl;
-        assert(testExactComplexPi.getReadableContent() == "1/5-3*π*i");
+        assert(testExactComplexPi.getReadableContent() == "1/5-3πi");
         //TIVarFile newExactComplexPi = TIVarFile::createNew(TIVarType::createFromName("ExactComplexPi"), "A", TIModel::createFromName("83PCE"));
         //newExactComplexPi.setContentFromString("-42.1337");
         //assert(testExactComplexPi.getRawContent() == newExactComplexPi.getRawContent());
@@ -244,7 +258,7 @@ int main(int argc, char** argv)
     {
         TIVarFile testExactComplexPiFrac = TIVarFile::loadFromFile("testData/Exact_ComplexPiFrac.8xc");
         cout << "Before: " << testExactComplexPiFrac.getReadableContent() << endl;
-        assert(testExactComplexPiFrac.getReadableContent() == "2/7*π*i");
+        assert(testExactComplexPiFrac.getReadableContent() == "2/7πi");
         //TIVarFile newExactComplexPiFrac = TIVarFile::createNew(TIVarType::createFromName("ExactComplexPiFrac"), "A", TIModel::createFromName("83PCE"));
         //newExactComplexPiFrac.setContentFromString("-42.1337");
         //assert(testExactComplexPiFrac.getRawContent() == newExactComplexPiFrac.getRawContent());
@@ -264,7 +278,7 @@ int main(int argc, char** argv)
     {
         TIVarFile testExactRealPi = TIVarFile::loadFromFile("testData/Exact_RealPi.8xn");
         cout << "Before: " << testExactRealPi.getReadableContent() << endl;
-        assert(testExactRealPi.getReadableContent() == "30*π");
+        assert(testExactRealPi.getReadableContent() == "30π");
         //TIVarFile newExactRealPi = TIVarFile::createNew(TIVarType::createFromName("ExactRealPi"), "A", TIModel::createFromName("83PCE"));
         //newExactRealPi.setContentFromString("-42.1337");
         //assert(testExactRealPi.getRawContent() == newExactRealPi.getRawContent());
@@ -274,7 +288,7 @@ int main(int argc, char** argv)
     {
         TIVarFile testExactRealPiFrac = TIVarFile::loadFromFile("testData/Exact_RealPiFrac.8xn");
         cout << "Before: " << testExactRealPiFrac.getReadableContent() << endl;
-        assert(testExactRealPiFrac.getReadableContent() == "2/7*π");
+        assert(testExactRealPiFrac.getReadableContent() == "2/7π");
         //TIVarFile newExactRealPiFrac = TIVarFile::createNew(TIVarType::createFromName("ExactRealPiFrac"), "A", TIModel::createFromName("83PCE"));
         //newExactRealPiFrac.setContentFromString("-42.1337");
         //assert(testExactRealPiFrac.getRawContent() == newExactRealPiFrac.getRawContent());

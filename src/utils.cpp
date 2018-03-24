@@ -215,8 +215,22 @@ string str_pad(const string& str, unsigned long pad_length, string pad_string)
     return o;
 }
 
+string multiple(int num, const string &var) {
+    const string unit = var.empty() ? "1" : var;
+    switch (num) {
+        case 0:
+            return "0";
+        case 1:
+            return unit;
+        case -1:
+            return "-" + unit;
+        default:
+            return to_string(num) + var;
+    }
+}
+
 // Adapted from http://stackoverflow.com/a/32903747/378298
-string dec2frac(double num, double err)
+string dec2frac(double num, const string& var, double err)
 {
     if (err <= 0.0 || err >= 1.0)
     {
@@ -241,12 +255,12 @@ string dec2frac(double num, double err)
 
     if (num < err)
     {
-        return to_string(sign * n);
+        return multiple(sign * n, var);
     }
 
     if (1 - err < num)
     {
-        return to_string(sign * (n + 1));
+        return multiple(sign * (n + 1), var);
     }
 
     // The lower fraction is 0/1
@@ -276,9 +290,38 @@ string dec2frac(double num, double err)
             lower_d = middle_d;
         } else {
             // Middle is our best fraction
-            return to_string((n * middle_d + middle_n) * sign) + "/" + to_string(middle_d);
+            return multiple((n * middle_d + middle_n) * sign, var) + "/" + to_string(middle_d);
         }
     }
+}
+
+string makeStringFromComplex(const data_t& data, const options_t& options, string makeStringFromReal(data_t data, const options_t& options), string makeStringFromImag(data_t data, const options_t& options))
+{
+    if (data.size() != tivars::TH_0x0C::dataByteCount)
+    {
+        throw invalid_argument("Empty data array. Needs to contain " + to_string(tivars::TH_0x0C::dataByteCount) + " bytes");
+    }
+
+    data_t::const_iterator mid = data.cbegin() + tivars::TH_0x00::dataByteCount;
+    string coeffR = makeStringFromReal(data_t(data.cbegin(), mid), options);
+    string coeffI = makeStringFromImag(data_t(mid, data.cend()), options);
+    bool coeffRZero = coeffR == "0";
+    bool coeffIZero = coeffI == "0";
+    string str;
+    str.reserve(coeffR.length() + 1 + coeffI.length() + 1);
+    if (!coeffRZero || coeffIZero) {
+        str += coeffR;
+    }
+    if (!coeffRZero && !coeffIZero && coeffI.front() != '-' && coeffI.front() != '+') {
+        str += '+';
+    }
+    if (!coeffIZero) {
+        if (coeffI != "1") {
+            str += coeffI;
+        }
+        str += 'i';
+    }
+    return str;
 }
 
 std::string trimZeros(const std::string& str)
