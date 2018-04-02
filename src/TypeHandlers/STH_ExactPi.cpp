@@ -14,7 +14,7 @@ using namespace std;
 namespace tivars
 {
 
-    data_t TH_0x20::makeDataFromString(const string& str, const options_t& options)
+    data_t STH_ExactPi::makeDataFromString(const string& str, const options_t& options)
     {
         (void)options;
 
@@ -26,16 +26,14 @@ namespace tivars
         }
     }
 
-    string TH_0x20::makeStringFromData(const data_t& data, const options_t& options)
+    string STH_ExactPi::makeStringFromData(const data_t& data, const options_t& options)
     {
-        (void)options;
-
-        if (data.size() != dataByteCount)
+        if (data.size() != 9)
         {
-            throw invalid_argument("Empty data array. Needs to contain " + to_string(dataByteCount) + " bytes");
+            throw invalid_argument("Invalid data array. Needs to contain 9 bytes");
         }
 
-        return multiple(stoi(TH_0x00::makeStringFromData(data, options)), "π");
+        return multiple(stoi(STH_FP::makeStringFromData(data, options)), "π");
     }
 
 }

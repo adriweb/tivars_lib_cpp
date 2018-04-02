@@ -14,7 +14,7 @@ using namespace std;
 namespace tivars
 {
 
-    data_t TH_0x1C::makeDataFromString(const string& str, const options_t& options)
+    data_t STH_ExactRadical::makeDataFromString(const string& str, const options_t& options)
     {
         (void)options;
 
@@ -26,37 +26,39 @@ namespace tivars
         }
     }
 
-    string TH_0x1C::makeStringFromData(const data_t& data, const options_t& options)
+    // TODO: handle sign bit?
+    string STH_ExactRadical::makeStringFromData(const data_t& data, const options_t& options)
     {
         (void)options;
 
-        if (data.size() != dataByteCount)
+        if (data.size() != 9)
         {
-            throw invalid_argument("Empty data array. Needs to contain " + to_string(dataByteCount) + " bytes");
+            throw invalid_argument("Invalid data array. Needs to contain 9 bytes");
         }
 
         string dataStr;
-        for (uint i = 0; i < TH_0x1C::dataByteCount; i++)
+        for (uint i = 0; i < 9; i++)
         {
             dataStr += (data[i] < 0x10 ? "0" : "") + dechex(data[i]); // zero left pad
         }
 
-        string type = dataStr.substr(0, 2);
-        if (!(type == "1c" || type == "1d")) // real or complex (two reals, see TH_1D)
+        int type = hexdec(dataStr.substr(0, 2));
+        type &= ~0x80; // sign bit discarded
+        if (type != 0x1C && type != 0x1D) // real or complex
         {
-            throw invalid_argument("Invalid data bytes - invalid vartype: " + type);
+            throw invalid_argument("Invalid data bytes - invalid vartype: " + to_string(type));
         }
 
-        int subtype = atoi(dataStr.substr(2, 1).c_str());
-        if (subtype < 0 || subtype > 3)
+        int variant = hexdec(dataStr.substr(2, 1));
+        if (variant < 0 || variant > 3)
         {
-            throw invalid_argument("Invalid data bytes - unknown subtype: " + to_string(subtype));
+            throw invalid_argument("Invalid data bytes - unknown type variant: " + to_string(variant));
         }
 
         const vector<string> parts = {
-            (subtype == 1 || subtype == 3 ? "-" : "") + trimZeros(dataStr.substr(9, 3)),
+            (variant == 1 || variant == 3 ? "-" : "") + trimZeros(dataStr.substr(9, 3)),
             trimZeros(dataStr.substr(15, 3)),
-            (subtype == 2 || subtype == 3 ? "-" : "+") + trimZeros(dataStr.substr(6, 3)),
+            (variant == 2 || variant == 3 ? "-" : "+") + trimZeros(dataStr.substr(6, 3)),
             trimZeros(dataStr.substr(12, 3)),
             trimZeros(dataStr.substr(3, 3))
         };

@@ -53,8 +53,6 @@ std::string multiple(int num, const std::string& var);
 
 std::string dec2frac(double num, const std::string& var = "", double err = 0.001);
 
-std::string makeStringFromComplex(const data_t& data, const options_t& options, std::string makeStringFromReal(data_t data, const options_t& options), std::string makeStringFromImag(data_t data, const options_t& options));
-
 std::string trimZeros(const std::string& str);
 
 #endif

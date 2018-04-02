@@ -78,7 +78,7 @@ namespace tivars
     {
         if (data.size() < 2)
         {
-            throw invalid_argument("Empty data array. Needs to contain at least 2 bytes (size fields)");
+            throw invalid_argument("Invalid data array. Needs to contain at least 2 bytes (size fields)");
         }
 
         uint langIdx = (uint)((has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN);

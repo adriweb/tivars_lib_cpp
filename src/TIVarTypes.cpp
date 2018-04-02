@@ -12,8 +12,18 @@ using namespace std;
 
 namespace tivars
 {
-
     unordered_map<string, TIVarType> types;
+
+// Wrap the makeDataFromStr function by one that adds the type/subtype in the options
+// Ideally, the handlers would parse the string and select the correct handler to dispatch...
+#define make_generic_handler_pair(cls, type) make_pair([](const std::string& str, const options_t& options) -> data_t { \
+    options_t options_withType = options;                                                                               \
+    options_withType["_type"] = type;                                                                                   \
+    return (cls::makeDataFromString)(str, options_withType);                                                            \
+}, &cls::makeStringFromData)
+
+#define GenericRealHandlerPairWithType(type)    make_generic_handler_pair(TH_GenericReal,    type)
+#define GenericComplexHandlerPairWithType(type) make_generic_handler_pair(TH_GenericComplex, type)
 
     /**
      *  Make and insert the associative arrays for the type.
@@ -26,13 +36,12 @@ namespace tivars
     void TIVarTypes::insertType(string name, int id, const vector<string>& exts, const handler_pair_t& handlers)
     {
         TIVarType varType(id, name, exts, handlers);
-
         string id_str = to_string(id);
         types[name]   = varType;
         types[id_str] = varType;
-        for (const string ext : exts)
+        for (const string& ext : exts)
         {
-            if (ext != "" && !types.count(ext))
+            if (!ext.empty() && !types.count(ext))
             {
                 types[ext] = varType;
             }
@@ -40,13 +49,14 @@ namespace tivars
     }
 
     // 82+/83+/84+ are grouped since only the clock is the difference, and it doesn't have an actual varType.
+    // For number vartypes, Real and Complex are the generic handlers we use, they'll dispatch to specific ones.
     void TIVarTypes::initTIVarTypesArray() // order: 82     83    82A  82+/83+  84+C  84+CE  83PCE
                                            //                     84+T   84+         84+CE-T
     {
         insertType("Unknown",                -1,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
 
         /* Standard types */
-        insertType("Real",                 0x00,  {"82n", "83n", "8xn", "8xn", "8xn", "8xn", "8xn"},  make_handler_pair(TH_0x00) );
+        insertType("Real",                 0x00,  {"82n", "83n", "8xn", "8xn", "8xn", "8xn", "8xn"},  GenericRealHandlerPairWithType(0x00) );
         insertType("RealList",             0x01,  {"82l", "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  make_handler_pair(TH_0x01) );
         insertType("Matrix",               0x02,  {"82m", "83m", "8xm", "8xm", "8xm", "8xm", "8xm"},  make_handler_pair(TH_0x02) );
         insertType("Equation",             0x03,  {"82y", "83y", "8xy", "8xy", "8xy", "8xy", "8xy"},  make_handler_pair(TH_0x03) );
@@ -55,7 +65,7 @@ namespace tivars
         insertType("ProtectedProgram",     0x06,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_0x06) );
         insertType("Picture",              0x07,  {  "" ,   "" , "8xi", "8xi", "8ci", "8ci", "8ci"});
         insertType("GraphDataBase",        0x08,  {"82d", "83d", "8xd", "8xd", "8xd", "8xd", "8xd"});
-        insertType("Complex",              0x0C,  {  "" , "83c", "8xc", "8xc", "8xc", "8xc", "8xc"},  make_handler_pair(TH_0x0C) );
+        insertType("Complex",              0x0C,  {  "" , "83c", "8xc", "8xc", "8xc", "8xc", "8xc"},  GenericComplexHandlerPairWithType(0x0C) );
         insertType("ComplexList",          0x0D,  {  "" , "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  make_handler_pair(TH_0x0D) );
         insertType("WindowSettings",       0x0F,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw"});
         insertType("RecallWindow",         0x10,  {"82z", "83z", "8xz", "8xz", "8xz", "8xz", "8xz"});
@@ -64,18 +74,18 @@ namespace tivars
         insertType("AppVar",               0x15,  {  "" ,   "" ,   "" , "8xv", "8xv", "8xv", "8xv"},  make_handler_pair(TH_0x15) );
         insertType("TemporaryItem",        0x16,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
         insertType("GroupObject",          0x17,  {"82g", "83g", "8xg", "8xg", "8xg", "8cg", "8cg"});
-        insertType("RealFration",          0x18,  {  "" ,   "" ,   "" , "8xn", "8xn", "8xn", "8xn"});
+        insertType("RealFraction",         0x18,  {  "" ,   "" ,   "" , "8xn", "8xn", "8xn", "8xn"},  GenericRealHandlerPairWithType(0x18) );
         insertType("Image",                0x1A,  {  "" ,   "" ,   "" ,   "" ,   "" , "8ca", "8ca"});
 
         /* Exact values (TI-83 Premium CE) */
         /* See https://docs.google.com/document/d/1P_OUbnZMZFg8zuOPJHAx34EnwxcQZ8HER9hPeOQ_dtI */
-        insertType("ExactComplexFrac",     0x1B,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  make_handler_pair(TH_0x1B) );
-        insertType("ExactRealRadical",     0x1C,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  make_handler_pair(TH_0x1C) );
-        insertType("ExactComplexRadical",  0x1D,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  make_handler_pair(TH_0x1D) );
-        insertType("ExactComplexPi",       0x1E,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  make_handler_pair(TH_0x1E) );
-        insertType("ExactComplexPiFrac",   0x1F,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  make_handler_pair(TH_0x1F) );
-        insertType("ExactRealPi",          0x20,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  make_handler_pair(TH_0x20) );
-        insertType("ExactRealPiFrac",      0x21,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  make_handler_pair(TH_0x21) );
+        insertType("ExactComplexFrac",     0x1B,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  GenericComplexHandlerPairWithType(0x1B) );
+        insertType("ExactRealRadical",     0x1C,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  GenericRealHandlerPairWithType(0x1C)    );
+        insertType("ExactComplexRadical",  0x1D,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  GenericComplexHandlerPairWithType(0x1D) );
+        insertType("ExactComplexPi",       0x1E,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  GenericComplexHandlerPairWithType(0x1E) );
+        insertType("ExactComplexPiFrac",   0x1F,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  GenericComplexHandlerPairWithType(0x1F) );
+        insertType("ExactRealPi",          0x20,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  GenericRealHandlerPairWithType(0x20)    );
+        insertType("ExactRealPiFrac",      0x21,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  GenericRealHandlerPairWithType(0x21)    );
 
         /* System/Flash-related things */
         insertType("OperatingSystem",      0x23,  {"82u", "83u", "82u", "8xu", "8cu", "8eu", "8pu"});
@@ -110,7 +120,7 @@ namespace tivars
      */
     int TIVarTypes::getIDFromName(string name)
     {
-        if (name != "" && types.count(name))
+        if (!name.empty() && types.count(name))
         {
             return types[name].getId();
         } else {
@@ -139,7 +149,7 @@ namespace tivars
      */
     vector<string> TIVarTypes::getExtensionsFromName(string name)
     {
-        if (name != "" && types.count(name))
+        if (!name.empty() && types.count(name))
         {
             return types[name].getExts();
         } else {
@@ -155,7 +165,7 @@ namespace tivars
 
     bool TIVarTypes::isValidName(const string& name)
     {
-        return (name != "" && types.count(name));
+        return (!name.empty() && types.count(name));
     }
 }
 

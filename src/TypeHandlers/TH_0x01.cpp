@@ -12,7 +12,7 @@ using namespace std;
 
 namespace tivars
 {
-    
+
     data_t TH_0x01::makeDataFromString(const string& str, const options_t& options)
     {
         (void)options;
@@ -42,7 +42,7 @@ namespace tivars
 
         for (auto& numStr : arr)
         {
-            const auto& tmp = TH_0x00::makeDataFromString(numStr);
+            const auto& tmp = TH_GenericReal::makeDataFromString(numStr, { {"_type", 0x00} });
             data.insert(data.end(), tmp.begin(), tmp.end());
         }
 
@@ -57,17 +57,17 @@ namespace tivars
 
         size_t byteCount = data.size();
         size_t numCount = (size_t) ((data[0] & 0xFF) + ((data[1] & 0xFF) << 8));
-        if (byteCount < 2+TH_0x00::dataByteCount || ((byteCount - 2) % TH_0x00::dataByteCount != 0)
-            || (numCount != (size_t)((byteCount - 2) / TH_0x00::dataByteCount)) || numCount > 999)
+        if (byteCount < 2+TH_GenericReal::dataByteCount || ((byteCount - 2) % TH_GenericReal::dataByteCount != 0)
+            || (numCount != (size_t)((byteCount - 2) / TH_GenericReal::dataByteCount)) || numCount > 999)
         {
-            throw invalid_argument("Invalid data array. Needs to contain 2+" + to_string(TH_0x00::dataByteCount) + "*n bytes");
+            throw invalid_argument("Invalid data array. Needs to contain 2+" + to_string(TH_GenericReal::dataByteCount) + "*n bytes");
         }
 
         str = "{";
 
-        for (size_t i = 2, num = 0; i < byteCount; i += TH_0x00::dataByteCount, num++)
+        for (size_t i = 2, num = 0; i < byteCount; i += TH_GenericReal::dataByteCount, num++)
         {
-            str += TH_0x00::makeStringFromData(data_t(data.begin()+i, data.begin()+i+TH_0x00::dataByteCount));
+            str += TH_GenericReal::makeStringFromData(data_t(data.begin()+i, data.begin()+i+TH_GenericReal::dataByteCount));
             if (num < numCount - 1) // not last num
             {
                 str += ',';

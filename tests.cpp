@@ -98,10 +98,10 @@ int main(int argc, char** argv)
         try
         {
             data_t bad_real = data_t({1, 0, 0, 0, 0, 0, 0, 0, 0});
-            TH_0x00::makeStringFromData(bad_real);
+            TH_GenericReal::makeStringFromData(bad_real);
             assert(false);
         }
-        catch (invalid_argument& e)
+        catch (exception& e)
         {
             cout << "Caught expected exception: " << e.what() << endl;
         }
@@ -135,7 +135,7 @@ int main(int argc, char** argv)
         try
         {
             auto goodTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("Program"), "Bla", TIModel::createFromName("83PCE"));
-        } catch (runtime_error& e) {
+        } catch (exception& e) {
             cout << "Caught unexpected exception: " << e.what() << endl;
             assert(false);
         }
@@ -143,7 +143,7 @@ int main(int argc, char** argv)
         {
             auto badTypeForCalc = TIVarFile::createNew(TIVarType::createFromName("ExactComplexFrac"), "Bla", TIModel::createFromName("84+"));
             assert(false);
-        } catch (runtime_error& e) {
+        } catch (exception& e) {
             cout << "Caught expected exception: " << e.what() << endl;
         }
     }
@@ -268,7 +268,8 @@ int main(int argc, char** argv)
     {
         TIVarFile testExactComplexRadical = TIVarFile::loadFromFile("testData/Exact_ComplexRadical.8xc");
         cout << "Before: " << testExactComplexRadical.getReadableContent() << endl;
-        assert(testExactComplexRadical.getReadableContent() == "((√(6)+√(2))/4)+((√(6)-√(2))/4)*i");
+
+        assert(testExactComplexRadical.getReadableContent() == "(√(6)+√(2))/4+(√(6)-√(2))/4i");
         //TIVarFile newExactComplexRadical = TIVarFile::createNew(TIVarType::createFromName("ExactComplexRadical"), "A", TIModel::createFromName("83PCE"));
         //newExactComplexRadical.setContentFromString("-42.1337");
         //assert(testExactComplexRadical.getRawContent() == newExactComplexRadical.getRawContent());

@@ -5,31 +5,28 @@
  * License: MIT
  */
 
+// TODO : check if the models have different exponent offsets
+
 #include "TypeHandlers.h"
 #include "../utils.h"
-
-// TODO : check if the models have different exponent offsets
+#include <regex>
 
 using namespace std;
 
-namespace
-{
-    bool parseSign(string::const_iterator &i, const string::const_iterator &e) {
-        bool sign = false;
-        if (i != e && (*i == '+' || *i == '-')) {
-            sign = *i++ == '-';
-        }
-        if (i == e) {
-            throw invalid_argument("Unexpected end of string.");
-        }
-        return sign;
+static bool parseSign(string::const_iterator &i, const string::const_iterator &e) {
+    bool sign = false;
+    if (i != e && (*i == '+' || *i == '-')) {
+        sign = *i++ == '-';
     }
+    if (i == e) {
+        throw invalid_argument("Unexpected end of string.");
+    }
+    return sign;
 }
 
 namespace tivars
 {
-
-    data_t TH_0x00::makeDataFromString(const string& str, const options_t& options)
+    data_t STH_FP::makeDataFromString(const std::string& str, const options_t& options)
     {
         (void)options;
 
@@ -107,21 +104,17 @@ namespace tivars
         return data;
     }
 
-    string TH_0x00::makeStringFromData(const data_t& data, const options_t& options)
+    string STH_FP::makeStringFromData(const data_t& data, const options_t& options)
     {
         bool scientific = false;
         (void)options;
 
         if (data.size() != dataByteCount)
-            {
-                throw invalid_argument("Empty data array. Needs to contain " + to_string(dataByteCount) + " bytes");
-            }
-
-        uchar type = data[0];
-        bool negative = type == 0x80;
-        if (type && !negative) {
-            throw invalid_argument("Unknown type");
+        {
+            throw invalid_argument("Invalid data array. Needs to contain " + to_string(dataByteCount) + " bytes");
         }
+
+        bool negative = ((data[0] & 0x80) == 0x80);
         if (!data[2]) {
             return scientific ? "0e0" : "0";
         }
@@ -170,5 +163,5 @@ namespace tivars
         }
         *++i = '\0';
         return string(result);
-    }
+    };
 }

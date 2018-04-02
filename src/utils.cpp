@@ -295,35 +295,6 @@ string dec2frac(double num, const string& var, double err)
     }
 }
 
-string makeStringFromComplex(const data_t& data, const options_t& options, string makeStringFromReal(data_t data, const options_t& options), string makeStringFromImag(data_t data, const options_t& options))
-{
-    if (data.size() != tivars::TH_0x0C::dataByteCount)
-    {
-        throw invalid_argument("Empty data array. Needs to contain " + to_string(tivars::TH_0x0C::dataByteCount) + " bytes");
-    }
-
-    data_t::const_iterator mid = data.cbegin() + tivars::TH_0x00::dataByteCount;
-    string coeffR = makeStringFromReal(data_t(data.cbegin(), mid), options);
-    string coeffI = makeStringFromImag(data_t(mid, data.cend()), options);
-    bool coeffRZero = coeffR == "0";
-    bool coeffIZero = coeffI == "0";
-    string str;
-    str.reserve(coeffR.length() + 1 + coeffI.length() + 1);
-    if (!coeffRZero || coeffIZero) {
-        str += coeffR;
-    }
-    if (!coeffRZero && !coeffIZero && coeffI.front() != '-' && coeffI.front() != '+') {
-        str += '+';
-    }
-    if (!coeffIZero) {
-        if (coeffI != "1") {
-            str += coeffI;
-        }
-        str += 'i';
-    }
-    return str;
-}
-
 std::string trimZeros(const std::string& str)
 {
     return to_string(stoi(str));

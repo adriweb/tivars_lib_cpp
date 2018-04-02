@@ -22,17 +22,11 @@ namespace tivars
         auto arr = explode(trim(str, "{}"), ',');
         size_t numCount = arr.size();
 
-        bool formatOk = true;
         for (auto& numStr : arr)
         {
             numStr = trim(numStr);
-            if (!TH_0x0C::checkValidString(numStr))
-            {
-                formatOk = false;
-                break;
-            }
         }
-        if (str.empty() || arr.empty() || !formatOk || numCount > 999)
+        if (str.empty() || arr.empty() || numCount > 999)
         {
             throw invalid_argument("Invalid input string. Needs to be a valid complex list");
         }
@@ -42,7 +36,7 @@ namespace tivars
 
         for (const auto& numStr : arr)
         {
-            const auto& tmp = TH_0x0C::makeDataFromString(numStr);
+            const auto& tmp = TH_GenericComplex::makeDataFromString(numStr, { {"_type", 0x0C} });
             data.insert(data.end(), tmp.begin(), tmp.end());
         }
 
@@ -57,17 +51,17 @@ namespace tivars
 
         size_t byteCount = data.size();
         size_t numCount = (size_t) ((data[0] & 0xFF) + ((data[1] & 0xFF) << 8));
-        if (byteCount < 2+TH_0x0C::dataByteCount || ((byteCount - 2) % TH_0x0C::dataByteCount != 0)
-            || (numCount != (size_t)((byteCount - 2) / TH_0x0C::dataByteCount)) || numCount > 999)
+        if (byteCount < 2+TH_GenericComplex::dataByteCount || ((byteCount - 2) % TH_GenericComplex::dataByteCount != 0)
+            || (numCount != (size_t)((byteCount - 2) / TH_GenericComplex::dataByteCount)) || numCount > 999)
         {
-            throw invalid_argument("Invalid data array. Needs to contain 2+" + to_string(TH_0x0C::dataByteCount) + "*n bytes");
+            throw invalid_argument("Invalid data array. Needs to contain 2+" + to_string(TH_GenericComplex::dataByteCount) + "*n bytes");
         }
 
         str = "{";
 
-        for (size_t i = 2, num = 0; i < byteCount; i += TH_0x0C::dataByteCount, num++)
+        for (size_t i = 2, num = 0; i < byteCount; i += TH_GenericComplex::dataByteCount, num++)
         {
-            str += TH_0x0C::makeStringFromData(data_t(data.begin()+i, data.begin()+i+TH_0x0C::dataByteCount));
+            str += TH_GenericComplex::makeStringFromData(data_t(data.begin()+i, data.begin()+i+TH_GenericComplex::dataByteCount));
             if (num < numCount - 1) // not last num
             {
                 str += ',';

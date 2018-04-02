@@ -65,7 +65,7 @@ namespace tivars
         {
             for (const auto& numStr : row)
             {
-                const auto& tmp = TH_0x00::makeDataFromString(numStr);
+                const auto& tmp = TH_GenericReal::makeDataFromString(numStr, { {"_type", 0x00} });
                 data.insert(data.end(), tmp.begin(), tmp.end());
             }
         }
@@ -81,21 +81,21 @@ namespace tivars
         size_t colCount = data[0];
         size_t rowCount = data[1];
 
-        if (data.size() < 2+TH_0x00::dataByteCount || colCount < 1 || rowCount < 1 || colCount > 255 || rowCount > 255
-            || ((byteCount - 2) % TH_0x00::dataByteCount != 0) || (colCount*rowCount != (byteCount - 2) / TH_0x00::dataByteCount))
+        if (data.size() < 2+TH_GenericReal::dataByteCount || colCount < 1 || rowCount < 1 || colCount > 255 || rowCount > 255
+            || ((byteCount - 2) % TH_GenericReal::dataByteCount != 0) || (colCount*rowCount != (byteCount - 2) / TH_GenericReal::dataByteCount))
         {
-            throw invalid_argument("Invalid data array. Needs to contain 1+1+" + to_string(TH_0x00::dataByteCount) + "*n bytes");
+            throw invalid_argument("Invalid data array. Needs to contain 1+1+" + to_string(TH_GenericReal::dataByteCount) + "*n bytes");
         }
 
         string str = "[";
 
-        for (uint i = 2, num = 0; i < byteCount; i += TH_0x00::dataByteCount, num++)
+        for (uint i = 2, num = 0; i < byteCount; i += TH_GenericReal::dataByteCount, num++)
         {
             if (num % colCount == 0) // first column
             {
                 str += "[";
             }
-            str += TH_0x00::makeStringFromData(data_t(data.begin()+i, data.begin()+i+TH_0x00::dataByteCount));
+            str += TH_GenericReal::makeStringFromData(data_t(data.begin()+i, data.begin()+i+TH_GenericReal::dataByteCount));
             if (num % colCount < colCount - 1) // not last column
             {
                 str += ",";
