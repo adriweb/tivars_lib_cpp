@@ -16,15 +16,11 @@ namespace tivars
 
 // Wrap the makeDataFromStr function by one that adds the type/subtype in the options
 // Ideally, the handlers would parse the string and select the correct handler to dispatch...
-#define make_generic_handler_pair(cls, type) make_pair([](const std::string& str, const options_t& options) -> data_t { \
-    options_t options_withType = options;                                                                               \
-    options_withType["_type"] = type;                                                                                   \
-    return (cls::makeDataFromString)(str, options_withType);                                                            \
-}, &cls::makeStringFromData)
-
-#define GenericRealHandlerPairWithType(type)    make_generic_handler_pair(TH_GenericReal,    type)
-#define GenericComplexHandlerPairWithType(type) make_generic_handler_pair(TH_GenericComplex, type)
-#define GenericListHandlerPairWithType(type)    make_generic_handler_pair(TH_GenericList,    type)
+#define GenericHandlerPair(which, type) make_pair([](const std::string& str, const options_t& options) -> data_t { \
+    options_t options_withType = options;                                                                          \
+    options_withType["_type"] = type;                                                                              \
+    return (TH_Generic##which::makeDataFromString)(str, options_withType);                                         \
+}, &TH_Generic##which::makeStringFromData)
 
     /**
      *  Make and insert the associative arrays for the type.
@@ -57,17 +53,17 @@ namespace tivars
         insertType("Unknown",                -1,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
 
         /* Standard types */
-        insertType("Real",                 0x00,  {"82n", "83n", "8xn", "8xn", "8xn", "8xn", "8xn"},  GenericRealHandlerPairWithType(0x00) );
-        insertType("RealList",             0x01,  {"82l", "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  GenericListHandlerPairWithType(0x00) );
-        insertType("Matrix",               0x02,  {"82m", "83m", "8xm", "8xm", "8xm", "8xm", "8xm"},  make_handler_pair(TH_Matrix) );
+        insertType("Real",                 0x00,  {"82n", "83n", "8xn", "8xn", "8xn", "8xn", "8xn"},  GenericHandlerPair(Real, 0x00)  );
+        insertType("RealList",             0x01,  {"82l", "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  GenericHandlerPair(List, 0x00)  );
+        insertType("Matrix",               0x02,  {"82m", "83m", "8xm", "8xm", "8xm", "8xm", "8xm"},  make_handler_pair(TH_Matrix)    );
         insertType("Equation",             0x03,  {"82y", "83y", "8xy", "8xy", "8xy", "8xy", "8xy"},  make_handler_pair(TH_Tokenized) );
         insertType("String",               0x04,  {"82s", "83s", "8xs", "8xs", "8xs", "8xs", "8xs"},  make_handler_pair(TH_Tokenized) );
         insertType("Program",              0x05,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_Tokenized) );
         insertType("ProtectedProgram",     0x06,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_Tokenized) );
         insertType("Picture",              0x07,  {  "" ,   "" , "8xi", "8xi", "8ci", "8ci", "8ci"});
         insertType("GraphDataBase",        0x08,  {"82d", "83d", "8xd", "8xd", "8xd", "8xd", "8xd"});
-        insertType("Complex",              0x0C,  {  "" , "83c", "8xc", "8xc", "8xc", "8xc", "8xc"},  GenericComplexHandlerPairWithType(0x0C) );
-        insertType("ComplexList",          0x0D,  {  "" , "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  GenericListHandlerPairWithType(0x0C) );
+        insertType("Complex",              0x0C,  {  "" , "83c", "8xc", "8xc", "8xc", "8xc", "8xc"},  GenericHandlerPair(Complex, 0x0C) );
+        insertType("ComplexList",          0x0D,  {  "" , "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  GenericHandlerPair(List,    0x0C) );
         insertType("WindowSettings",       0x0F,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw"});
         insertType("RecallWindow",         0x10,  {"82z", "83z", "8xz", "8xz", "8xz", "8xz", "8xz"});
         insertType("TableRange",           0x11,  {"82t", "83t", "8xt", "8xt", "8xt", "8xt", "8xt"});
@@ -75,18 +71,18 @@ namespace tivars
         insertType("AppVar",               0x15,  {  "" ,   "" ,   "" , "8xv", "8xv", "8xv", "8xv"},  make_handler_pair(TH_AppVar) );
         insertType("TemporaryItem",        0x16,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
         insertType("GroupObject",          0x17,  {"82g", "83g", "8xg", "8xg", "8xg", "8cg", "8cg"});
-        insertType("RealFraction",         0x18,  {  "" ,   "" ,   "" , "8xn", "8xn", "8xn", "8xn"},  GenericRealHandlerPairWithType(0x18) );
+        insertType("RealFraction",         0x18,  {  "" ,   "" ,   "" , "8xn", "8xn", "8xn", "8xn"},  GenericHandlerPair(Real, 0x18) );
         insertType("Image",                0x1A,  {  "" ,   "" ,   "" ,   "" ,   "" , "8ca", "8ca"});
 
         /* Exact values (TI-83 Premium CE) */
         /* See https://docs.google.com/document/d/1P_OUbnZMZFg8zuOPJHAx34EnwxcQZ8HER9hPeOQ_dtI */
-        insertType("ExactComplexFrac",     0x1B,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  GenericComplexHandlerPairWithType(0x1B) );
-        insertType("ExactRealRadical",     0x1C,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  GenericRealHandlerPairWithType(0x1C)    );
-        insertType("ExactComplexRadical",  0x1D,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  GenericComplexHandlerPairWithType(0x1D) );
-        insertType("ExactComplexPi",       0x1E,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  GenericComplexHandlerPairWithType(0x1E) );
-        insertType("ExactComplexPiFrac",   0x1F,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  GenericComplexHandlerPairWithType(0x1F) );
-        insertType("ExactRealPi",          0x20,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  GenericRealHandlerPairWithType(0x20)    );
-        insertType("ExactRealPiFrac",      0x21,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  GenericRealHandlerPairWithType(0x21)    );
+        insertType("ExactComplexFrac",     0x1B,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  GenericHandlerPair(Complex, 0x1B) );
+        insertType("ExactRealRadical",     0x1C,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  GenericHandlerPair(Real,    0x1C) );
+        insertType("ExactComplexRadical",  0x1D,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  GenericHandlerPair(Complex, 0x1D) );
+        insertType("ExactComplexPi",       0x1E,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  GenericHandlerPair(Complex, 0x1E) );
+        insertType("ExactComplexPiFrac",   0x1F,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc"},  GenericHandlerPair(Complex, 0x1F) );
+        insertType("ExactRealPi",          0x20,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  GenericHandlerPair(Real,    0x20) );
+        insertType("ExactRealPiFrac",      0x21,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn"},  GenericHandlerPair(Real,    0x21) );
 
         /* System/Flash-related things */
         insertType("OperatingSystem",      0x23,  {"82u", "83u", "82u", "8xu", "8cu", "8eu", "8pu"});
