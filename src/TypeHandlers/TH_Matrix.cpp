@@ -12,7 +12,7 @@ using namespace std;
 
 namespace tivars
 {
-    
+
     data_t TH_Matrix::makeDataFromString(const string& str, const options_t& options)
     {
         (void)options;

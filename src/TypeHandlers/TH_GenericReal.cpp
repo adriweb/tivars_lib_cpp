@@ -22,7 +22,7 @@ namespace tivars
         { 0x21, make_handler_pair(STH_ExactFractionPi) },
     };
 
-    // TODO: guess the type instead of reading it from the options
+    // TODO: guess, by parsing, the type instead of reading it from the options
     data_t TH_GenericReal::makeDataFromString(const string& str, const options_t& options)
     {
         const auto& typeIter = options.find("_type");

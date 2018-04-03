@@ -8,8 +8,6 @@
 #include "TypeHandlers.h"
 #include "../utils.h"
 
-#include <unordered_map>
-
 using namespace std;
 
 namespace tivars

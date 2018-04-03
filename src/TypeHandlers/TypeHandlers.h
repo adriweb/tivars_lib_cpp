@@ -22,27 +22,27 @@ namespace tivars
     {
         th();
         const constexpr size_t dataByteCount = 9;
-        const std::string validPattern = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]{1,2})?)";
+        static const constexpr char* validPattern = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]{1,2})?)";
     }
     namespace STH_ExactFraction
     {
         th();
-        const std::string validPattern = "===UNIMPLEMENTED==="; // TODO
+        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
     }
     namespace STH_ExactRadical
     {
         th();
-        const std::string validPattern = "===UNIMPLEMENTED==="; // TODO
+        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
     }
     namespace STH_ExactPi
     {
         th();
-        const std::string validPattern = "===UNIMPLEMENTED==="; // TODO
+        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
     }
     namespace STH_ExactFractionPi
     {
         th();
-        const std::string validPattern = "===UNIMPLEMENTED==="; // TODO
+        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
     }
 
     namespace TH_GenericReal
