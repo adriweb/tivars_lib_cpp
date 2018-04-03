@@ -9,10 +9,9 @@
 #include "../utils.h"
 #include <unordered_map>
 #include <iostream>
+#include <iterator>
 #include <regex>
 #include <fstream>
-
-using namespace std;
 
 namespace tivars
 {
@@ -26,7 +25,7 @@ namespace tivars
     }
 
     /* TODO: handle TI-Innovator Send( exception for in-strings tokenization (=> not shortest tokens) */
-    data_t TH_Tokenized::makeDataFromString(const string& str, const options_t& options)
+    data_t TH_Tokenized::makeDataFromString(const std::string& str, const options_t& options)
     {
         (void)options;
         data_t data;
@@ -34,13 +33,13 @@ namespace tivars
         // two bytes reserved for the size. Filled later
         data.push_back(0); data.push_back(0);
 
-        const uchar maxTokSearchLen = min((uchar)str.length(), lengthOfLongestTokenName);
+        const uchar maxTokSearchLen = std::min((uchar)str.length(), lengthOfLongestTokenName);
 
         bool isWithinString = false;
 
         for (uint strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
         {
-            const string currChar = str.substr(strCursorPos, 1);
+            const std::string currChar = str.substr(strCursorPos, 1);
             if (currChar == "\"")
             {
                 isWithinString = !isWithinString;
@@ -53,7 +52,7 @@ namespace tivars
                  isWithinString ? (currentLength <= maxTokSearchLen) : (currentLength > 0);
                  currentLength += (isWithinString ? 1 : -1))
             {
-                string currentSubString = str.substr(strCursorPos, currentLength);
+                std::string currentSubString = str.substr(strCursorPos, currentLength);
                 if (tokens_NameToBytes.count(currentSubString))
                 {
                     uint tokenValue = tokens_NameToBytes[currentSubString];
@@ -74,11 +73,11 @@ namespace tivars
         return data;
     }
 
-    string TH_Tokenized::makeStringFromData(const data_t& data, const options_t& options)
+    std::string TH_Tokenized::makeStringFromData(const data_t& data, const options_t& options)
     {
         if (data.size() < 2)
         {
-            throw invalid_argument("Invalid data array. Needs to contain at least 2 bytes (size fields)");
+            throw std::invalid_argument("Invalid data array. Needs to contain at least 2 bytes (size fields)");
         }
 
         uint langIdx = (uint)((has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN);
@@ -86,20 +85,20 @@ namespace tivars
         const int howManyBytes = (data[0] & 0xFF) + ((data[1] & 0xFF) << 8);
         if (howManyBytes != (int)data.size() - 2)
         {
-            cerr << "[Warning] Byte count (" << (data.size() - 2) << ") and size field (" << howManyBytes  << ") mismatch!";
+            std::cerr << "[Warning] Byte count (" << (data.size() - 2) << ") and size field (" << howManyBytes  << ") mismatch!";
         }
 
         if (howManyBytes >= 2)
         {
             const uint16_t twoFirstBytes = (uint16_t) ((data[3] & 0xFF) + ((data[2] & 0xFF) << 8));
-            if (find(begin(squishedASMTokens), end(squishedASMTokens), twoFirstBytes) != end(squishedASMTokens))
+            if (std::find(std::begin(squishedASMTokens), std::end(squishedASMTokens), twoFirstBytes) != std::end(squishedASMTokens))
             {
                 return "[Error] This is a squished ASM program - cannnot preview it!";
             }
         }
 
         uint errCount = 0;
-        string str;
+        std::string str;
         const size_t dataSize = data.size();
         for (uint i = 2; i < (uint)howManyBytes + 2; i++)
         {
@@ -110,7 +109,7 @@ namespace tivars
             {
                 if (nextToken == (uint)-1)
                 {
-                    cerr << "[Warning] Encountered an unfinished two-byte token! Setting the second byte to 0x00";
+                    std::cerr << "[Warning] Encountered an unfinished two-byte token! Setting the second byte to 0x00";
                     nextToken = 0x00;
                 }
                 bytesKey = nextToken + (currentToken << 8);
@@ -127,12 +126,12 @@ namespace tivars
 
         if (errCount > 0)
         {
-            cerr << "[Warning] " << errCount << " token(s) could not be detokenized (' [???] ' was used)!";
+            std::cerr << "[Warning] " << errCount << " token(s) could not be detokenized (' [???] ' was used)!";
         }
 
         if (has_option(options, "prettify") && options.at("prettify") == 1)
         {
-            str = regex_replace(str, regex(R"(\[?\|?([a-z]+)\]?)"), "$1");
+            str = std::regex_replace(str, std::regex(R"(\[?\|?([a-z]+)\]?)"), "$1");
         }
 
         if (has_option(options, "reindent") && options.at("reindent") == 1)
@@ -143,7 +142,7 @@ namespace tivars
         return str;
     }
 
-    string TH_Tokenized::reindentCodeString(const string& str_orig, const options_t& options)
+    std::string TH_Tokenized::reindentCodeString(const std::string& str_orig, const options_t& options)
     {
         int lang;
         if (has_option(options, "lang"))
@@ -153,11 +152,11 @@ namespace tivars
             lang = (str_orig.size() > 1 && str_orig[0] == '.' && ::isalpha(str_orig[1])) ? PRGMLANG_AXE : PRGMLANG_BASIC;
         }
 
-        string str(str_orig);
+        std::string str(str_orig);
 
-        str = regex_replace(str, regex("([^\\s])(Del|Eff)Var "), "$1\n$2Var ");
+        str = std::regex_replace(str, std::regex("([^\\s])(Del|Eff)Var "), "$1\n$2Var ");
 
-        vector<string> lines_tmp = explode(str, '\n');
+        std::vector<std::string> lines_tmp = explode(str, '\n');
 
         // Inplace-replace the appropriate ":" by new-line chars (ie, by inserting the split string in the lines_tmp array)
         for (uint16_t idx = 0; idx < (uint16_t)lines_tmp.size(); idx++)
@@ -180,27 +179,27 @@ namespace tivars
             }
         }
 
-        vector<pair<uint, string>> lines(lines_tmp.size()); // indent, text
+        std::vector<std::pair<uint, std::string>> lines(lines_tmp.size()); // indent, text
         for (const auto& line : lines_tmp)
         {
             lines.emplace_back(0, line);
         }
 
-        vector<string> increaseIndentAfter   = { "If", "For", "While", "Repeat" };
-        vector<string> decreaseIndentOfToken = { "Then", "Else", "End", "ElseIf", "EndIf", "End!If" };
-        vector<string> closingTokens         = { "End", "EndIf", "End!If" };
+        std::vector<std::string> increaseIndentAfter   = { "If", "For", "While", "Repeat" };
+        std::vector<std::string> decreaseIndentOfToken = { "Then", "Else", "End", "ElseIf", "EndIf", "End!If" };
+        std::vector<std::string> closingTokens         = { "End", "EndIf", "End!If" };
         uint nextIndent = 0;
-        string oldFirstCommand, firstCommand;
+        std::string oldFirstCommand, firstCommand;
         for (auto& line : lines)
         {
             oldFirstCommand = firstCommand;
 
-            string trimmedLine = trim(line.second);
+            std::string trimmedLine = trim(line.second);
             if (trimmedLine.length() > 0) {
                 char* trimmedLine_c = (char*) trimmedLine.c_str();
                 firstCommand = strtok(trimmedLine_c, " ");
                 firstCommand = trim(firstCommand);
-                trimmedLine = string(trimmedLine_c);
+                trimmedLine = std::string(trimmedLine_c);
                 trimmedLine_c = (char*) trimmedLine.c_str();
                 if (firstCommand == trimmedLine)
                 {
@@ -238,12 +237,12 @@ namespace tivars
 
     void TH_Tokenized::initTokens()
     {
-        ifstream t("programs_tokens.csv");
-        string csvFileStr((istreambuf_iterator<char>(t)), istreambuf_iterator<char>());
+        std::ifstream t("programs_tokens.csv");
+        std::string csvFileStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 
         if (csvFileStr.length() > 0)
         {
-            vector<vector<string>> lines;
+            std::vector<std::vector<std::string>> lines;
             ParseCSV(csvFileStr, lines);
 
             for (const auto& tokenInfo : lines)
@@ -262,14 +261,14 @@ namespace tivars
                 tokens_BytesToName[bytes] = { tokenInfo[4], tokenInfo[5] }; // EN, FR
                 tokens_NameToBytes[tokenInfo[4]] = bytes; // EN
                 tokens_NameToBytes[tokenInfo[5]] = bytes; // FR
-                uchar maxLenName = (uchar) max(tokenInfo[4].length(), tokenInfo[5].length());
+                uchar maxLenName = (uchar) std::max(tokenInfo[4].length(), tokenInfo[5].length());
                 if (maxLenName > lengthOfLongestTokenName)
                 {
                     lengthOfLongestTokenName = maxLenName;
                 }
             }
         } else {
-            throw runtime_error("Could not open the tokens csv file");
+            throw std::runtime_error("Could not open the tokens csv file");
         }
     }
 

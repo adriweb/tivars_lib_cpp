@@ -10,11 +10,9 @@
 
 #include <unordered_map>
 
-using namespace std;
-
 namespace tivars
 {
-    static const unordered_map<uchar, handler_pair_t> type2handlers = {
+    static const std::unordered_map<uchar, handler_pair_t> type2handlers = {
         { 0x00, make_handler_pair(STH_FP)              },
         { 0x18, make_handler_pair(STH_ExactFraction)   },
         { 0x1C, make_handler_pair(STH_ExactRadical)    },
@@ -23,7 +21,7 @@ namespace tivars
     };
 
     // TODO: guess, by parsing, the type instead of reading it from the options
-    data_t TH_GenericReal::makeDataFromString(const string& str, const options_t& options)
+    data_t TH_GenericReal::makeDataFromString(const std::string& str, const options_t& options)
     {
         const auto& typeIter = options.find("_type");
         if (typeIter == options.end())
@@ -34,22 +32,22 @@ namespace tivars
         const auto& handlerIter = type2handlers.find(type);
         if (handlerIter == type2handlers.end())
         {
-            throw std::runtime_error("Unknown/Invalid type for this TH_GenericReal: " + to_string(type));
+            throw std::runtime_error("Unknown/Invalid type for this TH_GenericReal: " + std::to_string(type));
         }
         return (handlerIter->second.first)(str, options);
     }
 
-    string TH_GenericReal::makeStringFromData(const data_t& data, const options_t& options)
+    std::string TH_GenericReal::makeStringFromData(const data_t& data, const options_t& options)
     {
         if (data.size() != 9)
         {
-            throw invalid_argument("Invalid data array. Needs to contain 9 bytes");
+            throw std::invalid_argument("Invalid data array. Needs to contain 9 bytes");
         }
         const uchar type = (uchar)(data[0] & 0x7F);
         const auto& handlerIter = type2handlers.find(type);
         if (handlerIter == type2handlers.end())
         {
-            throw std::runtime_error("Unknown/Invalid type in this TH_GenericReal data: " + to_string(type));
+            throw std::runtime_error("Unknown/Invalid type in this TH_GenericReal data: " + std::to_string(type));
         }
         return (handlerIter->second.second)(data, options);
     }

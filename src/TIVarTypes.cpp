@@ -8,11 +8,9 @@
 #include "TIVarTypes.h"
 #include "utils.h"
 
-using namespace std;
-
 namespace tivars
 {
-    unordered_map<string, TIVarType> types;
+    std::unordered_map<std::string, TIVarType> types;
 
 // Wrap the makeDataFromStr function by one that adds the type/subtype in the options
 // Ideally, the handlers would parse the string and select the correct handler to dispatch...
@@ -30,13 +28,13 @@ namespace tivars
      * @param vector    exts        The extensions the type can have, ordered by feature flags.
      * @param pair      handlers    The data2str and str2data funcs
      */
-    void TIVarTypes::insertType(string name, int id, const vector<string>& exts, const handler_pair_t& handlers)
+    void TIVarTypes::insertType(std::string name, int id, const std::vector<std::string>& exts, const handler_pair_t& handlers)
     {
         TIVarType varType(id, name, exts, handlers);
-        string id_str = to_string(id);
+        std::string id_str = std::to_string(id);
         types[name]   = varType;
         types[id_str] = varType;
-        for (const string& ext : exts)
+        for (const std::string& ext : exts)
         {
             if (!ext.empty() && !types.count(ext))
             {
@@ -100,9 +98,9 @@ namespace tivars
      * @param   int     id     The type ID
      * @return  string          The type name for that ID
      */
-    string TIVarTypes::getNameFromID(int id)
+    std::string TIVarTypes::getNameFromID(int id)
     {
-        string id_str = to_string(id);
+        std::string id_str = std::to_string(id);
         if (id != -1 && types.count(id_str))
         {
             return types[id_str].getName();
@@ -115,7 +113,7 @@ namespace tivars
      * @param   string  name   The type name
      * @return  int             The type ID for that name
      */
-    int TIVarTypes::getIDFromName(string name)
+    int TIVarTypes::getIDFromName(std::string name)
     {
         if (!name.empty() && types.count(name))
         {
@@ -129,9 +127,9 @@ namespace tivars
      * @param   int     id     The type ID
      * @return  string[]        The array of extensions for that ID
      */
-    vector<string> TIVarTypes::getExtensionsFromTypeID(int id)
+    std::vector<std::string> TIVarTypes::getExtensionsFromTypeID(int id)
     {
-        string id_str = to_string(id);
+        std::string id_str = std::to_string(id);
         if (id != -1 && types.count(id_str))
         {
             return types[id_str].getExts();
@@ -144,7 +142,7 @@ namespace tivars
      * @param   string  name
      * @return  string[]        The array of extensions for that ID
      */
-    vector<string> TIVarTypes::getExtensionsFromName(string name)
+    std::vector<std::string> TIVarTypes::getExtensionsFromName(std::string name)
     {
         if (!name.empty() && types.count(name))
         {
@@ -156,11 +154,11 @@ namespace tivars
 
     bool TIVarTypes::isValidID(int id)
     {
-        string id_str = to_string(id);
+        std::string id_str = std::to_string(id);
         return (id != -1 && types.count(id_str));
     }
 
-    bool TIVarTypes::isValidName(const string& name)
+    bool TIVarTypes::isValidName(const std::string& name)
     {
         return (!name.empty() && types.count(name));
     }

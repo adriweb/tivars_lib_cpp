@@ -8,14 +8,12 @@
 #include "TIModel.h"
 #include "TIModels.h"
 
-using namespace std;
-
 namespace tivars
 {
     
     bool TIModel::supportsType(const TIVarType& type)
     {
-        const vector<string>& exts = type.getExts();
+        const std::vector<std::string>& exts = type.getExts();
         return this->orderID >= 0 && this->orderID < (int)exts.size() && !exts[this->orderID].empty();
     }
 
@@ -38,7 +36,7 @@ namespace tivars
             return model;
         } else
         {
-            throw invalid_argument("Invalid version ID");
+            throw std::invalid_argument("Invalid version ID");
         }
     }
 
@@ -47,7 +45,7 @@ namespace tivars
      * @return  TIModel
      * @throws  \Exception
      */
-    TIModel TIModel::createFromName(string name)
+    TIModel TIModel::createFromName(std::string name)
     {
         if (TIModels::isValidName(name))
         {
@@ -59,7 +57,7 @@ namespace tivars
             return model;
         } else
         {
-            throw invalid_argument("Invalid version name");
+            throw std::invalid_argument("Invalid version name");
         }
     }
 
@@ -68,7 +66,7 @@ namespace tivars
      * @return  TIModel
      * @throws  \Exception
      */
-    TIModel TIModel::createFromSignature(string sig)
+    TIModel TIModel::createFromSignature(std::string sig)
     {
         if (TIModels::isValidSignature(sig))
         {
@@ -80,7 +78,7 @@ namespace tivars
             return model;
         } else
         {
-            throw invalid_argument("Invalid version signature");
+            throw std::invalid_argument("Invalid version signature");
         }
     }
 

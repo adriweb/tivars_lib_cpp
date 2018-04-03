@@ -11,18 +11,16 @@
 #include <regex>
 #include <unordered_map>
 
-using namespace std;
-
 namespace tivars
 {
-    static const unordered_map<uchar, handler_pair_t> type2handlers = {
+    static const std::unordered_map<uchar, handler_pair_t> type2handlers = {
         { 0x0C, make_handler_pair(STH_FP)              },
         { 0x1B, make_handler_pair(STH_ExactFraction)   },
         { 0x1D, make_handler_pair(STH_ExactRadical)    },
         { 0x1E, make_handler_pair(STH_ExactPi)         },
         { 0x1F, make_handler_pair(STH_ExactFractionPi) },
     };
-    static const unordered_map<uchar, const char*> type2patterns = {
+    static const std::unordered_map<uchar, const char*> type2patterns = {
         { 0x0C, STH_FP::validPattern              },
         { 0x1B, STH_ExactFraction::validPattern   },
         { 0x1D, STH_ExactRadical::validPattern    },
@@ -30,22 +28,22 @@ namespace tivars
         { 0x1F, STH_ExactFractionPi::validPattern },
     };
 
-    static bool checkValidStringAndGetMatches(const string& str, const char* typePattern, smatch& matches)
+    static bool checkValidStringAndGetMatches(const std::string& str, const char* typePattern, std::smatch& matches)
     {
         if (str.empty())
         {
             return false;
         }
         // Handle real only, real+imag, imag only.
-        bool isValid = regex_match(str, matches, regex(string("^")   + typePattern + "()$"))
-                    || regex_match(str, matches, regex(string("^")   + typePattern + typePattern + "i$"))
-                    || regex_match(str, matches, regex(string("^()") + typePattern + "i$"));
+        bool isValid = regex_match(str, matches, std::regex(std::string("^")   + typePattern + "()$"))
+                    || regex_match(str, matches, std::regex(std::string("^")   + typePattern + typePattern + "i$"))
+                    || regex_match(str, matches, std::regex(std::string("^()") + typePattern + "i$"));
         return isValid;
     }
 
     // For this, we're going to assume that both members are of the same type...
     // TODO: guess, by parsing, the type instead of reading it from the options
-    data_t TH_GenericComplex::makeDataFromString(const string& str, const options_t& options)
+    data_t TH_GenericComplex::makeDataFromString(const std::string& str, const options_t& options)
     {
         const size_t bytesPerMember = 9;
         const auto& typeIter = options.find("_type");
@@ -57,26 +55,26 @@ namespace tivars
         const auto& handlerIter = type2handlers.find(type);
         if (handlerIter == type2handlers.end())
         {
-            throw std::runtime_error("Unknown/Invalid type for this TH_GenericComplex: " + to_string(type));
+            throw std::runtime_error("Unknown/Invalid type for this TH_GenericComplex: " + std::to_string(type));
         }
         const auto& handler = handlerIter->second.first;
 
-        string newStr = str;
-        newStr = regex_replace(newStr, regex(" "), "");
-        newStr = regex_replace(newStr, regex("\\+i"), "+1i");
-        newStr = regex_replace(newStr, regex("-i"), "-1i");
+        std::string newStr = str;
+        newStr = std::regex_replace(newStr, std::regex(" "), "");
+        newStr = std::regex_replace(newStr, std::regex("\\+i"), "+1i");
+        newStr = std::regex_replace(newStr, std::regex("-i"), "-1i");
 
-        smatch matches;
+        std::smatch matches;
         bool isValid = checkValidStringAndGetMatches(newStr, type2patterns.at(type), matches);
         if (!isValid || matches.size() != 3)
         {
-            throw invalid_argument("Invalid input string. Needs to be a valid complex subtype string");
+            throw std::invalid_argument("Invalid input string. Needs to be a valid complex subtype string");
         }
 
         data_t data;
         for (int i=0; i<2; i++)
         {
-            string coeff = matches[i+1];
+            std::string coeff = matches[i+1];
             if (coeff.empty())
             {
                 coeff = "0";
@@ -96,13 +94,13 @@ namespace tivars
         return data;
     }
 
-    string TH_GenericComplex::makeStringFromData(const data_t& data, const options_t& options)
+    std::string TH_GenericComplex::makeStringFromData(const data_t& data, const options_t& options)
     {
         const size_t bytesPerMember = 9;
 
         if (data.size() != 2*bytesPerMember)
         {
-            throw invalid_argument("Invalid data array. Needs to contain 18 bytes");
+            throw std::invalid_argument("Invalid data array. Needs to contain 18 bytes");
         }
 
         // 0x1F because we discard the flag bits (see above)
@@ -112,24 +110,24 @@ namespace tivars
         const auto& handlerRIter = type2handlers.find(typeR);
         if (handlerRIter == type2handlers.end())
         {
-            throw std::runtime_error("Unknown/Invalid type for this TH_GenericComplex: " + to_string(typeR));
+            throw std::runtime_error("Unknown/Invalid type for this TH_GenericComplex: " + std::to_string(typeR));
         }
         const auto& handlerIIter = type2handlers.find(typeI);
         if (handlerIIter == type2handlers.end())
         {
-            throw std::runtime_error("Unknown/Invalid type for this TH_GenericComplex: " + to_string(typeI));
+            throw std::runtime_error("Unknown/Invalid type for this TH_GenericComplex: " + std::to_string(typeI));
         }
 
         const auto& handlerR = handlerRIter->second.second;
         const auto& handlerI = handlerIIter->second.second;
 
         const data_t::const_iterator mid = data.cbegin() + bytesPerMember;
-        string coeffR = handlerR(data_t(data.cbegin(), mid), options);
-        string coeffI = handlerI(data_t(mid, data.cend()), options);
+        std::string coeffR = handlerR(data_t(data.cbegin(), mid), options);
+        std::string coeffI = handlerI(data_t(mid, data.cend()), options);
 
         const bool coeffRZero = coeffR == "0";
         const bool coeffIZero = coeffI == "0";
-        string str;
+        std::string str;
         str.reserve(coeffR.length() + 1 + coeffI.length() + 1);
         if (!coeffRZero || coeffIZero) {
             str += coeffR;

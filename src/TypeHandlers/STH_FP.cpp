@@ -11,15 +11,13 @@
 #include "../utils.h"
 #include <regex>
 
-using namespace std;
-
-static bool parseSign(string::const_iterator &i, const string::const_iterator &e) {
+static bool parseSign(std::string::const_iterator &i, const std::string::const_iterator &e) {
     bool sign = false;
     if (i != e && (*i == '+' || *i == '-')) {
         sign = *i++ == '-';
     }
     if (i == e) {
-        throw invalid_argument("Unexpected end of string.");
+        throw std::invalid_argument("Unexpected end of string.");
     }
     return sign;
 }
@@ -34,8 +32,8 @@ namespace tivars
         bool beforePoint = true, noDigits = true, zero = true;
         int exponent = 0x7F;
         unsigned index = 4;
-        string::const_iterator i = str.begin();
-        const string::const_iterator e = str.end();
+        std::string::const_iterator i = str.begin();
+        const std::string::const_iterator e = str.end();
         if (parseSign(i, e)) {
             data[0] = 1 << 7;
         }
@@ -43,7 +41,7 @@ namespace tivars
             char c = *i++;
             if (c == '.') {
                 if (!beforePoint) {
-                    throw invalid_argument("Extra decimal points.");
+                    throw std::invalid_argument("Extra decimal points.");
                 }
                 beforePoint = false;
             } else if (c == '0') {
@@ -86,32 +84,32 @@ namespace tivars
                         offset *= 10;
                         offset += c - '0';
                     } else {
-                        throw invalid_argument("Unexpected character.");
+                        throw std::invalid_argument("Unexpected character.");
                     }
                 } while (i != e);
                 exponent = sign ? exponent - offset : exponent + offset;
             } else {
-                throw invalid_argument("Unexpected character.");
+                throw std::invalid_argument("Unexpected character.");
             }
         } while (i != e);
         if (noDigits) {
-            throw invalid_argument("No digits found.");
+            throw std::invalid_argument("No digits found.");
         }
         if (exponent < 0x80 - 99 || exponent > 0x80 + 99) {
-            throw invalid_argument("Exponent out of range.");
+            throw std::invalid_argument("Exponent out of range.");
         }
         data[1] = exponent;
         return data;
     }
 
-    string STH_FP::makeStringFromData(const data_t& data, const options_t& options)
+    std::string STH_FP::makeStringFromData(const data_t& data, const options_t& options)
     {
         bool scientific = false;
         (void)options;
 
         if (data.size() != dataByteCount)
         {
-            throw invalid_argument("Invalid data array. Needs to contain " + to_string(dataByteCount) + " bytes");
+            throw std::invalid_argument("Invalid data array. Needs to contain " + std::to_string(dataByteCount) + " bytes");
         }
 
         bool negative = ((data[0] & 0x80) == 0x80);
@@ -162,6 +160,6 @@ namespace tivars
             *++i = '0' + exponent;
         }
         *++i = '\0';
-        return string(result);
+        return std::string(result);
     };
 }

@@ -8,8 +8,6 @@
 #include "TIVarType.h"
 #include "TIVarTypes.h"
 
-using namespace std;
-
 namespace tivars
 {
     /*** "Constructors" ***/
@@ -23,9 +21,9 @@ namespace tivars
     {
         if (TIVarTypes::isValidID(id))
         {
-            return types.at(to_string(id));
+            return types.at(std::to_string(id));
         } else {
-            throw invalid_argument("Invalid type ID");
+            throw std::invalid_argument("Invalid type ID");
         }
     }
 
@@ -34,13 +32,13 @@ namespace tivars
      * @return  TIVarType
      * @throws  \Exception
      */
-    TIVarType TIVarType::createFromName(string name)
+    TIVarType TIVarType::createFromName(std::string name)
     {
         if (TIVarTypes::isValidName(name))
         {
             return types.at(name);
         } else {
-            throw invalid_argument("Invalid type name");
+            throw std::invalid_argument("Invalid type name");
         }
     }
 

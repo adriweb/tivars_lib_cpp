@@ -8,12 +8,10 @@
 #include "TypeHandlers.h"
 #include "../utils.h"
 
-using namespace std;
-
 namespace tivars
 {
     // TODO: also make it detect the type correctly...
-    data_t TH_GenericList::makeDataFromString(const string& str, const options_t& options)
+    data_t TH_GenericList::makeDataFromString(const std::string& str, const options_t& options)
     {
         const auto& typeIter = options.find("_type");
         if (typeIter == options.end())
@@ -23,7 +21,7 @@ namespace tivars
         const uchar type = (uchar)typeIter->second;
         if (type != 0x00 && type != 0x0C)
         {
-            throw invalid_argument("Invalid type for given string");
+            throw std::invalid_argument("Invalid type for given string");
         }
 
         auto arr = explode(trim(str, "{}"), ',');
@@ -35,7 +33,7 @@ namespace tivars
         }
         if (str.empty() || arr.empty() || numCount > 999)
         {
-            throw invalid_argument("Invalid input string. Needs to be a valid real or complex list");
+            throw std::invalid_argument("Invalid input string. Needs to be a valid real or complex list");
         }
 
         const auto handler = (type == 0x00) ? &TH_GenericReal::makeDataFromString : &TH_GenericComplex::makeDataFromString;
@@ -54,7 +52,7 @@ namespace tivars
         return data;
     }
 
-    string TH_GenericList::makeStringFromData(const data_t& data, const options_t& options)
+    std::string TH_GenericList::makeStringFromData(const data_t& data, const options_t& options)
     {
         const size_t byteCount = data.size();
         const size_t numCount = (size_t) ((data[0] & 0xFF) + ((data[1] & 0xFF) << 8));
@@ -64,19 +62,19 @@ namespace tivars
 
         if (!(isRealList ^ isComplexList))
         {
-            throw invalid_argument("Invalid data array. Needs to contain 2+9*n or 2+18*n bytes");
+            throw std::invalid_argument("Invalid data array. Needs to contain 2+9*n or 2+18*n bytes");
         }
 
         const size_t typeByteCount = isRealList ? TH_GenericReal::dataByteCount : TH_GenericComplex::dataByteCount;
 
         if (byteCount < 2+typeByteCount || ((byteCount - 2) % typeByteCount != 0) || numCount > 999)
         {
-            throw invalid_argument("Invalid data array. Needs to contain 2+" + to_string(typeByteCount) + "*n bytes");
+            throw std::invalid_argument("Invalid data array. Needs to contain 2+" + std::to_string(typeByteCount) + "*n bytes");
         }
 
         const auto handler = isRealList ? &TH_GenericReal::makeStringFromData : &TH_GenericComplex::makeStringFromData;
 
-        string str = "{";
+        std::string str = "{";
         for (size_t i = 2, num = 0; i < byteCount; i += typeByteCount, num++)
         {
             str += handler(data_t(data.begin()+i, data.begin()+i+typeByteCount), options);
