@@ -56,9 +56,10 @@ namespace tivars
         const constexpr size_t dataByteCount = 18;
     }
 
-    namespace TH_RealList    { th(); }
-    namespace TH_ComplexList { th(); }
+    namespace TH_GenericList { th(); }
+
     namespace TH_Matrix      { th(); }
+
     namespace TH_AppVar      { th(); }
 
     // Program, Protected Program, Y-Variable, String

@@ -24,6 +24,7 @@ namespace tivars
 
 #define GenericRealHandlerPairWithType(type)    make_generic_handler_pair(TH_GenericReal,    type)
 #define GenericComplexHandlerPairWithType(type) make_generic_handler_pair(TH_GenericComplex, type)
+#define GenericListHandlerPairWithType(type)    make_generic_handler_pair(TH_GenericList,    type)
 
     /**
      *  Make and insert the associative arrays for the type.
@@ -57,7 +58,7 @@ namespace tivars
 
         /* Standard types */
         insertType("Real",                 0x00,  {"82n", "83n", "8xn", "8xn", "8xn", "8xn", "8xn"},  GenericRealHandlerPairWithType(0x00) );
-        insertType("RealList",             0x01,  {"82l", "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  make_handler_pair(TH_RealList) );
+        insertType("RealList",             0x01,  {"82l", "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  GenericListHandlerPairWithType(0x00) );
         insertType("Matrix",               0x02,  {"82m", "83m", "8xm", "8xm", "8xm", "8xm", "8xm"},  make_handler_pair(TH_Matrix) );
         insertType("Equation",             0x03,  {"82y", "83y", "8xy", "8xy", "8xy", "8xy", "8xy"},  make_handler_pair(TH_Tokenized) );
         insertType("String",               0x04,  {"82s", "83s", "8xs", "8xs", "8xs", "8xs", "8xs"},  make_handler_pair(TH_Tokenized) );
@@ -66,7 +67,7 @@ namespace tivars
         insertType("Picture",              0x07,  {  "" ,   "" , "8xi", "8xi", "8ci", "8ci", "8ci"});
         insertType("GraphDataBase",        0x08,  {"82d", "83d", "8xd", "8xd", "8xd", "8xd", "8xd"});
         insertType("Complex",              0x0C,  {  "" , "83c", "8xc", "8xc", "8xc", "8xc", "8xc"},  GenericComplexHandlerPairWithType(0x0C) );
-        insertType("ComplexList",          0x0D,  {  "" , "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  make_handler_pair(TH_ComplexList) );
+        insertType("ComplexList",          0x0D,  {  "" , "83l", "8xl", "8xl", "8xl", "8xl", "8xl"},  GenericListHandlerPairWithType(0x0C) );
         insertType("WindowSettings",       0x0F,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw"});
         insertType("RecallWindow",         0x10,  {"82z", "83z", "8xz", "8xz", "8xz", "8xz", "8xz"});
         insertType("TableRange",           0x11,  {"82t", "83t", "8xt", "8xt", "8xt", "8xt", "8xt"});
