@@ -239,7 +239,7 @@ std::string dec2frac(double num, const std::string& var, double err)
 
     if (sign == -1)
     {
-        num = abs(num);
+        num = std::abs(num);
     }
 
     if (sign != 0)
@@ -248,7 +248,7 @@ std::string dec2frac(double num, const std::string& var, double err)
         err *= num;
     }
 
-    int n = (int) floor(num);
+    int n = (int) std::floor(num);
     num -= n;
 
     if (num < err)
@@ -295,5 +295,5 @@ std::string dec2frac(double num, const std::string& var, double err)
 
 std::string trimZeros(const std::string& str)
 {
-    return std::to_string(stoi(str));
+    return std::to_string(std::stoi(str));
 }
