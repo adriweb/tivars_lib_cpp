@@ -56,31 +56,23 @@ namespace tivars
         const constexpr size_t dataByteCount = 18;
     }
 
-    namespace TH_0x01 { th(); }  // Real list
-    namespace TH_0x0D { th(); }  // Complex list
+    namespace TH_RealList    { th(); }
+    namespace TH_ComplexList { th(); }
+    namespace TH_Matrix      { th(); }
+    namespace TH_AppVar      { th(); }
 
-    namespace TH_0x02 { th(); }  // Matrix
-    namespace TH_0x05 { th(); }  // Program
-
-    namespace TH_0x15 { th(); }  // Application variable
-
-    /* The following ones use the same handlers as 0x05 */
-    namespace TH_0x03 = TH_0x05; // Y-Variable
-    namespace TH_0x04 = TH_0x05; // String
-    namespace TH_0x06 = TH_0x05; // Protected Program
-
-#undef th
-
-
-    /* Additional things */
-
-    namespace TH_0x05   // Program
+    // Program, Protected Program, Y-Variable, String
+    namespace TH_Tokenized
     {
+        th();
         enum lang { LANG_EN = 0, LANG_FR };
         enum typelang { PRGMLANG_BASIC = 0, PRGMLANG_AXE };
         std::string reindentCodeString(const std::string& str_orig, const options_t& options = options_t());
         void initTokens();
     }
+
+#undef th
+
 
     using dataFromString_handler_t = decltype(&DummyHandler::makeDataFromString);
     using stringFromData_handler_t = decltype(&DummyHandler::makeStringFromData);

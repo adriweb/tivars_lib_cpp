@@ -16,7 +16,7 @@ using namespace std;
 
 namespace tivars
 {
-    namespace TH_0x05
+    namespace TH_Tokenized
     {
         std::unordered_map<uint, std::vector<std::string>> tokens_BytesToName;
         std::unordered_map<std::string, uint> tokens_NameToBytes;
@@ -26,7 +26,7 @@ namespace tivars
     }
 
     /* TODO: handle TI-Innovator Send( exception for in-strings tokenization (=> not shortest tokens) */
-    data_t TH_0x05::makeDataFromString(const string& str, const options_t& options)
+    data_t TH_Tokenized::makeDataFromString(const string& str, const options_t& options)
     {
         (void)options;
         data_t data;
@@ -74,7 +74,7 @@ namespace tivars
         return data;
     }
 
-    string TH_0x05::makeStringFromData(const data_t& data, const options_t& options)
+    string TH_Tokenized::makeStringFromData(const data_t& data, const options_t& options)
     {
         if (data.size() < 2)
         {
@@ -143,7 +143,7 @@ namespace tivars
         return str;
     }
 
-    string TH_0x05::reindentCodeString(const string& str_orig, const options_t& options)
+    string TH_Tokenized::reindentCodeString(const string& str_orig, const options_t& options)
     {
         int lang;
         if (has_option(options, "lang"))
@@ -236,7 +236,7 @@ namespace tivars
         return ltrim(rtrim(str, "\t\n\r\f\v"));
     }
 
-    void TH_0x05::initTokens()
+    void TH_Tokenized::initTokens()
     {
         ifstream t("programs_tokens.csv");
         string csvFileStr((istreambuf_iterator<char>(t)), istreambuf_iterator<char>());

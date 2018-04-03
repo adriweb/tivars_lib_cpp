@@ -19,7 +19,7 @@ extern "C" int EMSCRIPTEN_KEEPALIVE main(int, char**)
 {
     TIModels::initTIModelsArray();
     TIVarTypes::initTIVarTypesArray();
-    TH_0x05::initTokens();
+    TH_Tokenized::initTokens();
 
     puts("tivars_lib ready!");
 

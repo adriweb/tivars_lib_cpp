@@ -29,11 +29,11 @@ int main(int argc, char** argv)
 
     TIModels::initTIModelsArray();
     TIVarTypes::initTIVarTypesArray();
-    TH_0x05::initTokens();
+    TH_Tokenized::initTokens();
 
 
-    using tivars::TH_0x05::LANG_FR;
-    using tivars::TH_0x05::LANG_EN;
+    using tivars::TH_Tokenized::LANG_FR;
+    using tivars::TH_Tokenized::LANG_EN;
 
     /* Tests */
 
@@ -94,6 +94,7 @@ int main(int argc, char** argv)
         assert(testReal.getReadableContent() == "-1.2345678901235e30");
     }
 
+#ifndef __EMSCRIPTEN__
     {
         try
         {
@@ -106,6 +107,7 @@ int main(int argc, char** argv)
             cout << "Caught expected exception: " << e.what() << endl;
         }
     }
+#endif
 
     {
         TIVarFile testReal42 = TIVarFile::createNew(TIVarType::createFromName("Real"), "R");
@@ -121,7 +123,7 @@ int main(int argc, char** argv)
 
     {
         string test = "Disp 42:Wait 5:toString(42):Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
-        cout << "Indented code:" << endl << TH_0x05::reindentCodeString(test) << endl;
+        cout << "Indented code:" << endl << TH_Tokenized::reindentCodeString(test) << endl;
     }
 
     {
