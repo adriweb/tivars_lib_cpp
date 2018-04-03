@@ -41,26 +41,23 @@ namespace tivars
             throw std::invalid_argument("Invalid type name");
         }
     }
-
+}
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten/bind.h>
     using namespace emscripten;
     EMSCRIPTEN_BINDINGS(_tivartype) {
-            class_<TIVarType>("TIVarType")
+            class_<tivars::TIVarType>("TIVarType")
                     .constructor<>()
-                    .constructor<int, const std::string&, const std::vector<std::string>&, const handler_pair_t&>()
+                    .constructor<int, const std::string&, const std::vector<std::string>&, const tivars::handler_pair_t&>()
 
-                    .function("getId"      , &TIVarType::getId)
-                    .function("getName"    , &TIVarType::getName)
-                    .function("getExts"    , &TIVarType::getExts)
-                    .function("getHandlers", &TIVarType::getHandlers)
+                    .function("getId"      , &tivars::TIVarType::getId)
+                    .function("getName"    , &tivars::TIVarType::getName)
+                    .function("getExts"    , &tivars::TIVarType::getExts)
+                    .function("getHandlers", &tivars::TIVarType::getHandlers)
 
-                    .class_function("createFromID",   &TIVarType::createFromID)
-                    .class_function("createFromName", &TIVarType::createFromName)
+                    .class_function("createFromID",   &tivars::TIVarType::createFromID)
+                    .class_function("createFromName", &tivars::TIVarType::createFromName)
             ;
     }
 #endif
-
-
-}

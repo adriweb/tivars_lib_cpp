@@ -373,7 +373,7 @@ namespace tivars
     {
         return saveVarToFile("", "");
     }
-
+}
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten/bind.h>
@@ -382,33 +382,31 @@ namespace tivars
 
             register_map<std::string, int>("options_t");
 
-            class_<TIVarFile>("TIVarFile")
-                    .function("getHeader"                , &TIVarFile::getHeader)
-                    .function("getVarEntry"              , &TIVarFile::getVarEntry)
-                    .function("getType"                  , &TIVarFile::getType)
-                    .function("getInstanceChecksum"      , &TIVarFile::getInstanceChecksum)
+            class_<tivars::TIVarFile>("TIVarFile")
+                    .function("getHeader"                , &tivars::TIVarFile::getHeader)
+                    .function("getVarEntry"              , &tivars::TIVarFile::getVarEntry)
+                    .function("getType"                  , &tivars::TIVarFile::getType)
+                    .function("getInstanceChecksum"      , &tivars::TIVarFile::getInstanceChecksum)
 
-                    .function("getChecksumValueFromFile" , &TIVarFile::getChecksumValueFromFile)
-                    .function("setContentFromData"       , &TIVarFile::setContentFromData)
-                    .function("setContentFromString"     , select_overload<void(const std::string&, const options_t&)>(&TIVarFile::setContentFromString))
-                    .function("setContentFromString"     , select_overload<void(const std::string&)>(&TIVarFile::setContentFromString))
-                    .function("setCalcModel"             , &TIVarFile::setCalcModel)
-                    .function("setVarName"               , &TIVarFile::setVarName)
-                    .function("setArchived"              , &TIVarFile::setArchived)
-                    .function("isCorrupt"                , &TIVarFile::isCorrupt)
-                    .function("getRawContent"            , &TIVarFile::getRawContent)
-                    .function("getReadableContent"       , select_overload<std::string(const options_t&)>(&TIVarFile::getReadableContent))
-                    .function("getReadableContent"       , select_overload<std::string(void)>(&TIVarFile::getReadableContent))
+                    .function("getChecksumValueFromFile" , &tivars::TIVarFile::getChecksumValueFromFile)
+                    .function("setContentFromData"       , &tivars::TIVarFile::setContentFromData)
+                    .function("setContentFromString"     , select_overload<void(const std::string&, const options_t&)>(&tivars::TIVarFile::setContentFromString))
+                    .function("setContentFromString"     , select_overload<void(const std::string&)>(&tivars::TIVarFile::setContentFromString))
+                    .function("setCalcModel"             , &tivars::TIVarFile::setCalcModel)
+                    .function("setVarName"               , &tivars::TIVarFile::setVarName)
+                    .function("setArchived"              , &tivars::TIVarFile::setArchived)
+                    .function("isCorrupt"                , &tivars::TIVarFile::isCorrupt)
+                    .function("getRawContent"            , &tivars::TIVarFile::getRawContent)
+                    .function("getReadableContent"       , select_overload<std::string(const options_t&)>(&tivars::TIVarFile::getReadableContent))
+                    .function("getReadableContent"       , select_overload<std::string(void)>(&tivars::TIVarFile::getReadableContent))
 
-                    .function("saveVarToFile"            , select_overload<std::string(std::string, std::string)>(&TIVarFile::saveVarToFile))
-                    .function("saveVarToFile"            , select_overload<std::string(void)>(&TIVarFile::saveVarToFile))
+                    .function("saveVarToFile"            , select_overload<std::string(std::string, std::string)>(&tivars::TIVarFile::saveVarToFile))
+                    .function("saveVarToFile"            , select_overload<std::string(void)>(&tivars::TIVarFile::saveVarToFile))
 
-                    .class_function("loadFromFile", &TIVarFile::loadFromFile)
-                    .class_function("createNew", select_overload<TIVarFile(const TIVarType&, const std::string&, const TIModel&)>(&TIVarFile::createNew))
-                    .class_function("createNew", select_overload<TIVarFile(const TIVarType&, const std::string&)>(&TIVarFile::createNew))
-                    .class_function("createNew", select_overload<TIVarFile(const TIVarType&)>(&TIVarFile::createNew))
+                    .class_function("loadFromFile", &tivars::TIVarFile::loadFromFile)
+                    .class_function("createNew", select_overload<tivars::TIVarFile(const tivars::TIVarType&, const std::string&, const tivars::TIModel&)>(&tivars::TIVarFile::createNew))
+                    .class_function("createNew", select_overload<tivars::TIVarFile(const tivars::TIVarType&, const std::string&)>(&tivars::TIVarFile::createNew))
+                    .class_function("createNew", select_overload<tivars::TIVarFile(const tivars::TIVarType&)>(&tivars::TIVarFile::createNew))
             ;
     }
 #endif
-
-}

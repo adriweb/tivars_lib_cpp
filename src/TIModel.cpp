@@ -81,27 +81,25 @@ namespace tivars
             throw std::invalid_argument("Invalid version signature");
         }
     }
-
+}
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten/bind.h>
     using namespace emscripten;
     EMSCRIPTEN_BINDINGS(_timodel) {
-            class_<TIModel>("TIModel")
+            class_<tivars::TIModel>("TIModel")
                     .constructor<>()
                     .constructor<int, const std::string&, uint, const std::string&>()
 
-                    .function("getOrderId"  , &TIModel::getOrderId)
-                    .function("getName"     , &TIModel::getName)
-                    .function("getFlags"    , &TIModel::getFlags)
-                    .function("getSig"      , &TIModel::getSig)
-                    .function("supportsType", &TIModel::supportsType)
+                    .function("getOrderId"  , &tivars::TIModel::getOrderId)
+                    .function("getName"     , &tivars::TIModel::getName)
+                    .function("getFlags"    , &tivars::TIModel::getFlags)
+                    .function("getSig"      , &tivars::TIModel::getSig)
+                    .function("supportsType", &tivars::TIModel::supportsType)
 
-                    .class_function("createFromFlags",      &TIModel::createFromFlags)
-                    .class_function("createFromName",       &TIModel::createFromName)
-                    .class_function("createFromSignature",  &TIModel::createFromSignature)
+                    .class_function("createFromFlags",      &tivars::TIModel::createFromFlags)
+                    .class_function("createFromName",       &tivars::TIModel::createFromName)
+                    .class_function("createFromSignature",  &tivars::TIModel::createFromSignature)
             ;
     }
 #endif
-
-}
