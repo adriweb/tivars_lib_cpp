@@ -298,5 +298,11 @@ int main(int argc, char** argv)
         //newExactRealPiFrac.saveVarToFile("testData", "Exact_RealPiFrac_new");
     }
 
+    {
+        data_t tmp = data_t({0x05, 0x07, 0x43, 0x4f, 0x55, 0x52, 0x41, 0x47, 0x45, 0x43, 0x02, 0x44, 0x6b, 0x32});
+        std::string tempEquIfCond = TH_TempEqu::makeStringFromData(tmp);
+        assert(tempEquIfCond == "prgmCOURAGE:579:D<2");
+    }
+
     return 0;
 }
