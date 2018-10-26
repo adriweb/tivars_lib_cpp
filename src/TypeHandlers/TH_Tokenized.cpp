@@ -150,7 +150,7 @@ namespace tivars
             lang = options.at("lang");
         } else if (str_orig.size() > 1 && str_orig[0] == '.' && (str_orig[1] == '.' || ::isalpha(str_orig[1]))) {
             lang = PRGMLANG_AXE;
-        } else if (str_orig.size() > 0 && str_orig[0] == '\uf02f') {
+        } else if (str_orig.substr(0, sizeof("\U0001D456") - 1) == "\U0001D456") {
             lang = PRGMLANG_ICE;
         } else {
             lang = PRGMLANG_BASIC;
