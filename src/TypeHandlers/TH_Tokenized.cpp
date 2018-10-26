@@ -149,7 +149,7 @@ namespace tivars
         {
             lang = options.at("lang");
         } else {
-            lang = (str_orig.size() > 1 && str_orig[0] == '.' && ::isalpha(str_orig[1])) ? PRGMLANG_AXE : PRGMLANG_BASIC;
+            lang = (str_orig.size() > 1 && str_orig[0] == '.' && (str_orig[1] == '.' || ::isalpha(str_orig[1]))) ? PRGMLANG_AXE : PRGMLANG_BASIC;
         }
 
         std::string str(str_orig);
