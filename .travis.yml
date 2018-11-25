@@ -1,34 +1,11 @@
-dist: trusty
-sudo: false
-
+os: linux
+dist: xenial
 language: cpp
 
-matrix:
-  include:
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-4.9
-      env:
-         - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
-
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.6
-          packages:
-            - clang-3.6
-      env:
-        - MATRIX_EVAL="CC=clang-3.6 && CXX=clang++-3.6"
-
-before_install:
-  - eval "${MATRIX_EVAL}"
+compiler:
+  - clang
+  - gcc
 
 script:
-  - make
+  - make -j4
   - ./tivars_test
