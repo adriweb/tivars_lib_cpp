@@ -304,5 +304,19 @@ int main(int argc, char** argv)
         assert(tempEquIfCond == "prgmCOURAGE:579:D<2");
     }
 
+    {
+        TIVarFile testPython = TIVarFile::createNew(TIVarType::createFromName("PythonAppVar"), "TEST123", TIModel::createFromName("83PCE"));
+        testPython.setContentFromString("from math import *\nprint(math)\n\n# plop");
+        testPython.saveVarToFile("testData", "Pythontest_new");
+
+        TIVarFile pythonFromTest = TIVarFile::loadFromFile("testData/Pythontest_new.8xv");
+        cout << "pythonFromTest.getReadableContent() : " << pythonFromTest.getReadableContent() << endl;
+        assert(pythonFromTest.getReadableContent() == "from math import *\nprint(math)\n\n# plop");
+
+        TIVarFile pythonFromTest2 = TIVarFile::loadFromFile("testData/python_HELLO.8xv");
+        cout << "pythonFromTest2.getReadableContent() : " << pythonFromTest2.getReadableContent() << endl;
+        assert(pythonFromTest2.getReadableContent() == "import sys\nprint(sys.version)\n");
+    }
+
     return 0;
 }

@@ -24,6 +24,13 @@ namespace tivars
             throw std::invalid_argument("Invalid data array. Needs to contain at least 2 bytes");
         }
 
+        if (data.size() >= 2 + sizeof(STH_PythonAppVar::ID_CODE)
+            && memcmp(STH_PythonAppVar::ID_CODE, &(data[2]), strlen(STH_PythonAppVar::ID_CODE)) == 0)
+        {
+            try {
+                return STH_PythonAppVar::makeStringFromData(data, options);
+            } catch (...) {} // "fallthrough"
+        }
 
         return STH_DataAppVar::makeStringFromData(data, options);
     }

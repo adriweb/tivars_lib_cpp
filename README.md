@@ -46,6 +46,7 @@ You can find code that use this project as a JS lib here: https://github.com/TI-
 | Complex                   |     **✓**    |     **✓**    |
 | Complex List              |     **✓**    |     **✓**    |
 | Application Variable      |     **✓**    |     **✓**    |
+| Python AppVar             |     **✓**    |     **✓**    |
 | Exact Complex Fraction    |     **✓**    |     **✗**    |
 | Exact Real Radical        |     **✓**    |     **✗**    |
 | Exact Complex Radical     |     **✓**    |     **✗**    |

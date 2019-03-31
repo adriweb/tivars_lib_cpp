@@ -43,6 +43,12 @@ namespace tivars
     {
         th();
     }
+    namespace STH_PythonAppVar
+    {
+        th();
+        static const constexpr char ID_SCRIPT[] = "PYSC";
+        static const constexpr char ID_CODE[] = "PYCD";
+    }
     namespace STH_ExactFractionPi
     {
         th();
