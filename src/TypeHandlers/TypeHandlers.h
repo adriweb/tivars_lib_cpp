@@ -39,6 +39,10 @@ namespace tivars
         th();
         static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
     }
+    namespace STH_DataAppVar
+    {
+        th();
+    }
     namespace STH_ExactFractionPi
     {
         th();
@@ -56,11 +60,11 @@ namespace tivars
         const constexpr size_t dataByteCount = 18;
     }
 
-    namespace TH_GenericList { th(); }
+    namespace TH_GenericList   { th(); }
 
-    namespace TH_Matrix      { th(); }
+    namespace TH_Matrix        { th(); }
 
-    namespace TH_AppVar      { th(); }
+    namespace TH_GenericAppVar { th(); }
 
     // Program, Protected Program, Y-Variable, String
     namespace TH_Tokenized
