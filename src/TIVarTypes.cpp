@@ -92,7 +92,7 @@ namespace tivars
         insertType("FlashLicense",         0x3E,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
 
         // WindowSettings clone thing
-        types["0x0B"] = types["0x0F"];
+        types["11"] = types["15"];
     }
 
     /**
