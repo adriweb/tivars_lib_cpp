@@ -305,6 +305,11 @@ int main(int argc, char** argv)
     }
 
     {
+        TIVarFile appvarTest = TIVarFile::loadFromFile("testData/AppVar.8xv");
+        cout << "appvarTest.getReadableContent() : " << appvarTest.getReadableContent() << endl;
+    }
+
+    {
         TIVarFile testPython = TIVarFile::createNew(TIVarType::createFromName("PythonAppVar"), "TEST123", TIModel::createFromName("83PCE"));
         testPython.setContentFromString("from math import *\nprint(math)\n\n# plop");
         testPython.saveVarToFile("testData", "Pythontest_new");
