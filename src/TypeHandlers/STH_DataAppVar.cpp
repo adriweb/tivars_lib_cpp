@@ -40,6 +40,11 @@ namespace tivars
         (void)options;
 
         const size_t byteCount = data.size();
+        if (byteCount < 2)
+        {
+            throw std::invalid_argument("Invalid data array. Needs to contain at least 2 bytes");
+        }
+
         const size_t lengthExp = (size_t) ((data[0] & 0xFF) + ((data[1] & 0xFF) << 8));
         const size_t lengthDat = byteCount - 2;
 

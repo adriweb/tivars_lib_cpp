@@ -75,7 +75,8 @@ namespace tivars
 
     std::string TH_Tokenized::makeStringFromData(const data_t& data, const options_t& options)
     {
-        if (data.size() < 2)
+        const size_t dataSize = data.size();
+        if (dataSize < 2)
         {
             throw std::invalid_argument("Invalid data array. Needs to contain at least 2 bytes (size fields)");
         }
@@ -83,12 +84,12 @@ namespace tivars
         uint langIdx = (uint)((has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN);
 
         const int howManyBytes = (data[0] & 0xFF) + ((data[1] & 0xFF) << 8);
-        if (howManyBytes != (int)data.size() - 2)
+        if (howManyBytes != (int)dataSize - 2)
         {
-            std::cerr << "[Warning] Byte count (" << (data.size() - 2) << ") and size field (" << howManyBytes  << ") mismatch!";
+            std::cerr << "[Warning] Byte count (" << (dataSize - 2) << ") and size field (" << howManyBytes  << ") mismatch!";
         }
 
-        if (howManyBytes >= 2)
+        if (howManyBytes >= 2 && dataSize >= 4)
         {
             const uint16_t twoFirstBytes = (uint16_t) ((data[3] & 0xFF) + ((data[2] & 0xFF) << 8));
             if (std::find(std::begin(squishedASMTokens), std::end(squishedASMTokens), twoFirstBytes) != std::end(squishedASMTokens))
@@ -99,7 +100,6 @@ namespace tivars
 
         uint errCount = 0;
         std::string str;
-        const size_t dataSize = data.size();
         for (uint i = 2; i < (uint)dataSize; i++)
         {
             uint currentToken = data[i];

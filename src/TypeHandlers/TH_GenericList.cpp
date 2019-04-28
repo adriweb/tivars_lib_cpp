@@ -55,6 +55,11 @@ namespace tivars
     std::string TH_GenericList::makeStringFromData(const data_t& data, const options_t& options)
     {
         const size_t byteCount = data.size();
+        if (byteCount < 2)
+        {
+            throw std::invalid_argument("Invalid data array. Needs to contain at least 2 bytes");
+        }
+
         const size_t numCount = (size_t) ((data[0] & 0xFF) + ((data[1] & 0xFF) << 8));
 
         const bool isRealList    = (numCount == (size_t)((byteCount - 2) / TH_GenericReal::dataByteCount));
