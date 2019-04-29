@@ -37,7 +37,7 @@ namespace tivars
         std::string dataStr;
         for (uint i = 0; i < 9; i++)
         {
-            dataStr += (data[i] < 0x10 ? "0" : "") + dechex(data[i]); // zero left pad
+            dataStr += dechex(data[i]);
         }
 
         int type = hexdec(dataStr.substr(0, 2));
