@@ -29,13 +29,13 @@ namespace tivars
     {
         (void)options;
 
-        if (data.size() != 9)
+        if (data.size() != dataByteCount)
         {
-            throw std::invalid_argument("Invalid data array. Needs to contain 9 bytes");
+            throw std::invalid_argument("Invalid data array. Needs to contain " + std::to_string(dataByteCount) + " bytes");
         }
 
         std::string dataStr;
-        for (uint i = 0; i < 9; i++)
+        for (uint i = 0; i < dataByteCount; i++)
         {
             dataStr += dechex(data[i]);
         }
