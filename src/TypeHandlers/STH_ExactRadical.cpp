@@ -40,14 +40,14 @@ namespace tivars
             dataStr += dechex(data[i]);
         }
 
-        int type = data[0] & ~0x80; // sign bit discarded
+        const auto type = data[0] & ~0x80; // sign bit discarded
         if (type != 0x1C && type != 0x1D) // real or complex
         {
             throw std::invalid_argument("Invalid data bytes - invalid vartype: " + std::to_string(type));
         }
 
-        int variant = hexdec(dataStr.substr(2, 1));
-        if (variant < 0 || variant > 3)
+        const auto variant = hexdec(dataStr.substr(2, 1));
+        if (variant > 3)
         {
             throw std::invalid_argument("Invalid data bytes - unknown type variant: " + std::to_string(variant));
         }
