@@ -9,6 +9,9 @@
 #include <sstream>
 #include <cmath>
 
+namespace tivars
+{
+
 bool has_option(const options_t& m, const std::string& element)
 {
     return m.find(element) != m.end();
@@ -296,4 +299,6 @@ std::string dec2frac(double num, const std::string& var, double err)
 std::string trimZeros(const std::string& str)
 {
     return std::to_string(std::stoi(str));
+}
+
 }

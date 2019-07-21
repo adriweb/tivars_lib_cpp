@@ -16,7 +16,10 @@
 #include "TIModel.h"
 #include "TIVarType.h"
 
-template <typename T>
+namespace tivars
+{
+
+template<typename T>
 bool is_in_vector(const std::vector<T>& v, T element)
 {
     return std::find(v.begin(), v.end(), element) != v.end();
@@ -54,5 +57,7 @@ std::string multiple(int num, const std::string& var);
 std::string dec2frac(double num, const std::string& var = "", double err = 0.001);
 
 std::string trimZeros(const std::string& str);
+
+}
 
 #endif
