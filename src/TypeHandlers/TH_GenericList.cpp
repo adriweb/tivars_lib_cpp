@@ -7,6 +7,7 @@
 
 #include "TypeHandlers.h"
 #include "../utils.h"
+#include "../TIVarTypes.h"
 
 namespace tivars
 {
@@ -18,8 +19,9 @@ namespace tivars
         {
             throw std::runtime_error("Needs _type in options for TH_GenericReal::makeDataFromString");
         }
-        const uchar type = (uchar)typeIter->second;
-        if (type != 0x00 && type != 0x0C)
+
+        const auto type = typeIter->second;
+        if (type != types["Real"].getId() && type != types["Complex"].getId())
         {
             throw std::invalid_argument("Invalid type for given string");
         }

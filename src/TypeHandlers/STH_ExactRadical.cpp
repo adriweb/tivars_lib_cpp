@@ -7,6 +7,7 @@
 
 #include "TypeHandlers.h"
 #include "../utils.h"
+#include "../TIVarTypes.h"
 #include <regex>
 
 namespace tivars
@@ -41,7 +42,7 @@ namespace tivars
         }
 
         const auto type = data[0] & ~0x80; // sign bit discarded
-        if (type != 0x1C && type != 0x1D) // real or complex
+        if (type != types["ExactRealRadical"].getId() && type != types["ExactComplexRadical"].getId())
         {
             throw std::invalid_argument("Invalid data bytes - invalid vartype: " + std::to_string(type));
         }
