@@ -27,7 +27,7 @@ namespace tivars
         }
 
         auto arr = explode(trim(str, "{}"), ',');
-        size_t numCount = arr.size();
+        const size_t numCount = arr.size();
 
         for (auto& numStr : arr)
         {

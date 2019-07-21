@@ -272,8 +272,8 @@ std::string dec2frac(double num, const std::string& var, double err)
     while (true)
     {
         // The middle fraction is (lower_n + upper_n) / (lower_d + upper_d)
-        int middle_n = lower_n + upper_n;
-        int middle_d = lower_d + upper_d;
+        const int middle_n = lower_n + upper_n;
+        const int middle_d = lower_d + upper_d;
 
         if (middle_d * (num + err) < middle_n)
         {
