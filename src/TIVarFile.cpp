@@ -6,7 +6,7 @@
  */
 
 #include "TIVarFile.h"
-#include "utils.h"
+#include "tivarslib_utils.h"
 #include "TIModels.h"
 #include <numeric>
 #include <regex>

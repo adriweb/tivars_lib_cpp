@@ -8,7 +8,7 @@
 // TODO : check if the models have different exponent offsets
 
 #include "TypeHandlers.h"
-#include "../utils.h"
+#include "../tivarslib_utils.h"
 #include <regex>
 
 static bool parseSign(std::string::const_iterator &i, const std::string::const_iterator &e) {

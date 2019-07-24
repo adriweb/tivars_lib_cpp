@@ -15,7 +15,7 @@
 #include "src/BinaryFile.h"
 #include "src/TIVarFile.h"
 #include "src/TypeHandlers/TypeHandlers.h"
-#include "src/utils.h"
+#include "src/tivarslib_utils.h"
 
 using namespace std;
 using namespace tivars;
