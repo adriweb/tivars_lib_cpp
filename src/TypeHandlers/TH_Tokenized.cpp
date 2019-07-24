@@ -7,9 +7,14 @@
 
 #include "TypeHandlers.h"
 #include "../tivarslib_utils.h"
+
+#ifndef CEMU_VERSION
+  #include <iterator>
+#else
+  #include <QtCore/QFile>
+#endif
 #include <unordered_map>
 #include <iostream>
-#include <iterator>
 #include <regex>
 #include <fstream>
 
@@ -246,8 +251,20 @@ namespace tivars
 
     void TH_Tokenized::initTokens()
     {
-        std::ifstream t("programs_tokens.csv");
-        std::string csvFileStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+        std::string csvFileStr;
+
+        {
+#ifndef CEMU_VERSION
+            std::ifstream t("programs_tokens.csv");
+            csvFileStr = std::string((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+#else
+            QFile inputFile(QStringLiteral(":/other/tivars_lib_cpp/programs_tokens.csv"));
+            if (inputFile.open(QIODevice::ReadOnly))
+            {
+                csvFileStr = inputFile.readAll().toStdString();
+            }
+#endif
+        }
 
         if (csvFileStr.length() > 0)
         {
@@ -277,7 +294,7 @@ namespace tivars
                 }
             }
         } else {
-            throw std::runtime_error("Could not open the tokens csv file");
+            throw std::runtime_error("Could not open the tokens CSV file or read its data");
         }
     }
 
