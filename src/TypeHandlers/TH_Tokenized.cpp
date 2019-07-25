@@ -27,6 +27,7 @@ namespace tivars
         uchar lengthOfLongestTokenName;
         std::vector<uchar> firstByteOfTwoByteTokens;
         const uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
+        const std::regex toPrettifyRX(R"(\[?\|([a-zA-Z]+)\]?)");
     }
 
     /* TODO: handle TI-Innovator Send( exception for in-strings tokenization (=> not shortest tokens) */
@@ -141,7 +142,7 @@ namespace tivars
 
         if (has_option(options, "prettify") && options.at("prettify") == 1)
         {
-            str = std::regex_replace(str, std::regex(R"(\[?\|?([a-z]+)\]?)"), "$1");
+            str = std::regex_replace(str, toPrettifyRX, "$1");
         }
 
         if (has_option(options, "reindent") && options.at("reindent") == 1)
@@ -247,6 +248,47 @@ namespace tivars
         }
 
         return ltrim(rtrim(str, "\t\n\r\f\v"));
+    }
+
+    std::string TH_Tokenized::tokenToString(const data_t& data, int *incr, const options_t& options)
+    {
+        const size_t dataSize = data.size();
+
+        uint currentToken = data[0];
+        uint nextToken = dataSize > 1 ? data[1] : -1u;
+        uint bytesKey = currentToken;
+        bool is2ByteTok = is_in_vector(firstByteOfTwoByteTokens, static_cast<uchar>(currentToken));
+
+        if (incr) {
+            *incr = is2ByteTok ? 2 : 1;
+        }
+
+        uint langIdx = static_cast<uint>((has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN);
+        bool fromPrettified = has_option(options, "prettify") && options.at("prettify") == 1;
+
+        if (is2ByteTok)
+        {
+            if (nextToken == -1u)
+            {
+                std::cerr << "[Warning] Encountered an unfinished two-byte token!";
+                return std::string();
+            }
+            bytesKey = nextToken + (currentToken << 8);
+        }
+
+        std::string tokStr;
+        if (tokens_BytesToName.find(bytesKey) != tokens_BytesToName.end())
+        {
+            tokStr = tokens_BytesToName[bytesKey][langIdx];
+        } else {
+            tokStr = " [???] ";
+        }
+        if (fromPrettified)
+        {
+            tokStr = std::regex_replace(tokStr, toPrettifyRX, "$1");
+        }
+
+        return tokStr;
     }
 
     void TH_Tokenized::initTokens()

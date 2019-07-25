@@ -83,6 +83,7 @@ namespace tivars
         enum lang { LANG_EN = 0, LANG_FR };
         enum typelang { PRGMLANG_BASIC = 0, PRGMLANG_AXE, PRGMLANG_ICE };
         std::string reindentCodeString(const std::string& str_orig, const options_t& options = options_t());
+        std::string tokenToString(const data_t& data, int *incr, const options_t& options);
         void initTokens();
     }
 
