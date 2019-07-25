@@ -291,6 +291,85 @@ namespace tivars
         return tokStr;
     }
 
+    TH_Tokenized::token_posinfo TH_Tokenized::getPosInfoAtOffset(const data_t& data, uint16_t byteOffset, const options_t& options)
+    {
+        const size_t dataSize = data.size();
+
+        if (byteOffset >= dataSize)
+        {
+            throw std::invalid_argument("byteOffset cannot be >= dataSize!");
+        }
+
+        if (dataSize >= 2)
+        {
+            const uint16_t twoFirstBytes = (uint16_t) ((data[1] & 0xFF) + ((data[0] & 0xFF) << 8));
+            if (std::find(std::begin(squishedASMTokens), std::end(squishedASMTokens), twoFirstBytes) != std::end(squishedASMTokens))
+            {
+                throw std::invalid_argument("This is a squished ASM program - cannnot process it!");
+            }
+        }
+
+        TH_Tokenized::token_posinfo posinfo = { 0, 0, 0 };
+
+        uint langIdx = (uint)((has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN);
+        bool fromPrettified = has_option(options, "prettify") && options.at("prettify") == 1;
+
+        // Find line number
+        uint16_t lastNewLineOffset = 0;
+        for (uint16_t i = 0; i < byteOffset; i++)
+        {
+            if (data[i] == 0x3F) // newline token code
+            {
+                posinfo.line++;
+                lastNewLineOffset = i;
+            }
+        }
+
+        // Find column number and token length if byteOffset is reached
+        for (uint16_t i = lastNewLineOffset+1; i <= byteOffset; i++)
+        {
+            uint currentToken = data[i];
+            uint nextToken = (i < dataSize-1) ? data[i+1] : (uint)-1;
+            uint bytesKey = currentToken;
+            bool is2ByteTok = is_in_vector(firstByteOfTwoByteTokens, (uchar)currentToken);
+            const uint16_t currIdx = i;
+
+            if (is2ByteTok)
+            {
+                if (nextToken == (uint)-1)
+                {
+                    std::cerr << "[Warning] Encountered an unfinished two-byte token! Setting the second byte to 0x00";
+                    nextToken = 0x00;
+                }
+                bytesKey = nextToken + (currentToken << 8);
+                i++;
+            }
+
+            std::string tokStr;
+            if (tokens_BytesToName.find(bytesKey) != tokens_BytesToName.end())
+            {
+                tokStr = tokens_BytesToName[bytesKey][langIdx];
+            } else {
+                tokStr = " [???] ";
+            }
+            if (fromPrettified)
+            {
+                tokStr = std::regex_replace(tokStr, toPrettifyRX, "$1");
+            }
+
+            posinfo.column += (uint16_t)tokStr.size();
+
+            if (posinfo.len == 0 && ((currIdx == byteOffset && !is2ByteTok) || (currIdx == byteOffset-1 && is2ByteTok)))
+            {
+                posinfo.len = (uint8_t)tokStr.size();
+                posinfo.column -= posinfo.len; // column will be the beginning of the token
+            }
+        }
+
+        return posinfo;
+    }
+
+
     void TH_Tokenized::initTokens()
     {
         std::string csvFileStr;
