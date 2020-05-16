@@ -1,6 +1,14 @@
-os: linux
-dist: xenial
 language: cpp
+
+os: linux
+
+dist:
+  - xenial
+  - bionic
+  
+arch:
+  - amd64
+  - arm64
 
 compiler:
   - clang
