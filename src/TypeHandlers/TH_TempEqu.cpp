@@ -6,6 +6,8 @@
  */
 
 #include "TypeHandlers.h"
+
+#include <stdexcept>
 #include <cstring>
 
 namespace tivars

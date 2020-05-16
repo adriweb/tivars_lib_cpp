@@ -8,6 +8,8 @@
 #include "TIModel.h"
 #include "TIModels.h"
 
+#include <stdexcept>
+
 namespace tivars
 {
     

@@ -6,8 +6,8 @@
  */
 
 #include "TypeHandlers.h"
-#include "../tivarslib_utils.h"
 
+#include <stdexcept>
 #include <unordered_map>
 
 namespace tivars

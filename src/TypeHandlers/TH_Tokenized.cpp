@@ -13,6 +13,7 @@
 #else
   #include <QtCore/QFile>
 #endif
+#include <stdexcept>
 #include <unordered_map>
 #include <iostream>
 #include <regex>

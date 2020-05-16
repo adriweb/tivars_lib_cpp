@@ -7,7 +7,8 @@
 
 #include "TypeHandlers.h"
 #include "../tivarslib_utils.h"
-#include <regex>
+
+#include <stdexcept>
 
 namespace tivars
 {

@@ -8,6 +8,8 @@
 #include "TIVarFile.h"
 #include "tivarslib_utils.h"
 #include "TIModels.h"
+
+#include <stdexcept>
 #include <numeric>
 #include <regex>
 

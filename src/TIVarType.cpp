@@ -8,6 +8,8 @@
 #include "TIVarType.h"
 #include "TIVarTypes.h"
 
+#include <stdexcept>
+
 namespace tivars
 {
     /*** "Constructors" ***/

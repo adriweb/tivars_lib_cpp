@@ -8,6 +8,8 @@
 #include "../CommonTypes.h"
 #include "TypeHandlers.h"
 
+#include <stdexcept>
+
 namespace tivars
 {
 

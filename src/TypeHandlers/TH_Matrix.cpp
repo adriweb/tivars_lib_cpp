@@ -8,6 +8,8 @@
 #include "TypeHandlers.h"
 #include "../tivarslib_utils.h"
 
+#include <stdexcept>
+
 namespace tivars
 {
 

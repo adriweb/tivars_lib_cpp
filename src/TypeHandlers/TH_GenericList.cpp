@@ -9,6 +9,8 @@
 #include "../tivarslib_utils.h"
 #include "../TIVarTypes.h"
 
+#include <stdexcept>
+
 namespace tivars
 {
     // TODO: also make it detect the type correctly...

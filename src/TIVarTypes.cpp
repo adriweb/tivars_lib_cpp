@@ -6,7 +6,6 @@
  */
 
 #include "TIVarTypes.h"
-#include "tivarslib_utils.h"
 
 namespace tivars
 {
