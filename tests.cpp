@@ -190,6 +190,22 @@ int main(int argc, char** argv)
     }
 
     {
+        TIVarFile testPrgm = TIVarFile::createNew(TIVarType::createFromName("Program"), "asdf");
+        options_t options;
+        options["detect_strings"] = true;
+        testPrgm.setContentFromString("\"prgm", options);
+        assert(testPrgm.getRawContent() == data_t({0x09, 0x00, 0x2A, 0xBB, 0xC0, 0xBB, 0xC2, 0xBB, 0xB6, 0xBB, 0xBD}));
+    }
+
+    {
+        TIVarFile testPrgm = TIVarFile::createNew(TIVarType::createFromName("Program"), "asdf");
+        options_t options;
+        options["detect_strings"] = false;
+        testPrgm.setContentFromString("\"prgm", options);
+        assert(testPrgm.getRawContent() == data_t({0x02, 0x00, 0x2A, 0x5F}));
+    }
+
+    {
         TIVarFile testRealList = TIVarFile::loadFromFile("testData/RealList.8xl");
         cout << "Before: " << testRealList.getReadableContent() << "\n   Now: ";
         testRealList.setContentFromString("{9, 0, .5, -6e-8}");
