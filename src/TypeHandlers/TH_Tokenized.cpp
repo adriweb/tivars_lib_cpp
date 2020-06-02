@@ -34,8 +34,9 @@ namespace tivars
     /* TODO: handle TI-Innovator Send( exception for in-strings tokenization (=> not shortest tokens) */
     data_t TH_Tokenized::makeDataFromString(const std::string& str, const options_t& options)
     {
-        (void)options;
         data_t data;
+
+        const bool detect_strings = !has_option(options, "detect_strings") || options.at("detect_strings") != 0;
 
         // two bytes reserved for the size. Filled later
         data.push_back(0); data.push_back(0);
@@ -47,12 +48,13 @@ namespace tivars
         for (uint strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
         {
             const std::string currChar = str.substr(strCursorPos, 1);
-            if (currChar == "\"")
+            if(detect_strings)
             {
-                isWithinString = !isWithinString;
-            } else if (currChar == "\n" || currChar == "→")
-            {
-                isWithinString = false;
+                if(currChar == "\"") {
+                    isWithinString = !isWithinString;
+                } else if(currChar == "\n" || currChar == "→") {
+                    isWithinString = false;
+                }
             }
             /* isWithinString => minimum token length, otherwise maximal munch */
             for (uint currentLength = isWithinString ? 1 : maxTokSearchLen;
