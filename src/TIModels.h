@@ -8,12 +8,14 @@
 #ifndef TIMODELS_H
 #define TIMODELS_H
 
+#include <unordered_map>
 #include "CommonTypes.h"
 #include "TIModel.h"
 #include "TIVarType.h"
 
 namespace tivars
 {
+    extern std::unordered_map<std::string, TIModel> models;
 
     enum TIFeatureFlags
     {
