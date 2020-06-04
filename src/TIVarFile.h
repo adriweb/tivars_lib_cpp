@@ -91,6 +91,7 @@ namespace tivars
         std::string getReadableContent();
 
         std::string saveVarToFile(std::string directory, std::string name);
+        std::string saveVarToFile(std::string path);
         std::string saveVarToFile();
 
     private:

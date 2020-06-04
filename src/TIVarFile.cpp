@@ -328,7 +328,6 @@ namespace tivars
     std::string TIVarFile::saveVarToFile(std::string directory, std::string name)
     {
         std::string fullPath;
-        FILE* handle;
 
         if (this->fromFile && directory.empty())
         {
@@ -361,10 +360,15 @@ namespace tivars
             fullPath = directory + "/" + fileName;
         }
 
-        handle = fopen(fullPath.c_str(), "wb");
+        return saveVarToFile(fullPath);
+    }
+
+    std::string TIVarFile::saveVarToFile(std::string path)
+    {
+        FILE* handle = fopen(path.c_str(), "wb");
         if (!handle)
         {
-            throw std::runtime_error("Can't open the input file");
+            throw std::runtime_error("Can't open the output file");
         }
 
         this->refreshMetadataFields();
@@ -381,7 +385,7 @@ namespace tivars
 
         this->corrupt = false;
 
-        return fullPath;
+        return path;
     }
 
     std::string TIVarFile::saveVarToFile()
