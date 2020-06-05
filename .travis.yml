@@ -2,10 +2,8 @@ language: cpp
 
 os: linux
 
-dist:
-  - xenial
-  - bionic
-  
+dist: xenial
+
 arch:
   - amd64
   - arm64
@@ -16,4 +14,4 @@ compiler:
 
 script:
   - make -j4
-  - ./tivars_test
+  - ./tivars_tests
