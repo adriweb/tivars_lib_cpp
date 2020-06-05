@@ -420,6 +420,7 @@ namespace tivars
                     .function("getReadableContent"       , select_overload<std::string(void)>(&tivars::TIVarFile::getReadableContent))
 
                     .function("saveVarToFile"            , select_overload<std::string(std::string, std::string)>(&tivars::TIVarFile::saveVarToFile))
+                    .function("saveVarToFile"            , select_overload<std::string(std::string)>(&tivars::TIVarFile::saveVarToFile))
                     .function("saveVarToFile"            , select_overload<std::string(void)>(&tivars::TIVarFile::saveVarToFile))
 
                     .class_function("loadFromFile", &tivars::TIVarFile::loadFromFile)
