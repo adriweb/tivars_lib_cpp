@@ -5,8 +5,8 @@ EMFLAGS := --bind --memory-init-file 0 --llvm-lto 3 -s NO_EXIT_RUNTIME=1 -s ASSE
 
 CXXFLAGS := -O3 -std=c++11 -W -Wall -Wextra $(EMFLAGS)
 
-wasm:       CXXFLAGS += -s WASM=1 -s "BINARYEN_METHOD='native-wasm,asmjs'"
-wasm-html:  CXXFLAGS += -s WASM=1 -s "BINARYEN_METHOD='native-wasm,asmjs'"
+wasm:       CXXFLAGS += -s WASM=1
+wasm-html:  CXXFLAGS += -s WASM=1
 
 SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp)
 
@@ -14,18 +14,14 @@ OBJS = $(patsubst %.cpp, %.bc, $(SOURCES))
 
 OUTPUT := tivars_test
 
-asmjs: $(OUTPUT).html
 wasm:  $(OUTPUT).html
 
 $(OUTPUT).html: $(OUTPUT).js
 
-asmjs-html: $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $(OUTPUT).html
-
 wasm-html: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $(OUTPUT).html
 
-all: asmjs-html
+all: wasm-html
 
 %.bc: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -34,6 +30,6 @@ $(OUTPUT).js: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $@
 
 clean:
-	$(RM) -f $(OBJS) $(OUTPUT).js* $(OUTPUT).html* $(OUTPUT).data $(OUTPUT).asm.js $(OUTPUT).was*
+	$(RM) -f $(OBJS) $(OUTPUT).js* $(OUTPUT).html* $(OUTPUT).data $(OUTPUT).was*
 
-.PHONY: all clean asmjs wasm asmjs-html wasm-html
+.PHONY: all clean wasm wasm-html
