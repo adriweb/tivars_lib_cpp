@@ -191,6 +191,20 @@ int main(int argc, char** argv)
 
     {
         TIVarFile testPrgm = TIVarFile::createNew(TIVarType::createFromName("Program"), "asdf");
+        testPrgm.setContentFromString("   Pause 42:Pause 43:\tDisp \"\",\"Bouh la =/*: déf\",\"suite :\",\" OK", { {"deindent", true} });
+        string testPrgmcontent = testPrgm.getReadableContent({{"prettify", true},  {"reindent", true}});
+        assert(testPrgmcontent == "Pause 42\nPause 43\nDisp \"\",\"Bouh la =/*: déf\",\"suite :\",\" OK");
+    }
+
+    {
+        TIVarFile testPrgm = TIVarFile::createNew(TIVarType::createFromName("Program"), "asdf");
+        testPrgm.setContentFromString("   Pause 42:Pause 43", { {"deindent", false} });
+        string testPrgmcontent = testPrgm.getReadableContent();
+        assert(testPrgmcontent == "   Pause 42:Pause 43");
+    }
+
+    {
+        TIVarFile testPrgm = TIVarFile::createNew(TIVarType::createFromName("Program"), "asdf");
         options_t options;
         options["detect_strings"] = true;
         testPrgm.setContentFromString("\"prgm", options);

@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <iostream>
+#include <sstream>
 #include <regex>
 #include <fstream>
 
@@ -36,16 +37,30 @@ namespace tivars
     {
         data_t data;
 
+        const bool deindent = has_option(options, "deindent") && options.at("deindent") == 1;
         const bool detect_strings = !has_option(options, "detect_strings") || options.at("detect_strings") != 0;
+
+        std::string str_new;
+        if (deindent)
+        {
+            std::istringstream f{str};
+            std::string line;
+            while (std::getline(f, line)) {
+                str_new += ltrim(line) + "\n";
+            }
+            str_new.pop_back();
+        } else {
+            str_new = str;
+        }
 
         // two bytes reserved for the size. Filled later
         data.push_back(0); data.push_back(0);
 
         bool isWithinString = false;
 
-        for (uint strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
+        for (uint strCursorPos = 0; strCursorPos < str_new.length(); strCursorPos++)
         {
-            const std::string currChar = str.substr(strCursorPos, 1);
+            const std::string currChar = str_new.substr(strCursorPos, 1);
             if(detect_strings)
             {
                 if(currChar == "\"") {
@@ -55,14 +70,14 @@ namespace tivars
                 }
             }
 
-            const uchar maxTokSearchLen = std::min(str.length() - strCursorPos, (size_t)lengthOfLongestTokenName);
+            const uchar maxTokSearchLen = std::min(str_new.length() - strCursorPos, (size_t)lengthOfLongestTokenName);
 
             /* isWithinString => minimum token length, otherwise maximal munch */
             for (uint currentLength = isWithinString ? 1 : maxTokSearchLen;
                  isWithinString ? (currentLength <= maxTokSearchLen) : (currentLength > 0);
                  currentLength += (isWithinString ? 1 : -1))
             {
-                std::string currentSubString = str.substr(strCursorPos, currentLength);
+                std::string currentSubString = str_new.substr(strCursorPos, currentLength);
                 if (tokens_NameToBytes.count(currentSubString))
                 {
                     uint tokenValue = tokens_NameToBytes[currentSubString];
