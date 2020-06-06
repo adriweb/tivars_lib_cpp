@@ -41,8 +41,6 @@ namespace tivars
         // two bytes reserved for the size. Filled later
         data.push_back(0); data.push_back(0);
 
-        const uchar maxTokSearchLen = std::min((uchar)str.length(), lengthOfLongestTokenName);
-
         bool isWithinString = false;
 
         for (uint strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
@@ -56,6 +54,9 @@ namespace tivars
                     isWithinString = false;
                 }
             }
+
+            const uchar maxTokSearchLen = std::min(str.length() - strCursorPos, (size_t)lengthOfLongestTokenName);
+
             /* isWithinString => minimum token length, otherwise maximal munch */
             for (uint currentLength = isWithinString ? 1 : maxTokSearchLen;
                  isWithinString ? (currentLength <= maxTokSearchLen) : (currentLength > 0);
