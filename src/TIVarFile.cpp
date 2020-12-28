@@ -62,16 +62,18 @@ namespace tivars
             throw std::runtime_error("This calculator model (" + this->calcModel.getName() + ") does not support the type " + this->type.getName());
         }
 
-        std::string newName = this->fixVarName(name);
-        std::string signature = this->calcModel.getSig(); std::copy(signature.begin(), signature.end(), this->header.signature);
-        uchar sig_extra[3] = {0x1A, 0x0A, 0x00};       std::copy(sig_extra, sig_extra + 3, this->header.sig_extra);
-        std::string comment = str_pad("Created by tivars_lib_cpp", 42, "\0"); std::copy(comment.begin(), comment.end(), this->header.comment);
+        const std::string signature = this->calcModel.getSig();
+        const std::string varname = str_pad(this->fixVarName(name), sizeof(this->varEntry.varname), "\0");
+        const std::string comment = str_pad("Created by tivars_lib_cpp", sizeof(this->header.comment), "\0");
+
+        std::copy(signature.begin(), signature.end(), this->header.signature);
+        std::copy(comment.begin(), comment.end(), this->header.comment);
         this->header.entries_len = 0; // will have to be overwritten later
 
-        this->varEntry.meta_length  = (this->calcModel.getFlags() >= TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength;
+        this->varEntry.meta_length  = (this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength;
         this->varEntry.data_length  = 0; // will have to be overwritten later
         this->varEntry.typeID       = (uchar) type.getId();
-        std::string varname         = str_pad(newName, 8, "\0"); std::copy(varname.begin(), varname.begin() + 8, this->varEntry.varname);
+        std::copy(varname.begin(), varname.end(), this->varEntry.varname);
         this->varEntry.data_length2 = 0; // will have to be overwritten later
     }
 
@@ -96,10 +98,13 @@ namespace tivars
     {
         rewind(this->file);
 
-        std::string signature = this->get_string_bytes(8);  std::copy(signature.begin(), signature.end(), this->header.signature);
-        auto sig_extra   = this->get_raw_bytes(3);     std::copy(sig_extra.begin(), sig_extra.end(), this->header.sig_extra);
-        std::string comment   = this->get_string_bytes(42); std::copy(comment.begin(),   comment.end(),   this->header.comment);
-        this->header.entries_len  = (uint16_t)((this->get_raw_bytes(1)[0] & 0xFF) + (this->get_raw_bytes(1)[0] << 8));
+        const auto signature = this->get_string_bytes(sizeof(this->header.signature));
+        const auto sig_extra = this->get_raw_bytes(sizeof(this->header.sig_extra));
+        const auto comment = this->get_string_bytes(sizeof(this->header.comment));
+        std::copy(signature.begin(), signature.end(), this->header.signature);
+        std::copy(sig_extra.begin(), sig_extra.end(), this->header.sig_extra);
+        std::copy(comment.begin(), comment.end(), this->header.comment);
+        this->header.entries_len  = this->get_two_bytes_swapped();
         this->calcModel = TIModel::createFromSignature(signature);
     }
 
@@ -107,16 +112,17 @@ namespace tivars
     {
         fseek(this->file, TIVarFile::dataSectionOffset, SEEK_SET);
 
-        this->varEntry.meta_length  = (uint16_t)((this->get_raw_bytes(1)[0] & 0xFF) + (this->get_raw_bytes(1)[0] << 8));
-        this->varEntry.data_length  = (uint16_t)((this->get_raw_bytes(1)[0] & 0xFF) + (this->get_raw_bytes(1)[0] << 8));
-        this->varEntry.typeID       = this->get_raw_bytes(1)[0];
-        std::string varname         = this->get_string_bytes(8); std::copy(varname.begin(), varname.begin() + 8, this->varEntry.varname);
+        this->varEntry.meta_length  = this->get_two_bytes_swapped();
+        this->varEntry.data_length  = this->get_two_bytes_swapped();
+        this->varEntry.typeID       = this->get_raw_byte();
+        const std::string varname   = this->get_string_bytes(sizeof(this->varEntry.varname));
+        std::copy(varname.begin(), varname.end(), this->varEntry.varname);
         if (this->calcModel.getFlags() >= TIFeatureFlags::hasFlash)
         {
-            this->varEntry.version      = this->get_raw_bytes(1)[0];
-            this->varEntry.archivedFlag = this->get_raw_bytes(1)[0];
+            this->varEntry.version      = this->get_raw_byte();
+            this->varEntry.archivedFlag = this->get_raw_byte();
         }
-        this->varEntry.data_length2  = (uint16_t)((this->get_raw_bytes(1)[0] & 0xFF) + (this->get_raw_bytes(1)[0] << 8));
+        this->varEntry.data_length2  = this->get_two_bytes_swapped();
         this->varEntry.data          = this->get_raw_bytes(this->varEntry.data_length);
     }
 
@@ -132,7 +138,7 @@ namespace tivars
             uint16_t sum = 0;
             for (size_t i = dataSectionOffset; i < this->fileSize - 2; i++)
             {
-                sum += this->get_raw_bytes(1)[0];
+                sum += this->get_raw_byte();
             }
             return (uint16_t) (sum & 0xFFFF);
         } else {
@@ -145,10 +151,10 @@ namespace tivars
         uint16_t sum = 0;
         sum += this->varEntry.meta_length;
         sum += this->varEntry.typeID;
-        sum += 2 * ((this->varEntry.data_length & 0xFF) + ((this->varEntry.data_length >> 8) & 0xFF));
-        sum += std::accumulate(this->varEntry.varname, this->varEntry.varname + 8, 0);
+        sum += 2 * ((this->varEntry.data_length & 0xFF) + ((this->varEntry.data_length >> 8) & 0xFF)); // 2* because of the two same length fields
+        sum += std::accumulate(this->varEntry.varname, this->varEntry.varname + sizeof(this->varEntry.varname), 0);
         sum += std::accumulate(this->varEntry.data.begin(), this->varEntry.data.end(), 0);
-        if (this->calcModel.getFlags() >= TIFeatureFlags::hasFlash)
+        if (this->calcModel.getFlags() & TIFeatureFlags::hasFlash)
         {
             sum += this->varEntry.version;
             sum += this->varEntry.archivedFlag;
@@ -161,7 +167,7 @@ namespace tivars
         if (this->isFromFile)
         {
             fseek(this->file, this->fileSize - 2, SEEK_SET);
-            return this->get_raw_bytes(1)[0] + (this->get_raw_bytes(1)[0] << 8);
+            return this->get_two_bytes_swapped();
         } else {
             throw std::runtime_error("[Error] No file loaded");
         }
@@ -175,9 +181,8 @@ namespace tivars
         // todo : recompute correctly for multiple var entries
         this->varEntry.data_length2 = this->varEntry.data_length = (uint16_t) this->varEntry.data.size();
 
-        // The + 2 + 2 is because of the length of both length field themselves
-        this->header.entries_len = (uint16_t)2 + (uint16_t)2 + this->varEntry.data_length
-                                 + ((this->calcModel.getFlags() >= TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength);
+        this->header.entries_len = (uint16_t)sizeof(var_entry_t::data_length) + (uint16_t)sizeof(var_entry_t::data_length2) + this->varEntry.meta_length
+                                 + this->varEntry.data_length;
 
         this->computedChecksum = this->computeChecksumFromInstanceData();
     }
@@ -190,14 +195,14 @@ namespace tivars
             newName = "FILE" + (type.getExts().empty() ? "" : type.getExts()[0]);
         }
         newName = std::regex_replace(newName, std::regex("[^a-zA-Z0-9]"), "");
-        if (newName.length() > 8 || newName.empty() || is_numeric(newName.substr(0, 1)))
+        if (newName.length() > sizeof(var_entry_t::varname) || newName.empty() || is_numeric(newName.substr(0, 1)))
         {
             throw std::invalid_argument("Invalid name given. 8 chars (A-Z, 0-9) max, starting by a letter");
         }
 
         for (auto & c: newName) c = (char) toupper(c);
 
-        newName = str_pad(newName, 8, "\0");
+        newName = str_pad(newName, sizeof(var_entry_t::varname), "\0");
 
         return newName;
     }
@@ -238,13 +243,13 @@ namespace tivars
     void TIVarFile::setVarName(const std::string& name)
     {
         std::string varname = TIVarFile::fixVarName(name);
-        std::copy(varname.begin(), varname.begin() + 8, this->varEntry.varname);
+        std::copy(varname.begin(), varname.end(), this->varEntry.varname);
         this->refreshMetadataFields();
     }
 
     void TIVarFile::setArchived(bool flag)
     {
-        if (this->calcModel.getFlags() >= TIFeatureFlags::hasFlash)
+        if (this->calcModel.getFlags() & TIFeatureFlags::hasFlash)
         {
             this->varEntry.archivedFlag = (uchar)(flag ? 1 : 0);
             this->refreshMetadataFields();
@@ -279,9 +284,9 @@ namespace tivars
 
         // Header
         {
-            bin_data.insert(bin_data.end(), this->header.signature, this->header.signature + 8);
-            bin_data.insert(bin_data.end(), this->header.sig_extra, this->header.sig_extra + 3);
-            bin_data.insert(bin_data.end(), this->header.comment,   this->header.comment   + 42);
+            bin_data.insert(bin_data.end(), this->header.signature, this->header.signature + sizeof(this->header.signature));
+            bin_data.insert(bin_data.end(), this->header.sig_extra, this->header.sig_extra + sizeof(this->header.sig_extra));
+            bin_data.insert(bin_data.end(), this->header.comment,   this->header.comment   + sizeof(this->header.comment));
             bin_data.push_back((uchar) (this->header.entries_len & 0xFF)); bin_data.push_back((uchar) ((this->header.entries_len >> 8) & 0xFF));
         }
 
@@ -290,8 +295,8 @@ namespace tivars
             bin_data.push_back((uchar) (this->varEntry.meta_length & 0xFF)); bin_data.push_back((uchar) ((this->varEntry.meta_length >> 8) & 0xFF));
             bin_data.push_back((uchar) (this->varEntry.data_length & 0xFF)); bin_data.push_back((uchar) ((this->varEntry.data_length >> 8) & 0xFF));
             bin_data.push_back(this->varEntry.typeID);
-            bin_data.insert(bin_data.end(), this->varEntry.varname, this->varEntry.varname + 8);
-            if (this->calcModel.getFlags() >= TIFeatureFlags::hasFlash)
+            bin_data.insert(bin_data.end(), this->varEntry.varname, this->varEntry.varname + + sizeof(this->varEntry.varname));
+            if (this->calcModel.getFlags() & TIFeatureFlags::hasFlash)
             {
                 bin_data.push_back(this->varEntry.version);
                 bin_data.push_back(this->varEntry.archivedFlag);

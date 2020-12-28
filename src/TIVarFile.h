@@ -18,29 +18,41 @@ namespace tivars
 
     class TIVarFile : public BinaryFile
     {
+        // For the record, 83+ = 4, 84+ = 10, 82A = 11, 84+CSE = 15, CE = 19, 84+T = 27.
+        static const constexpr uchar OWNER_PID_NONE = 0;
+
+#pragma pack(push, 1)
         struct var_header_t
         {
             uchar    signature[8]  = {};
-            uchar    sig_extra[3]  = {};
+            uchar    sig_extra[3]  = { 0x1A, 0x0A, OWNER_PID_NONE };
             uchar    comment[42]   = {};
             uint16_t entries_len   = 0;
         };
+#pragma pack(pop)
 
+#pragma pack(push, 1)
         struct var_entry_t
         {
             uint16_t meta_length   = 0; // byte count of the next 3 or 5 fields (== 11 or 13) depending on calcFlags, see below
             uint16_t data_length   = 0;
             uchar    typeID        = 0;
             uchar    varname[8]    = {};
-            uchar    version       = 0;   // present only if calcFlags >= TIFeatureFlags::hasFlash
-            uchar    archivedFlag  = 0;   // present only if calcFlags >= TIFeatureFlags::hasFlash
+            uchar    version       = 0; // present only if calcFlags >= TIFeatureFlags::hasFlash
+            uchar    archivedFlag  = 0; // present only if calcFlags >= TIFeatureFlags::hasFlash
             uint16_t data_length2  = 0; // same as data_length
             data_t   data;
         };
+#pragma pack(pop)
 
-        static const constexpr uint16_t dataSectionOffset = 55;   // comes right after the header, so == its size (8+3+42+2)
-        static const constexpr uint16_t varEntryOldLength = 0x0B; // 2+1+8     (if calcFlags <  TIFeatureFlags::hasFlash)
-        static const constexpr uint16_t varEntryNewLength = 0x0D; // 2+1+8+1+1 (if calcFlags >= TIFeatureFlags::hasFlash)
+        static const constexpr uint16_t dataSectionOffset = sizeof(var_header_t); // comes right after the header, so == its size
+        static_assert(dataSectionOffset == 55, "dataSectionOffset size needs to be 55");
+
+        static const constexpr uint16_t varEntryNewLength = sizeof(var_entry_t) - sizeof(var_entry_t::meta_length) - sizeof(var_entry_t::data_length2) - sizeof(var_entry_t::data);
+        static_assert(varEntryNewLength == 0x0D, "varEntryNewLength size needs to be 13");
+
+        static const constexpr uint16_t varEntryOldLength = varEntryNewLength - sizeof(var_entry_t::version) - sizeof(var_entry_t::archivedFlag);
+        static_assert(varEntryOldLength == 0x0B, "varEntryOldLength size needs to be 11");
 
     public:
         TIVarFile() = delete;
