@@ -41,6 +41,28 @@ namespace tivars
     }
 
     /**
+     * Returns one byte read from the file
+     *
+     * @return  uchar
+     * @throws  runtime_error
+     */
+    uchar BinaryFile::get_raw_byte()
+    {
+        if (file)
+        {
+            uchar byte;
+            const size_t n = fread(&byte, sizeof(uchar), 1, file);
+            if (n != 1 || ferror(file))
+            {
+                throw std::runtime_error("Error in get_raw_byte");
+            }
+            return byte;
+        } else {
+            throw std::runtime_error("No file loaded");
+        }
+    }
+
+    /**
      * Returns an array of bytes bytes read from the file
      *
      * @param   uint bytes

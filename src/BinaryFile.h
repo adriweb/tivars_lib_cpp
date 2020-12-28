@@ -30,6 +30,7 @@ namespace tivars
             close();
         }
 
+        uchar get_raw_byte();
         data_t get_raw_bytes(uint bytes);
         std::string get_string_bytes(uint bytes);
         size_t size() const;

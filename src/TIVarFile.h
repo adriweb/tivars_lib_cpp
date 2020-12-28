@@ -91,6 +91,11 @@ namespace tivars
         uint16_t computeChecksumFromInstanceData();
         uint16_t computeChecksumFromFileData();
 
+        // Extends BinaryFile.
+        uint16_t get_two_bytes_swapped()
+        {
+            return (this->get_raw_byte() & 0xFF) + (this->get_raw_byte() << 8);
+        }
 
         var_header_t header;
         var_entry_t  varEntry;
