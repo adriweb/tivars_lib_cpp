@@ -117,10 +117,18 @@ namespace tivars
         this->varEntry.typeID       = this->get_raw_byte();
         const std::string varname   = this->get_string_bytes(sizeof(this->varEntry.varname));
         std::copy(varname.begin(), varname.end(), this->varEntry.varname);
-        if (this->calcModel.getFlags() >= TIFeatureFlags::hasFlash)
+        if (this->varEntry.meta_length == varEntryNewLength)
         {
+            if ((this->calcModel.getFlags() & TIFeatureFlags::hasFlash) == 0)
+            {
+                fprintf(stderr, "Something is wrong with your file... The var entry meta length indicates is has flash-related fields, but the signature doesn't match...\n");
+            }
             this->varEntry.version      = this->get_raw_byte();
             this->varEntry.archivedFlag = this->get_raw_byte();
+        }
+        else if (this->varEntry.meta_length != varEntryOldLength)
+        {
+            throw std::invalid_argument("Invalid file. The var entry meta length has an unexpected value. Don't know what to do with that file.");
         }
         this->varEntry.data_length2  = this->get_two_bytes_swapped();
         this->varEntry.data          = this->get_raw_bytes(this->varEntry.data_length);
