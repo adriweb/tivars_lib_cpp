@@ -93,8 +93,8 @@ namespace tivars
         insertType("Clock",                0x29,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
         insertType("FlashLicense",         0x3E,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
 
-        // WindowSettings clone thing
-        types["11"] = types["15"];
+        // This is NewEquObj, which is an Equation
+        types["11"] = types["3"];
     }
 
     /**
