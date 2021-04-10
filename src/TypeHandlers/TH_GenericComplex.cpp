@@ -7,6 +7,7 @@
 
 #include "TypeHandlers.h"
 
+#include <cstdlib>
 #include <stdexcept>
 #include <regex>
 #include <unordered_map>
