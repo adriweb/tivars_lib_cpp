@@ -14,14 +14,14 @@
 
 namespace tivars
 {
-    static const std::unordered_map<uchar, handler_pair_t> type2handlers = {
+    static const std::unordered_map<uint8_t, handler_pair_t> type2handlers = {
         { 0x0C, make_handler_pair(STH_FP)              },
         { 0x1B, make_handler_pair(STH_ExactFraction)   },
         { 0x1D, make_handler_pair(STH_ExactRadical)    },
         { 0x1E, make_handler_pair(STH_ExactPi)         },
         { 0x1F, make_handler_pair(STH_ExactFractionPi) },
     };
-    static const std::unordered_map<uchar, const char*> type2patterns = {
+    static const std::unordered_map<uint8_t, const char*> type2patterns = {
         { 0x0C, STH_FP::validPattern              },
         { 0x1B, STH_ExactFraction::validPattern   },
         { 0x1D, STH_ExactRadical::validPattern    },
@@ -52,7 +52,7 @@ namespace tivars
         {
             throw std::runtime_error("Needs _type in options for TH_GenericComplex::makeDataFromString");
         }
-        const uchar type = (uchar)typeIter->second;
+        const uint8_t type = (uint8_t)typeIter->second;
         const auto& handlerIter = type2handlers.find(type);
         if (handlerIter == type2handlers.end())
         {
@@ -84,7 +84,7 @@ namespace tivars
             const data_t& member_data = handler(coeff, options);
             data.insert(data.end(), member_data.begin(), member_data.end());
 
-            uchar flags = 0;
+            uint8_t flags = 0;
             flags |= (atof(coeff.c_str()) < 0) ? (1 << 7) : 0;
             flags |= (1 << 2); // Because it's a complex number
             flags |= (1 << 3); // Because it's a complex number
@@ -105,8 +105,8 @@ namespace tivars
         }
 
         // 0x1F because we discard the flag bits (see above)
-        const uchar typeR = (uchar)(data[0] & 0x1F);
-        const uchar typeI = (uchar)(data[bytesPerMember] & 0x1F);
+        const uint8_t typeR = (uint8_t)(data[0] & 0x1F);
+        const uint8_t typeI = (uint8_t)(data[bytesPerMember] & 0x1F);
 
         const auto& handlerRIter = type2handlers.find(typeR);
         if (handlerRIter == type2handlers.end())

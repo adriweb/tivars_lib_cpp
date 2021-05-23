@@ -12,7 +12,7 @@
 
 namespace tivars
 {
-    static const std::unordered_map<uchar, handler_pair_t> type2handlers = {
+    static const std::unordered_map<uint8_t, handler_pair_t> type2handlers = {
         { 0x00, make_handler_pair(STH_FP)              },
         { 0x18, make_handler_pair(STH_ExactFraction)   },
         { 0x1C, make_handler_pair(STH_ExactRadical)    },
@@ -28,7 +28,7 @@ namespace tivars
         {
             throw std::runtime_error("Needs _type in options for TH_GenericReal::makeDataFromString");
         }
-        const uchar type = (uchar)typeIter->second;
+        const uint8_t type = (uint8_t)typeIter->second;
         const auto& handlerIter = type2handlers.find(type);
         if (handlerIter == type2handlers.end())
         {
@@ -43,7 +43,7 @@ namespace tivars
         {
             throw std::invalid_argument("Invalid data array. Needs to contain " + std::to_string(dataByteCount) + " bytes");
         }
-        const uchar type = (uchar)(data[0] & 0x7F);
+        const uint8_t type = (uint8_t)(data[0] & 0x7F);
         const auto& handlerIter = type2handlers.find(type);
         if (handlerIter == type2handlers.end())
         {

@@ -70,7 +70,7 @@ namespace tivars
     EMSCRIPTEN_BINDINGS(_timodel) {
             class_<tivars::TIModel>("TIModel")
                     .constructor<>()
-                    .constructor<int, const std::string&, uint, const std::string&>()
+                    .constructor<int, const std::string&, uint32_t, const std::string&>()
 
                     .function("getOrderId"  , &tivars::TIModel::getOrderId)
                     .function("getName"     , &tivars::TIModel::getName)

@@ -24,10 +24,10 @@ namespace tivars
 {
     namespace TH_Tokenized
     {
-        std::unordered_map<uint, std::vector<std::string>> tokens_BytesToName;
-        std::unordered_map<std::string, uint> tokens_NameToBytes;
-        uchar lengthOfLongestTokenName;
-        std::vector<uchar> firstByteOfTwoByteTokens;
+        std::unordered_map<uint16_t, std::vector<std::string>> tokens_BytesToName;
+        std::unordered_map<std::string, uint16_t> tokens_NameToBytes;
+        uint8_t lengthOfLongestTokenName;
+        std::vector<uint8_t> firstByteOfTwoByteTokens;
         const uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
         const std::regex toPrettifyRX(R"(\[?\|([a-zA-Z]+)\]?)");
     }
@@ -58,7 +58,7 @@ namespace tivars
 
         bool isWithinString = false;
 
-        for (uint strCursorPos = 0; strCursorPos < str_new.length(); strCursorPos++)
+        for (size_t strCursorPos = 0; strCursorPos < str_new.length(); strCursorPos++)
         {
             const std::string currChar = str_new.substr(strCursorPos, 1);
             if(detect_strings)
@@ -70,31 +70,31 @@ namespace tivars
                 }
             }
 
-            const uchar maxTokSearchLen = std::min(str_new.length() - strCursorPos, (size_t)lengthOfLongestTokenName);
+            const uint8_t maxTokSearchLen = std::min(str_new.length() - strCursorPos, (size_t)lengthOfLongestTokenName);
 
             /* isWithinString => minimum token length, otherwise maximal munch */
-            for (uint currentLength = isWithinString ? 1 : maxTokSearchLen;
+            for (size_t currentLength = isWithinString ? 1 : maxTokSearchLen;
                  isWithinString ? (currentLength <= maxTokSearchLen) : (currentLength > 0);
                  currentLength += (isWithinString ? 1 : -1))
             {
                 std::string currentSubString = str_new.substr(strCursorPos, currentLength);
                 if (tokens_NameToBytes.count(currentSubString))
                 {
-                    uint tokenValue = tokens_NameToBytes[currentSubString];
+                    uint16_t tokenValue = tokens_NameToBytes[currentSubString];
                     if (tokenValue > 0xFF)
                     {
-                        data.push_back((uchar)(tokenValue >> 8));
+                        data.push_back((uint8_t)(tokenValue >> 8));
                     }
-                    data.push_back((uchar)(tokenValue & 0xFF));
+                    data.push_back((uint8_t)(tokenValue & 0xFF));
                     strCursorPos += currentLength - 1;
                     break;
                 }
             }
         }
 
-        uint actualDataLen = (uint) (data.size() - 2);
-        data[0] = (uchar)(actualDataLen & 0xFF);
-        data[1] = (uchar)((actualDataLen >> 8) & 0xFF);
+        size_t actualDataLen = data.size() - 2;
+        data[0] = (uint8_t)(actualDataLen & 0xFF);
+        data[1] = (uint8_t)((actualDataLen >> 8) & 0xFF);
         return data;
     }
 
@@ -108,12 +108,12 @@ namespace tivars
             throw std::invalid_argument("Invalid data array. Needs to contain at least 2 bytes (size fields)");
         }
 
-        uint langIdx = (uint)((has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN);
+        uint8_t langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
 
-        const int howManyBytes = fromRawBytes ? (int)data.size() : ((data[0] & 0xFF) + ((data[1] & 0xFF) << 8));
+        const size_t howManyBytes = fromRawBytes ? (int)data.size() : ((data[0] & 0xFF) + ((data[1] & 0xFF) << 8));
         if (!fromRawBytes)
         {
-            if (howManyBytes != (int)dataSize - 2)
+            if (howManyBytes != dataSize - 2)
             {
                 std::cerr << "[Warning] Byte count (" << (dataSize - 2) << ") and size field (" << howManyBytes  << ") mismatch!";
             }
@@ -128,16 +128,16 @@ namespace tivars
             }
         }
 
-        uint errCount = 0;
+        uint16_t errCount = 0;
         std::string str;
-        for (uint i = fromRawBytes ? 0 : 2; i < (uint)dataSize; i++)
+        for (size_t i = fromRawBytes ? 0 : 2; i < dataSize; i++)
         {
-            uint currentToken = data[i];
-            uint nextToken = (i < dataSize-1) ? data[i+1] : (uint)-1;
-            uint bytesKey = currentToken;
-            if (is_in_vector(firstByteOfTwoByteTokens, (uchar)currentToken))
+            uint8_t currentToken = data[i];
+            uint8_t nextToken = (i < dataSize-1) ? data[i+1] : (uint8_t)-1;
+            uint16_t bytesKey = currentToken;
+            if (is_in_vector(firstByteOfTwoByteTokens, currentToken))
             {
-                if (nextToken == (uint)-1)
+                if (nextToken == (uint8_t)-1)
                 {
                     std::cerr << "[Warning] Encountered an unfinished two-byte token! Setting the second byte to 0x00";
                     nextToken = 0x00;
@@ -174,7 +174,7 @@ namespace tivars
 
     std::string TH_Tokenized::reindentCodeString(const std::string& str_orig, const options_t& options)
     {
-        int lang;
+        uint8_t lang;
         if (has_option(options, "lang"))
         {
             lang = options.at("lang");
@@ -193,13 +193,13 @@ namespace tivars
         std::vector<std::string> lines_tmp = explode(str, '\n');
 
         // Inplace-replace the appropriate ":" by new-line chars (ie, by inserting the split string in the lines_tmp array)
-        for (uint16_t idx = 0; idx < (uint16_t)lines_tmp.size(); idx++)
+        for (size_t idx = 0; idx < lines_tmp.size(); idx++)
         {
             const auto line = lines_tmp[idx];
             bool isWithinString = false;
-            for (uint16_t strIdx = 0; strIdx < (uint16_t)line.size(); strIdx++)
+            for (size_t strIdx = 0; strIdx < line.size(); strIdx++)
             {
-                const auto currChar = line.substr(strIdx, 1);
+                const auto& currChar = line.substr(strIdx, 1);
                 if (currChar == ":" && !isWithinString)
                 {
                     lines_tmp[idx] = line.substr(0, strIdx); // replace "old" line by lhs
@@ -213,7 +213,7 @@ namespace tivars
             }
         }
 
-        std::vector<std::pair<uint, std::string>> lines(lines_tmp.size()); // indent, text
+        std::vector<std::pair<uint16_t, std::string>> lines(lines_tmp.size()); // indent, text
         for (const auto& line : lines_tmp)
         {
             lines.emplace_back(0, line);
@@ -222,7 +222,7 @@ namespace tivars
         std::vector<std::string> increaseIndentAfter   = { "If", "For", "While", "Repeat" };
         std::vector<std::string> decreaseIndentOfToken = { "Then", "Else", "End", "ElseIf", "EndIf", "End!If" };
         std::vector<std::string> closingTokens         = { "End", "EndIf", "End!If" };
-        uint nextIndent = 0;
+        uint16_t nextIndent = 0;
         std::string oldFirstCommand, firstCommand;
         for (auto& line : lines)
         {
@@ -234,10 +234,9 @@ namespace tivars
                 firstCommand = strtok(trimmedLine_c, " ");
                 firstCommand = trim(firstCommand);
                 trimmedLine = std::string(trimmedLine_c);
-                trimmedLine_c = (char*) trimmedLine.c_str();
                 if (firstCommand == trimmedLine)
                 {
-                    firstCommand = strtok(trimmedLine_c, "(");
+                    firstCommand = strtok((char*)trimmedLine.c_str(), "(");
                     firstCommand = trim(firstCommand);
                 }
             } else {
@@ -273,21 +272,21 @@ namespace tivars
     {
         const size_t dataSize = data.size();
 
-        uint currentToken = data[0];
-        uint nextToken = dataSize > 1 ? data[1] : -1u;
-        uint bytesKey = currentToken;
-        bool is2ByteTok = is_in_vector(firstByteOfTwoByteTokens, static_cast<uchar>(currentToken));
+        uint8_t currentToken = data[0];
+        uint8_t nextToken = dataSize > 1 ? data[1] : (uint8_t)-1;
+        uint16_t bytesKey = currentToken;
+        bool is2ByteTok = is_in_vector(firstByteOfTwoByteTokens, currentToken);
 
         if (incr) {
             *incr = is2ByteTok ? 2 : 1;
         }
 
-        uint langIdx = static_cast<uint>((has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN);
+        uint8_t langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
         bool fromPrettified = has_option(options, "prettify") && options.at("prettify") == 1;
 
         if (is2ByteTok)
         {
-            if (nextToken == -1u)
+            if (nextToken == (uint8_t)-1)
             {
                 std::cerr << "[Warning] Encountered an unfinished two-byte token!";
                 return std::string();
@@ -330,7 +329,7 @@ namespace tivars
 
         TH_Tokenized::token_posinfo posinfo = { 0, 0, 0 };
 
-        uint langIdx = (uint)((has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN);
+        uint8_t langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
         bool fromPrettified = has_option(options, "prettify") && options.at("prettify") == 1;
 
         // Find line number
@@ -347,15 +346,15 @@ namespace tivars
         // Find column number and token length if byteOffset is reached
         for (uint16_t i = lastNewLineOffset+1; i <= byteOffset; i++)
         {
-            uint currentToken = data[i];
-            uint nextToken = (i < dataSize-1) ? data[i+1] : (uint)-1;
-            uint bytesKey = currentToken;
-            bool is2ByteTok = is_in_vector(firstByteOfTwoByteTokens, (uchar)currentToken);
+            uint8_t currentToken = data[i];
+            uint8_t nextToken = (i < dataSize-1) ? data[i+1] : (uint8_t)-1;
+            uint16_t bytesKey = currentToken;
+            bool is2ByteTok = is_in_vector(firstByteOfTwoByteTokens, currentToken);
             const uint16_t currIdx = i;
 
             if (is2ByteTok)
             {
-                if (nextToken == (uint)-1)
+                if (nextToken == (uint8_t)-1)
                 {
                     std::cerr << "[Warning] Encountered an unfinished two-byte token! Setting the second byte to 0x00";
                     nextToken = 0x00;
@@ -413,7 +412,7 @@ namespace tivars
 
             for (const auto& tokenInfo : lines)
             {
-                uint bytes;
+                uint16_t bytes;
                 if (tokenInfo[6] == "2") // number of bytes for the token
                 {
                     if (!is_in_vector(firstByteOfTwoByteTokens, hexdec(tokenInfo[7])))
@@ -427,7 +426,7 @@ namespace tivars
                 tokens_BytesToName[bytes] = { tokenInfo[4], tokenInfo[5] }; // EN, FR
                 tokens_NameToBytes[tokenInfo[4]] = bytes; // EN
                 tokens_NameToBytes[tokenInfo[5]] = bytes; // FR
-                uchar maxLenName = (uchar) std::max(tokenInfo[4].length(), tokenInfo[5].length());
+                uint8_t maxLenName = (uint8_t) std::max(tokenInfo[4].length(), tokenInfo[5].length());
                 if (maxLenName > lengthOfLongestTokenName)
                 {
                     lengthOfLongestTokenName = maxLenName;

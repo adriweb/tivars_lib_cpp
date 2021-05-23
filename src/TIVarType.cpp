@@ -15,11 +15,11 @@ namespace tivars
     /*** "Constructors" ***/
 
     /**
-     * @param   int     id     The type ID
+     * @param   uint8_t id     The type ID
      * @return  TIVarType
      * @throws  \Exception
      */
-    TIVarType TIVarType::createFromID(uint id)
+    TIVarType TIVarType::createFromID(uint8_t id)
     {
         if (TIVarTypes::isValidID(id))
         {

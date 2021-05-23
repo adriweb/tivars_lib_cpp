@@ -29,8 +29,8 @@ namespace tivars
         }
 
         data_t data(2 + length);
-        data[0] = (uchar)(length & 0xFF);
-        data[1] = (uchar)((length >> 8) & 0xFF);
+        data[0] = (uint8_t)(length & 0xFF);
+        data[1] = (uint8_t)((length >> 8) & 0xFF);
         memcpy(&data[2], &STH_PythonAppVar::ID_CODE, sizeof(STH_PythonAppVar::ID_CODE));
         memcpy(&data[2+sizeof(STH_PythonAppVar::ID_CODE)], &str[0], str.size());
 

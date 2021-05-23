@@ -14,9 +14,7 @@
 
 #include <cstdint>
 
-using uint = unsigned int;
-using uchar = unsigned char;
-using data_t = std::vector<uchar>;
+using data_t = std::vector<uint8_t>;
 using options_t = std::map<std::string, int>;
 
 #endif

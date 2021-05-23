@@ -27,7 +27,7 @@ namespace tivars
             throw std::invalid_argument("Invalid input string. Needs to be a valid hex data block");
         }
 
-        data_t data = { (uchar)(bytes & 0xFF), (uchar)((bytes >> 8) & 0xFF) };
+        data_t data = { (uint8_t)(bytes & 0xFF), (uint8_t)((bytes >> 8) & 0xFF) };
 
         for (size_t i = 0; i < length; i += 2)
         {

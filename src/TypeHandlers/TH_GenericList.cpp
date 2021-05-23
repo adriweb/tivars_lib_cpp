@@ -44,8 +44,8 @@ namespace tivars
 
         data_t data(2); // reserve 2 bytes for size fields
 
-        data[0] = (uchar) (numCount & 0xFF);
-        data[1] = (uchar) ((numCount >> 8) & 0xFF);
+        data[0] = (uint8_t) (numCount & 0xFF);
+        data[1] = (uint8_t) ((numCount >> 8) & 0xFF);
 
         for (const auto& numStr : arr)
         {

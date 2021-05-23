@@ -19,14 +19,14 @@ namespace tivars
     class TIVarFile : public BinaryFile
     {
         // For the record, 83+ = 4, 84+ = 10, 82A = 11, 84+CSE = 15, CE = 19, 84+T = 27.
-        static const constexpr uchar OWNER_PID_NONE = 0;
+        static const constexpr uint8_t OWNER_PID_NONE = 0;
 
 #pragma pack(push, 1)
         struct var_header_t
         {
-            uchar    signature[8]  = {};
-            uchar    sig_extra[3]  = { 0x1A, 0x0A, OWNER_PID_NONE };
-            uchar    comment[42]   = {};
+            uint8_t  signature[8]  = {};
+            uint8_t  sig_extra[3]  = { 0x1A, 0x0A, OWNER_PID_NONE };
+            uint8_t  comment[42]   = {};
             uint16_t entries_len   = 0;
         };
 #pragma pack(pop)
@@ -36,10 +36,10 @@ namespace tivars
         {
             uint16_t meta_length   = 0; // byte count of the next 3 or 5 fields (== 11 or 13) depending on calcFlags, see below
             uint16_t data_length   = 0;
-            uchar    typeID        = 0;
-            uchar    varname[8]    = {};
-            uchar    version       = 0; // present only if calcFlags >= TIFeatureFlags::hasFlash
-            uchar    archivedFlag  = 0; // present only if calcFlags >= TIFeatureFlags::hasFlash
+            uint8_t  typeID        = 0;
+            uint8_t  varname[8]    = {};
+            uint8_t  version       = 0; // present only if calcFlags >= TIFeatureFlags::hasFlash
+            uint8_t  archivedFlag  = 0; // present only if calcFlags >= TIFeatureFlags::hasFlash
             uint16_t data_length2  = 0; // same as data_length
             data_t   data;
         };
@@ -114,8 +114,8 @@ namespace tivars
         TIVarType    type;
         TIModel      calcModel;
         uint16_t     computedChecksum = 0;
-        uint16_t     inFileChecksum   = 0;
-        bool         isFromFile       = false;
+        uint16_t     fileChecksum     = 0;
+        bool         fromFile         = false;
         bool         corrupt          = false;
 
         data_t make_bin_data();

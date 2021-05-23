@@ -21,7 +21,7 @@ namespace tivars
 
         TIModel() = default;
 
-        TIModel(int orderId, const std::string& name, uint flags, const std::string& sig) : orderID(orderId), name(name), flags(flags), sig(sig)
+        TIModel(int orderId, const std::string& name, uint32_t flags, const std::string& sig) : orderID(orderId), name(name), flags(flags), sig(sig)
         {}
 
         ~TIModel() = default;
@@ -29,7 +29,7 @@ namespace tivars
         /* Getters */
         int getOrderId() const { return this->orderID; }
         std::string getName() const { return this->name; }
-        uint getFlags() const { return this->flags; }
+        uint32_t getFlags() const { return this->flags; }
         std::string getSig() const { return this->sig; }
 
         bool supportsType(const TIVarType& type);
@@ -54,7 +54,7 @@ namespace tivars
     private:
         int orderID      = -1;
         std::string name = "Unknown";
-        uint flags       = 0;
+        uint32_t flags   = 0;
         std::string sig  = "";
 
     };

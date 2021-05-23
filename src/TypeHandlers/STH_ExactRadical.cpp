@@ -38,7 +38,7 @@ namespace tivars
         }
 
         std::string dataStr;
-        for (uint i = 0; i < dataByteCount; i++)
+        for (size_t i = 0; i < dataByteCount; i++)
         {
             dataStr += dechex(data[i]);
         }

@@ -33,7 +33,7 @@ namespace tivars
         const handler_pair_t& getHandlers() const { return this->handlers; };
 
         /*** "Constructors" ***/
-        static TIVarType createFromID(uint id);
+        static TIVarType createFromID(uint8_t id);
         static TIVarType createFromName(const std::string& name);
 
     private:

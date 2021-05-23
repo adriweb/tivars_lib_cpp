@@ -32,14 +32,14 @@ namespace tivars
         rowCount = rows.size();
         matrix.resize(rowCount);
 
-        colCount = (size_t) (count(rows[0].begin(), rows[0].end(), ',') + 1);
+        colCount = count(rows[0].begin(), rows[0].end(), ',') + 1;
 
         if (colCount > 0xFF || rowCount > 0xFF)
         {
             throw std::invalid_argument("Invalid input string. Needs to be a valid matrix (max col/row = 255)");
         }
 
-        uint counter = 0;
+        size_t counter = 0;
         for (const auto& row : rows)
         {
             auto tmp = explode(row, ",");
@@ -58,8 +58,8 @@ namespace tivars
             matrix[counter++] = tmp;
         }
 
-        data[0] = (uchar)(colCount & 0xFF);
-        data[1] = (uchar)(rowCount & 0xFF);
+        data[0] = (uint8_t)(colCount & 0xFF);
+        data[1] = (uint8_t)(rowCount & 0xFF);
 
         for (const std::vector<std::string>& row : matrix)
         {
@@ -94,7 +94,7 @@ namespace tivars
 
         std::string str = "[";
 
-        for (uint i = 2, num = 0; i < byteCount; i += TH_GenericReal::dataByteCount, num++)
+        for (size_t i = 2, num = 0; i < byteCount; i += TH_GenericReal::dataByteCount, num++)
         {
             if (num % colCount == 0) // first column
             {

@@ -17,11 +17,11 @@ namespace tivars
      *  Make and insert the associative arrays for the model.
      *
      * @param int|null  orderID The orderID (for the extensions association)
-     * @param int       flags   The flags determining available features
+     * @param uint32_t  flags   The flags determining available features
      * @param string    name    The name of the calc using this model
      * @param string    sig     The signature (magic bytes) used for this model
      */
-    void TIModels::insertModel(int orderID, uint flags, const std::string& name, const std::string& sig)
+    void TIModels::insertModel(int orderID, uint32_t flags, const std::string& name, const std::string& sig)
     {
         TIModel model(orderID, name, flags, sig);
 
@@ -39,14 +39,14 @@ namespace tivars
     // TODO : Research actual compatibility flags/"versions" from libtifiles, and maybe even TI ?
     void TIModels::initTIModelsArray()
     {
-        uint flags82     = 0           | TIFeatureFlags::has82things;
-        uint flags83     = flags82     | TIFeatureFlags::hasComplex;
-        uint flags82a    = flags83     | TIFeatureFlags::hasFlash;
-        uint flags83p    = flags82a    | TIFeatureFlags::hasApps;
-        uint flags84p    = flags83p    | TIFeatureFlags::hasClock;
-        uint flags84pcse = flags84p    | TIFeatureFlags::hasColorLCD;
-        uint flags84pce  = flags84pcse | TIFeatureFlags::hasEZ80CPU;
-        uint flags83pce  = flags84pce  | TIFeatureFlags::hasExactMath;
+        uint32_t flags82     = 0           | TIFeatureFlags::has82things;
+        uint32_t flags83     = flags82     | TIFeatureFlags::hasComplex;
+        uint32_t flags82a    = flags83     | TIFeatureFlags::hasFlash;
+        uint32_t flags83p    = flags82a    | TIFeatureFlags::hasApps;
+        uint32_t flags84p    = flags83p    | TIFeatureFlags::hasClock;
+        uint32_t flags84pcse = flags84p    | TIFeatureFlags::hasColorLCD;
+        uint32_t flags84pce  = flags84pcse | TIFeatureFlags::hasEZ80CPU;
+        uint32_t flags83pce  = flags84pce  | TIFeatureFlags::hasExactMath;
 
         insertModel(-1, 0,           "Unknown", "");
         insertModel(0,  flags82,     "82",      "**TI82**");
@@ -61,29 +61,29 @@ namespace tivars
     }
 
     /**
-     * @param   int     flags  The model flags
-     * @return  string          The model name for those flags
+     * @param   uint32_t    flags  The model flags
+     * @return  string             The model name for those flags
      */
-    std::string TIModels::getDefaultNameFromFlags(uint flags)
+    std::string TIModels::getDefaultNameFromFlags(uint32_t flags)
     {
         std::string flags_str = std::to_string(flags);
         return isValidFlags(flags) ? models[flags_str].getName() : "Unknown";
     }
 
     /**
-     * @param   string  name   The model name
-     * @return  int             The model flags for that name
+     * @param   string      name   The model name
+     * @return  uint32_t           The model flags for that name
      */
-    uint TIModels::getFlagsFromName(const std::string& name)
+    uint32_t TIModels::getFlagsFromName(const std::string& name)
     {
         return isValidName(name) ? models[name].getFlags() : 0;
     }
 
     /**
-     * @param   int     flags  The model flags
-     * @return  string          The signature for those flags
+     * @param   uint32_t    flags  The model flags
+     * @return  string             The signature for those flags
      */
-    std::string TIModels::getSignatureFromFlags(uint flags)
+    std::string TIModels::getSignatureFromFlags(uint32_t flags)
     {
         std::string flags_str = std::to_string(flags);
         return isValidFlags(flags) ? models[flags_str].getSig() : "";
@@ -126,26 +126,16 @@ namespace tivars
     }
 
     /**
-     * @param   int     flags  The model flags
-     * @return  int             The default calc order ID whose file formats use that signature
-     */
-    int TIModels::getDefaultOrderIDFromFlags(uint flags)
-    {
-        std::string flags_str = std::to_string(flags);
-        return isValidFlags(flags) ? models[flags_str].getOrderId() : -1;
-    }
-
-    /**
      * @param   string  sig    The signature
      * @return  string          The minimum compatibility flags for that signaure
      */
-    uint TIModels::getMinFlagsFromSignature(const std::string& sig)
+    uint32_t TIModels::getMinFlagsFromSignature(const std::string& sig)
     {
         return isValidSignature(sig) ? models[sig].getFlags() : 0;
     }
 
 
-    bool TIModels::isValidFlags(uint flags)
+    bool TIModels::isValidFlags(uint32_t flags)
     {
         std::string flags_str = std::to_string(flags);
         return (flags != 0 && models.count(flags_str));

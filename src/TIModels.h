@@ -34,19 +34,19 @@ namespace tivars
 
         static void initTIModelsArray();
 
-        static std::string getDefaultNameFromFlags(uint flags);
+        static std::string getDefaultNameFromFlags(uint32_t flags);
 
         /**
          * @param   std::string  name   The model name
          * @return  int             The model flags for that name
          */
-        static uint getFlagsFromName(const std::string& name);
+        static uint32_t getFlagsFromName(const std::string& name);
 
         /**
          * @param   int     flags  The model flags
          * @return  std::string          The signature for those flags
          */
-        static std::string getSignatureFromFlags(uint flags);
+        static std::string getSignatureFromFlags(uint32_t flags);
 
         /**
          * @param   std::string  name
@@ -72,26 +72,20 @@ namespace tivars
         static int getOrderIDFromName(const std::string& name);
 
         /**
-         * @param   int     flags  The model flags
-         * @return  int             The default calc order ID whose file formats use that signature
-         */
-        static int getDefaultOrderIDFromFlags(uint flags);
-
-        /**
          * @param   std::string  sig    The signature
          * @return  std::string          The minimum compatibility flags for that signaure
          */
-        static uint getMinFlagsFromSignature(const std::string& sig);
+        static uint32_t getMinFlagsFromSignature(const std::string& sig);
 
 
-        static bool isValidFlags(uint flags);
+        static bool isValidFlags(uint32_t flags);
 
         static bool isValidName(const std::string& name);
 
         static bool isValidSignature(const std::string& sig);
 
     private:
-        static void insertModel(int orderID, uint flags, const std::string& name, const std::string& sig);
+        static void insertModel(int orderID, uint32_t flags, const std::string& name, const std::string& sig);
 
     };
 

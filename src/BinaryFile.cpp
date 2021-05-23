@@ -43,15 +43,15 @@ namespace tivars
     /**
      * Returns one byte read from the file
      *
-     * @return  uchar
+     * @return  uint8_t
      * @throws  runtime_error
      */
-    uchar BinaryFile::get_raw_byte()
+    uint8_t BinaryFile::get_raw_byte()
     {
         if (file)
         {
-            uchar byte;
-            const size_t n = fread(&byte, sizeof(uchar), 1, file);
+            uint8_t byte;
+            const size_t n = fread(&byte, sizeof(uint8_t), 1, file);
             if (n != 1 || ferror(file))
             {
                 throw std::runtime_error("Error in get_raw_byte");
@@ -65,16 +65,16 @@ namespace tivars
     /**
      * Returns an array of bytes bytes read from the file
      *
-     * @param   uint bytes
+     * @param   size_t bytes
      * @return  data_t
      * @throws  runtime_error
      */
-    data_t BinaryFile::get_raw_bytes(uint bytes)
+    data_t BinaryFile::get_raw_bytes(size_t bytes)
     {
         if (file)
         {
             data_t v(bytes);
-            const size_t n = fread(v.data(), sizeof(uchar), bytes, file);
+            const size_t n = fread(v.data(), sizeof(uint8_t), bytes, file);
             if (n != bytes || ferror(file))
             {
                 throw std::runtime_error("Error in get_raw_bytes");
@@ -88,11 +88,11 @@ namespace tivars
     /**
      * Returns a string of bytes bytes read from the file (doesn't stop at NUL)
      *
-     * @param   uint bytes The number of bytes to read
+     * @param   size_t bytes The number of bytes to read
      * @return  string
      * @throws  runtime_error
      */
-    std::string BinaryFile::get_string_bytes(uint bytes)
+    std::string BinaryFile::get_string_bytes(size_t bytes)
     {
         if (file)
         {

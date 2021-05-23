@@ -27,7 +27,7 @@ namespace tivars
      */
     TIVarFile::TIVarFile(const std::string& filePath) : BinaryFile(filePath)
     {
-        this->isFromFile = true;
+        this->fromFile = true;
         if (this->fileSize < 76) // bare minimum for header + a var entry
         {
             throw std::runtime_error("This file is not a valid TI-[e]z80 variable file");
@@ -35,8 +35,8 @@ namespace tivars
         this->makeHeaderFromFile();
         this->makeVarEntryFromFile();
         this->computedChecksum = this->computeChecksumFromFileData();
-        this->inFileChecksum = this->getChecksumValueFromFile();
-        if (this->computedChecksum != this->inFileChecksum)
+        this->fileChecksum = this->getChecksumValueFromFile();
+        if (this->computedChecksum != this->fileChecksum)
         {
             // puts("[Warning] File is corrupt (read and calculated checksums differ)");
             this->corrupt = true;
@@ -72,7 +72,7 @@ namespace tivars
 
         this->varEntry.meta_length  = (this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength;
         this->varEntry.data_length  = 0; // will have to be overwritten later
-        this->varEntry.typeID       = (uchar) type.getId();
+        this->varEntry.typeID       = (uint8_t) type.getId();
         std::copy(varname.begin(), varname.end(), this->varEntry.varname);
         this->varEntry.data_length2 = 0; // will have to be overwritten later
     }
@@ -105,7 +105,7 @@ namespace tivars
         std::copy(sig_extra.begin(), sig_extra.end(), this->header.sig_extra);
         std::copy(comment.begin(), comment.end(), this->header.comment);
         this->header.entries_len  = this->get_two_bytes_swapped();
-        this->calcModel = TIModel::createFromSignature(signature);
+        this->calcModel = TIModel::createFromSignature(signature); // TODO: check sig_extra bytes instead/too since it has the PID which may be more precise
     }
 
     void TIVarFile::makeVarEntryFromFile()
@@ -139,7 +139,7 @@ namespace tivars
 
     uint16_t TIVarFile::computeChecksumFromFileData()
     {
-        if (this->isFromFile)
+        if (this->fromFile)
         {
             fseek(this->file, TIVarFile::dataSectionOffset, SEEK_SET);
 
@@ -172,7 +172,7 @@ namespace tivars
 
     uint16_t TIVarFile::getChecksumValueFromFile()
     {
-        if (this->isFromFile)
+        if (this->fromFile)
         {
             fseek(this->file, this->fileSize - 2, SEEK_SET);
             return this->get_two_bytes_swapped();
@@ -259,7 +259,7 @@ namespace tivars
     {
         if (this->calcModel.getFlags() & TIFeatureFlags::hasFlash)
         {
-            this->varEntry.archivedFlag = (uchar)(flag ? 1 : 0);
+            this->varEntry.archivedFlag = (uint8_t)(flag ? 1 : 0);
             this->refreshMetadataFields();
         } else {
             throw std::runtime_error("[Error] Archived flag not supported on this calculator model");
@@ -295,13 +295,13 @@ namespace tivars
             bin_data.insert(bin_data.end(), this->header.signature, this->header.signature + sizeof(this->header.signature));
             bin_data.insert(bin_data.end(), this->header.sig_extra, this->header.sig_extra + sizeof(this->header.sig_extra));
             bin_data.insert(bin_data.end(), this->header.comment,   this->header.comment   + sizeof(this->header.comment));
-            bin_data.push_back((uchar) (this->header.entries_len & 0xFF)); bin_data.push_back((uchar) ((this->header.entries_len >> 8) & 0xFF));
+            bin_data.push_back((uint8_t) (this->header.entries_len & 0xFF)); bin_data.push_back((uint8_t) ((this->header.entries_len >> 8) & 0xFF));
         }
 
         // Var entry
         {
-            bin_data.push_back((uchar) (this->varEntry.meta_length & 0xFF)); bin_data.push_back((uchar) ((this->varEntry.meta_length >> 8) & 0xFF));
-            bin_data.push_back((uchar) (this->varEntry.data_length & 0xFF)); bin_data.push_back((uchar) ((this->varEntry.data_length >> 8) & 0xFF));
+            bin_data.push_back((uint8_t) (this->varEntry.meta_length & 0xFF)); bin_data.push_back((uint8_t) ((this->varEntry.meta_length >> 8) & 0xFF));
+            bin_data.push_back((uint8_t) (this->varEntry.data_length & 0xFF)); bin_data.push_back((uint8_t) ((this->varEntry.data_length >> 8) & 0xFF));
             bin_data.push_back(this->varEntry.typeID);
             bin_data.insert(bin_data.end(), this->varEntry.varname, this->varEntry.varname + + sizeof(this->varEntry.varname));
             if (this->calcModel.getFlags() & TIFeatureFlags::hasFlash)
@@ -309,7 +309,7 @@ namespace tivars
                 bin_data.push_back(this->varEntry.version);
                 bin_data.push_back(this->varEntry.archivedFlag);
             }
-            bin_data.push_back((uchar) (this->varEntry.data_length2 & 0xFF)); bin_data.push_back((uchar) ((this->varEntry.data_length2 >> 8) & 0xFF));
+            bin_data.push_back((uint8_t) (this->varEntry.data_length2 & 0xFF)); bin_data.push_back((uint8_t) ((this->varEntry.data_length2 >> 8) & 0xFF));
             bin_data.insert(bin_data.end(), this->varEntry.data.begin(), this->varEntry.data.end());
         }
 
@@ -330,7 +330,7 @@ namespace tivars
         std::string fullPath;
         FILE* handle;
 
-        if (this->isFromFile && directory.empty())
+        if (this->fromFile && directory.empty())
         {
             fullPath = this->filePath;
         } else {
@@ -371,7 +371,7 @@ namespace tivars
 
         // Make and write file data
         data_t bin_data = make_bin_data();
-        fwrite(&bin_data[0], bin_data.size(), sizeof(uchar), handle);
+        fwrite(&bin_data[0], bin_data.size(), sizeof(uint8_t), handle);
 
         // Write checksum
         const char buf[2] = {(char) (this->computedChecksum & 0xFF), (char) ((this->computedChecksum >> 8) & 0xFF)};

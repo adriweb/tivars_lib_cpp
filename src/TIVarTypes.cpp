@@ -101,10 +101,10 @@ namespace tivars
      * @param   int     id     The type ID
      * @return  string          The type name for that ID
      */
-    std::string TIVarTypes::getNameFromID(int id)
+    std::string TIVarTypes::getNameFromID(uint8_t id)
     {
         std::string id_str = std::to_string(id);
-        if (id != -1 && types.count(id_str))
+        if (types.count(id_str))
         {
             return types[id_str].getName();
         } else {
@@ -127,13 +127,13 @@ namespace tivars
     }
 
     /**
-     * @param   int     id     The type ID
+     * @param   uint8_t     id  The type ID
      * @return  string[]        The array of extensions for that ID
      */
-    std::vector<std::string> TIVarTypes::getExtensionsFromTypeID(int id)
+    std::vector<std::string> TIVarTypes::getExtensionsFromTypeID(uint8_t id)
     {
         std::string id_str = std::to_string(id);
-        if (id != -1 && types.count(id_str))
+        if (types.count(id_str))
         {
             return types[id_str].getExts();
         } else {
@@ -155,10 +155,9 @@ namespace tivars
         }
     }
 
-    bool TIVarTypes::isValidID(int id)
+    bool TIVarTypes::isValidID(uint8_t id)
     {
-        std::string id_str = std::to_string(id);
-        return (id != -1 && types.count(id_str));
+        return types.count(std::to_string(id));
     }
 
     bool TIVarTypes::isValidName(const std::string& name)
