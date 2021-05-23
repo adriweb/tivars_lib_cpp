@@ -37,13 +37,6 @@ namespace tivars
 
         /*** "Constructors" ***/
         /**
-         * @param   int     flags  The version compatibliity flags
-         * @return  TIModel
-         * @throws  \Exception
-         */
-        static TIModel createFromFlags(uint flags);
-
-        /**
          * @param   string  name   The version name
          * @return  TIModel
          * @throws  \Exception

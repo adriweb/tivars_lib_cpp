@@ -22,27 +22,6 @@ namespace tivars
     /*** "Constructors" ***/
 
     /**
-     * @param   int     flags  The version compatibliity flags
-     * @return  TIModel
-     * @throws  \Exception
-     */
-    TIModel TIModel::createFromFlags(uint flags)
-    {
-        if (TIModels::isValidFlags(flags))
-        {
-            TIModel model;
-            model.flags = flags;
-            model.orderID = TIModels::getDefaultOrderIDFromFlags(flags);
-            model.sig = TIModels::getSignatureFromFlags(flags);
-            model.name = TIModels::getDefaultNameFromFlags(flags);
-            return model;
-        } else
-        {
-            throw std::invalid_argument("Invalid version ID");
-        }
-    }
-
-    /**
      * @param   string  name   The version name
      * @return  TIModel
      * @throws  \Exception
@@ -99,7 +78,6 @@ namespace tivars
                     .function("getSig"      , &tivars::TIModel::getSig)
                     .function("supportsType", &tivars::TIModel::supportsType)
 
-                    .class_function("createFromFlags",      &tivars::TIModel::createFromFlags)
                     .class_function("createFromName",       &tivars::TIModel::createFromName)
                     .class_function("createFromSignature",  &tivars::TIModel::createFromSignature)
             ;
