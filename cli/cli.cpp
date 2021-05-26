@@ -2,7 +2,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <sstream>
+#include <algorithm>
 
 #include "../src/TypeHandlers/TypeHandlers.h"
 #include "../src/TIVarFile.h"
@@ -283,6 +283,8 @@ enum FileType getType(const cxxopts::ParseResult& options, const string& filenam
     }
 
     string extension = filename.substr(pos + 1);
+    transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+
     if (extension == "bin")
         return RAW;
 
@@ -291,12 +293,9 @@ enum FileType getType(const cxxopts::ParseResult& options, const string& filenam
 
     for (const auto& type: tivars::types)
     {
-        vector<string> exts = type.second.getExts();
-        for (const string& ext: exts)
-        {
-            if (extension == ext)
-                return VARFILE;
-        }
+        const vector<string>& exts = type.second.getExts();
+        if (std::find(exts.begin(), exts.end(), extension) != exts.end())
+            return VARFILE;
     }
 
     cout << "Could not guess file type from file extension. Use --" << option << " to specify file type." << endl;
