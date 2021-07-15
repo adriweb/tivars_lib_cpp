@@ -47,6 +47,7 @@ namespace tivars
         uint32_t flags84pcse = flags84p    | TIFeatureFlags::hasColorLCD;
         uint32_t flags84pce  = flags84pcse | TIFeatureFlags::hasEZ80CPU;
         uint32_t flags83pce  = flags84pce  | TIFeatureFlags::hasExactMath;
+        uint32_t flags82aep  = flags83pce & ~TIFeatureFlags::hasApps;
 
         insertModel(-1, 0,           "Unknown", "");
         insertModel(0,  flags82,     "82",      "**TI82**");
@@ -58,6 +59,7 @@ namespace tivars
         insertModel(4,  flags84pcse, "84+CSE",  "**TI83F*");
         insertModel(5,  flags84pce,  "84+CE",   "**TI83F*");
         insertModel(6,  flags83pce,  "83PCE",   "**TI83F*");
+        insertModel(7,  flags82aep,  "82AEP",   "**TI83F*");
     }
 
     /**
