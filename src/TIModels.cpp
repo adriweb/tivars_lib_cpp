@@ -41,25 +41,32 @@ namespace tivars
     {
         uint32_t flags82     = 0           | TIFeatureFlags::has82things;
         uint32_t flags83     = flags82     | TIFeatureFlags::hasComplex;
-        uint32_t flags82a    = flags83     | TIFeatureFlags::hasFlash;
-        uint32_t flags83p    = flags82a    | TIFeatureFlags::hasApps;
+        uint32_t flags83p    = flags83     | TIFeatureFlags::hasFlash | TIFeatureFlags::hasApps;
         uint32_t flags84p    = flags83p    | TIFeatureFlags::hasClock;
+        uint32_t flags82a    = flags84p    &~TIFeatureFlags::hasApps;
         uint32_t flags84pcse = flags84p    | TIFeatureFlags::hasColorLCD;
         uint32_t flags84pce  = flags84pcse | TIFeatureFlags::hasEZ80CPU;
         uint32_t flags83pce  = flags84pce  | TIFeatureFlags::hasExactMath;
-        uint32_t flags82aep  = flags83pce & ~TIFeatureFlags::hasApps;
+        uint32_t flags83pceep= flags83pce  | TIFeatureFlags::hasPython;
+        uint32_t flags84pcepy= flags84pce  | TIFeatureFlags::hasPython;
+        uint32_t flags82aep  = flags83pceep&~TIFeatureFlags::hasApps;
 
         insertModel(-1, 0,           "Unknown", "");
         insertModel(0,  flags82,     "82",      "**TI82**");
         insertModel(1,  flags83,     "83",      "**TI83**");
         insertModel(2,  flags82a,    "82A",     "**TI83F*");
-        insertModel(3,  flags83p,    "82+",     "**TI83F*");
-        insertModel(3,  flags83p,    "83+",     "**TI83F*");
-        insertModel(3,  flags84p,    "84+",     "**TI83F*");
-        insertModel(4,  flags84pcse, "84+CSE",  "**TI83F*");
-        insertModel(5,  flags84pce,  "84+CE",   "**TI83F*");
-        insertModel(6,  flags83pce,  "83PCE",   "**TI83F*");
-        insertModel(7,  flags82aep,  "82AEP",   "**TI83F*");
+        insertModel(3,  flags84p,    "84+T",    "**TI83F*");
+        insertModel(4,  flags83p,    "82+",     "**TI83F*");
+        insertModel(4,  flags83p,    "83+",     "**TI83F*");
+        insertModel(4,  flags84p,    "84+",     "**TI83F*");
+        insertModel(5,  flags84pcse, "84+CSE",  "**TI83F*");
+        insertModel(6,  flags84pce,  "84+CE",   "**TI83F*");
+        insertModel(6,  flags84pce,  "84+CET",  "**TI83F*");
+        insertModel(6,  flags84pcepy,"84+CETPE","**TI83F*");
+        insertModel(6,  flags84pcepy,"84+CEPy", "**TI83F*");
+        insertModel(7,  flags83pce,  "83PCE",   "**TI83F*");
+        insertModel(7,  flags83pceep,"83PCEEP", "**TI83F*");
+        insertModel(8,  flags82aep,  "82AEP",   "**TI83F*");
     }
 
     /**
