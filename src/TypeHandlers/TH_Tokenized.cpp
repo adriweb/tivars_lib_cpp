@@ -390,21 +390,29 @@ namespace tivars
 
     void TH_Tokenized::initTokens()
     {
-        std::string csvFileStr;
-
-        {
 #ifndef CEMU_VERSION
-            std::ifstream t("programs_tokens.csv");
-            csvFileStr = std::string((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+        initTokensFromCSVFilePath("programs_tokens.csv");
 #else
-            QFile inputFile(QStringLiteral(":/other/tivars_lib_cpp/programs_tokens.csv"));
-            if (inputFile.open(QIODevice::ReadOnly))
-            {
-                csvFileStr = inputFile.readAll().toStdString();
-            }
-#endif
+        std::string csvFileStr;
+        QFile inputFile(QStringLiteral(":/other/tivars_lib_cpp/programs_tokens.csv"));
+        if (inputFile.open(QIODevice::ReadOnly))
+        {
+            csvFileStr = inputFile.readAll().toStdString();
         }
 
+        initTokensFromCSVContent(csvFileStr);
+#endif
+    }
+
+    void TH_Tokenized::initTokensFromCSVFilePath(const std::string& csvFilePath)
+    {
+        std::ifstream t(csvFilePath);
+        std::string csvFileStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+        initTokensFromCSVContent(csvFileStr);
+    }
+
+    void TH_Tokenized::initTokensFromCSVContent(const std::string& csvFileStr)
+    {
         if (csvFileStr.length() > 0)
         {
             std::vector<std::vector<std::string>> lines;

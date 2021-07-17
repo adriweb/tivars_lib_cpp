@@ -29,7 +29,6 @@ int main(int argc, char** argv)
 {
     TIModels::initTIModelsArray();
     TIVarTypes::initTIVarTypesArray();
-    TH_Tokenized::initTokens();
 
     cxxopts::Options options("tivars_lib_cpp", "A program to interact with TI-z80 calculator files");
     options.add_options()
@@ -40,10 +39,10 @@ int main(int argc, char** argv)
             ("n,name", "Variable name", cxxopts::value<string>())
             ("t,type", "Variable type", cxxopts::value<string>())
             ("m,calc", "Calc. model", cxxopts::value<string>())
-            ("c,csv", "Token CSV File", cxxopts::value<string>())
+            ("c,csv", "Tokens CSV File", cxxopts::value<string>())
             ("l,lang", "Language", cxxopts::value<string>()->default_value("en"))
             ("a,archive", "Archive status", cxxopts::value<bool>())
-            ("r,reindent", "Reindent", cxxopts::value<bool>())
+            ("r,reindent", "Re-indent", cxxopts::value<bool>())
             ("p,prettify", "Prettify", cxxopts::value<bool>())
             ("s,detect_strings", "Detect strings", cxxopts::value<bool>())
             ("h,help", "Print usage");
@@ -73,6 +72,14 @@ int main(int argc, char** argv)
             return 1;
         }
         opath = result["output"].as<string>();
+
+        if (result.count("csv"))
+        {
+            string csvFilePath = result["csv"].as<string>();
+            TH_Tokenized::initTokensFromCSVFilePath(csvFilePath);
+        } else {
+            TH_Tokenized::initTokens();
+        }
 
         enum FileType iformat = getType(result, ipath, "iformat");
         enum FileType oformat = getType(result, opath, "oformat");

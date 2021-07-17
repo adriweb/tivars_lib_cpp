@@ -87,6 +87,8 @@ namespace tivars
         token_posinfo getPosInfoAtOffset(const data_t& data, uint16_t byteOffset, const options_t& options = options_t());
         std::string tokenToString(const data_t& data, int *incr, const options_t& options);
         void initTokens();
+        void initTokensFromCSVFilePath(const std::string& csvFilePath);
+        void initTokensFromCSVContent(const std::string& csvFileStr);
     }
 
     // Special temporary type that may appear as an equation, during basic program execution
