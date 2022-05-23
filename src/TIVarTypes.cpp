@@ -1,6 +1,6 @@
 /*
  * Part of tivars_lib_cpp
- * (C) 2015-2021 Adrien "Adriweb" Bertrand
+ * (C) 2015-2022 Adrien "Adriweb" Bertrand
  * https://github.com/adriweb/tivars_lib_cpp
  * License: MIT
  */
@@ -62,24 +62,24 @@ namespace tivars
         insertType("ProtectedProgram",     0x06,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_Tokenized) );
         insertType("Picture",              0x07,  {  "" ,   "" , "8xi", "8xi", "8xi", "8ci", "8ci", "8ci", "8ci"});
         insertType("GraphDataBase",        0x08,  {"82d", "83d", "8xd", "8xd", "8xd", "8xd", "8xd", "8xd", "8xd"});
-        // 0x09 - unknown
-        // 0x0A - unknown
+        // insertType("Unknown",              0x09,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
+        // insertType("UnknownEqu",           0x0A,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
         insertType("SmartEquation",        0x0B,  {"82y", "83y", "8xy", "8xy", "8xy", "8xy", "8xy", "8xy", "8xy"},  make_handler_pair(TH_Tokenized) ); // aka "New Equation"
         insertType("Complex",              0x0C,  {  "" , "83c", "8xc", "8xc", "8xc", "8xc", "8xc", "8xc", "8xc"},  GenericHandlerPair(Complex, 0x0C) );
         insertType("ComplexList",          0x0D,  {  "" , "83l", "8xl", "8xl", "8xl", "8xl", "8xl", "8xl", "8xl"},  GenericHandlerPair(List,    0x0C) );
-        // 0x0E - unknown
+        // insertType("Undef",                0x0E,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
         insertType("WindowSettings",       0x0F,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw", "8xw", "8xw"});
         insertType("RecallWindow",         0x10,  {"82z", "83z", "8xz", "8xz", "8xz", "8xz", "8xz", "8xz", "8xz"});
         insertType("TableRange",           0x11,  {"82t", "83t", "8xt", "8xt", "8xt", "8xt", "8xt", "8xt", "8xt"});
         insertType("ScreenImage",          0x12,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
         insertType("Backup",               0x13,  {"82b", "83b", "8xb",   "" , "8xb", "8cb",   "" ,   "" ,   "" });
-        // 0x14 - unknown
+        insertType("App",                  0x14,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
         insertType("AppVar",               0x15,  {  "" ,   "" ,   "" ,   "" , "8xv", "8xv", "8xv", "8xv", "8xv"},  GenericHandlerPair(AppVar, 0x15) );
         insertType("PythonAppVar",         0x15,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xv", "8xv", "8xv"},  make_handler_pair(STH_PythonAppVar) );
         insertType("TemporaryItem",        0x16,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
         insertType("GroupObject",          0x17,  {"82g", "83g", "8xg", "8xg", "8xg", "8xg", "8cg", "8cg", "8cg"});
         insertType("RealFraction",         0x18,  {  "" ,   "" ,   "" ,   "" , "8xn", "8xn", "8xn", "8xn", "8xn"},  GenericHandlerPair(Real, 0x18) );
-        insertType("DirectoryList",        0x19,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
+        insertType("MixedFraction",        0x19,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
         insertType("Image",                0x1A,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8ca", "8ca", "8ca"});
 
         /* Exact values (TI-83 Premium CE [Edition Python] and TI-82 Advanced Edition Python) */
