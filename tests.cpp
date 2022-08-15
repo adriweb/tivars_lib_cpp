@@ -354,5 +354,12 @@ int main(int argc, char** argv)
         assert(pythonFromTest2.getReadableContent() == "import sys\nprint(sys.version)\n");
     }
 
+    {
+        TIVarFile testTheta = TIVarFile::createNew(TIVarType::createFromName("Program"), "θΘϴᶿ");
+        uint8_t testThetaVarName[8] = {0x5B, 0x5B, 0x5B, 0x5B};
+        cout << "testTheta.getVarEntry().varname : " << testTheta.getVarEntry().varname << endl;
+        assert(std::equal(testTheta.getVarEntry().varname, testTheta.getVarEntry().varname + 8, testThetaVarName));
+    }
+
     return 0;
 }
