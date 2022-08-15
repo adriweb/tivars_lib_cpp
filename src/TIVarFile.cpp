@@ -202,10 +202,11 @@ namespace tivars
         {
             newName = "FILE" + (type.getExts().empty() ? "" : type.getExts()[0]);
         }
-        newName = std::regex_replace(newName, std::regex("[^a-zA-Z0-9]"), "");
+        newName = std::regex_replace(newName, std::regex("(\u03b8|\u0398|\u03F4|\u1DBF)"), "[");
+        newName = std::regex_replace(newName, std::regex("[^[a-zA-Z0-9]"), "");
         if (newName.length() > sizeof(var_entry_t::varname) || newName.empty() || is_numeric(newName.substr(0, 1)))
         {
-            throw std::invalid_argument("Invalid name given. 8 chars (A-Z, 0-9) max, starting by a letter");
+            throw std::invalid_argument("Invalid name given. 8 chars (A-Z, 0-9, θ) max, starting by a letter or θ.");
         }
 
         for (auto & c: newName) c = (char) toupper(c);
