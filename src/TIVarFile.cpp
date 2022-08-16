@@ -202,6 +202,7 @@ namespace tivars
         {
             newName = "FILE" + (type.getExts().empty() ? "" : type.getExts()[0]);
         }
+        // Here we handle various theta chars. Note thata in TI-ASCII, theta is at 0x5B which is "[" in ASCII.
         newName = std::regex_replace(newName, std::regex("(\u03b8|\u0398|\u03F4|\u1DBF)"), "[");
         newName = std::regex_replace(newName, std::regex("[^[a-zA-Z0-9]"), "");
         if (newName.length() > sizeof(var_entry_t::varname) || newName.empty() || is_numeric(newName.substr(0, 1)))
