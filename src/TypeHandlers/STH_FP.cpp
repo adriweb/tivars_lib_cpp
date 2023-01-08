@@ -79,10 +79,10 @@ namespace tivars
                 bool sign = parseSign(i, e);
                 int offset = 0;
                 do {
-                    char c = *i++;
-                    if (c >= '0' && c <= '9') {
+                    char cdigit = *i++;
+                    if (cdigit >= '0' && cdigit <= '9') {
                         offset *= 10;
-                        offset += c - '0';
+                        offset += cdigit - '0';
                     } else {
                         throw std::invalid_argument("Unexpected character.");
                     }
