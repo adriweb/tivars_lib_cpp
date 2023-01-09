@@ -25,7 +25,7 @@ unsigned char hexdec(const std::string& str)
 std::string dechex(unsigned char i, bool zeropad)
 {
     std::string str = "00";
-    sprintf(&str[0], zeropad ? "%02X" : "%X", i);
+    snprintf(&str[0], 3, zeropad ? "%02X" : "%X", i);
     return str;
 }
 
