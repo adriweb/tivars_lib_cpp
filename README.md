@@ -1,4 +1,4 @@
-# tivars_lib_cpp [![Build Status](https://travis-ci.org/adriweb/tivars_lib_cpp.svg)](https://travis-ci.org/adriweb/tivars_lib_cpp)
+# tivars_lib_cpp [![Build](https://github.com/adriweb/tivars_lib_cpp/actions/workflows/build.yml/badge.svg)](https://github.com/adriweb/tivars_lib_cpp/actions/workflows/build.yml)
 A C++ "library" to interact with TI-Z80/eZ80 (82/83/84 series) calculators files (programs, lists, matrices...).  
 JavaScript bindings (for use with emscripten) are provided for convenience.
 
