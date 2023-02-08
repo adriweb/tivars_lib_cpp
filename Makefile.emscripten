@@ -1,7 +1,7 @@
 CXX := em++
 
 # Emscripten stuff
-EMFLAGS := --bind --memory-init-file 0 --llvm-lto 3 -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 --embed-file programs_tokens.csv
+EMFLAGS := --bind --memory-init-file 0 -flto -s MODULARIZE=1 -s EXPORT_NAME="'TIVarsLibModule'" -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 --embed-file programs_tokens.csv
 
 CXXFLAGS := -O3 -std=c++11 -W -Wall -Wextra $(EMFLAGS)
 
@@ -12,7 +12,7 @@ SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp)
 
 OBJS = $(patsubst %.cpp, %.bc, $(SOURCES))
 
-OUTPUT := tivars_test
+OUTPUT := tivars_lib
 
 wasm:  $(OUTPUT).html
 
