@@ -19,7 +19,7 @@ namespace tivars
         const auto& typeIter = options.find("_type");
         if (typeIter == options.end())
         {
-            throw std::runtime_error("Needs _type in options for TH_GenericReal::makeDataFromString");
+            throw std::runtime_error("Needs _type in options for TH_GenericList::makeDataFromString");
         }
 
         const auto type = typeIter->second;

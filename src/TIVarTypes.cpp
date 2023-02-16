@@ -93,7 +93,7 @@ namespace tivars
         insertType("ExactRealPiFrac",      0x21,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn", "8xn"},  GenericHandlerPair(Real,    0x21) );
 
         /* System/Flash-related things */
-        // 0x22 - unknown
+        // 0x22 - IDList (68k calcs)
         insertType("OperatingSystem",      0x23,  {"82u", "83u", "82u", "8xu", "8xu", "8cu", "8eu", "8pu", "8yu"});
         insertType("FlashApp",             0x24,  {  "" ,   "" ,   "" ,   "" , "8xk", "8ck", "8ek", "8ek",   "" });
         insertType("Certificate",          0x25,  {  "" ,   "" ,   "" ,   "" , "8xq", "8cq",   "" ,   "" ,   "" });

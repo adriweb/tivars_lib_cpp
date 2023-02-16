@@ -45,6 +45,17 @@ int main(int argc, char** argv)
     }
 
     {
+        TIVarFile clibs = TIVarFile::loadFromFile("testData/clibs.8xg");
+        const auto& entries = clibs.getVarEntries();
+        assert(entries.size() == 9);
+        for (int i=0; i<9; i++) {
+            assert(entries[i].typeID == TIVarTypes::getIDFromName("AppVar"));
+        }
+        assert((char*)entries[1].varname == std::string("GRAPHX"));
+        cout << clibs.getReadableContent() << "\n" << endl;
+    }
+
+    {
         TIVarFile testAppVar = TIVarFile::createNew(TIVarType::createFromName("AppVar"), "TEST");
         testAppVar.setContentFromString("ABCD1234C9C8C7C6"); // random but valid hex string
         assert(testAppVar.getReadableContent() == "ABCD1234C9C8C7C6");
@@ -357,8 +368,9 @@ int main(int argc, char** argv)
     {
         TIVarFile testTheta = TIVarFile::createNew(TIVarType::createFromName("Program"), "θΘϴᶿ");
         uint8_t testThetaVarName[8] = {0x5B, 0x5B, 0x5B, 0x5B};
-        cout << "testTheta.getVarEntry().varname : " << testTheta.getVarEntry().varname << endl;
-        assert(std::equal(testTheta.getVarEntry().varname, testTheta.getVarEntry().varname + 8, testThetaVarName));
+        const auto& firstVarEntry = testTheta.getVarEntries()[0];
+        cout << "testTheta firstVarEntry varname : " << firstVarEntry.varname << endl;
+        assert(std::equal(firstVarEntry.varname, firstVarEntry.varname + 8, testThetaVarName));
     }
 
     return 0;
