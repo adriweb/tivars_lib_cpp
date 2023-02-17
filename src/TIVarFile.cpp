@@ -236,8 +236,18 @@ namespace tivars
 
     void TIVarFile::var_entry_t::determineFullType()
     {
-        // TODO: check data... for instance appvars -> check magic bytes
-        _type = TIVarType::createFromID(typeID); // in the meantime...
+        _type = TIVarType::createFromID(typeID);
+        if (_type.getName() == "AppVar")
+        {
+            if (data.size() >= 6)
+            {
+                if (memcmp(&data[2], STH_PythonAppVar::ID_CODE, 4) == 0
+                 || memcmp(&data[2], STH_PythonAppVar::ID_SCRIPT, 4) == 0)
+                {
+                    _type = TIVarType::createFromName("PythonAppVar");
+                }
+            }
+        }
     }
 
         /*** Public actions **/
