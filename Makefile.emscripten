@@ -1,12 +1,10 @@
 CXX := em++
 
 # Emscripten stuff
-EMFLAGS := --bind --memory-init-file 0 -flto -s MODULARIZE=1 -s EXPORT_NAME="'TIVarsLibModule'" -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 --embed-file programs_tokens.csv
+EMFLAGS := --bind --memory-init-file 0 -s WASM=1 -s MODULARIZE=1 -s EXPORT_NAME="'lib'" -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 --embed-file programs_tokens.csv
 
-CXXFLAGS := -O3 -std=c++11 -W -Wall -Wextra $(EMFLAGS)
-
-wasm:       CXXFLAGS += -s WASM=1
-wasm-html:  CXXFLAGS += -s WASM=1
+CXXFLAGS := -O3 -flto -std=c++14 -W -Wall -Wextra
+LFLAGS := -flto $(EMFLAGS)
 
 SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp)
 
@@ -14,14 +12,9 @@ OBJS = $(patsubst %.cpp, %.bc, $(SOURCES))
 
 OUTPUT := tivars_lib
 
-wasm:  $(OUTPUT).html
+wasm:  $(OUTPUT).js
 
-$(OUTPUT).html: $(OUTPUT).js
-
-wasm-html: $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $(OUTPUT).html
-
-all: wasm-html
+all: wasm
 
 %.bc: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -30,6 +23,6 @@ $(OUTPUT).js: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $@
 
 clean:
-	$(RM) -f $(OBJS) $(OUTPUT).js* $(OUTPUT).html* $(OUTPUT).data $(OUTPUT).was*
+	$(RM) -f $(OBJS) $(OUTPUT).js* $(OUTPUT).was*
 
-.PHONY: all clean wasm wasm-html
+.PHONY: all clean wasm
