@@ -45,6 +45,12 @@ int main(int argc, char** argv)
     }
 
     {
+        TIVarFile testPrgmStr1 = TIVarFile::createNew(TIVarType::createFromName("Program"), "asdf");
+        testPrgmStr1.setContentFromString("\"42→Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", true}})) == "\"42→Str1\nStr2\n123");
+    }
+
+    {
         TIVarFile clibs = TIVarFile::loadFromFile("testData/clibs.8xg");
         const auto& entries = clibs.getVarEntries();
         assert(entries.size() == 9);

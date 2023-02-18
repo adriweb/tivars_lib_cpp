@@ -65,7 +65,7 @@ namespace tivars
             {
                 if(currChar == "\"") {
                     isWithinString = !isWithinString;
-                } else if(currChar == "\n" || currChar == "→") {
+                } else if(currChar == "\n" || (strCursorPos < str_new.length()-strlen("→") && memcmp(&str_new[strCursorPos], "→", strlen("→")) == 0)) {
                     isWithinString = false;
                 }
             }
@@ -207,7 +207,7 @@ namespace tivars
                     break;
                 } else if (currChar == "\"") {
                     isWithinString = !isWithinString;
-                } else if (currChar == "\n" || currChar == "→") {
+                } else if (currChar == "\n" || (strIdx < line.length()-strlen("→") && memcmp(&line[strIdx], "→", strlen("→")) == 0)) {
                     isWithinString = false;
                 }
             }
