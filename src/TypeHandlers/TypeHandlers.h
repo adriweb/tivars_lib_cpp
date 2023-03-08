@@ -76,6 +76,13 @@ namespace tivars
 
     namespace TH_GenericAppVar { th(); }
 
+    namespace TH_GDB
+    {
+        th();
+        const constexpr size_t dataByteCountMinimum = 100;
+        static const constexpr char* magic84CAndLaterSectionMarker = "84C";
+    }
+
     // Program, Protected Program, Y-Variable, String
     namespace TH_Tokenized
     {

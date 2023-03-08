@@ -17,4 +17,6 @@
 using data_t = std::vector<uint8_t>;
 using options_t = std::map<std::string, int>;
 
+#define u8enum(NAME) enum NAME : uint8_t
+
 #endif

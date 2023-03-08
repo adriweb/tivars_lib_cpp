@@ -381,5 +381,16 @@ int main(int argc, char** argv)
         assert(std::equal(firstVarEntry.varname, firstVarEntry.varname + 8, testThetaVarName));
     }
 
+    {
+        TIVarFile GDB1 = TIVarFile::loadFromFile("testData/GraphDataBase.8xd");
+        const std::string gdb1JSON = GDB1.getReadableContent();
+        cout << "GDB1.getReadableContent() : " << gdb1JSON << endl;
+
+        TIVarFile GDB_new = TIVarFile::createNew("GraphDataBase", "a");
+        GDB_new.setContentFromString(gdb1JSON);
+        assert(GDB1.getRawContent() == GDB_new.getRawContent());
+        assert(gdb1JSON == GDB_new.getReadableContent());
+    }
+
     return 0;
 }

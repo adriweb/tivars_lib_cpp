@@ -1,4 +1,4 @@
-CXXFLAGS := -O3 -std=c++11 -W -Wall -Wextra -Werror=unused-parameter -Werror=write-strings -Werror=redundant-decls -Werror=format -Werror=format-security -Werror=declaration-after-statement -Werror=implicit-function-declaration -Werror=date-time -Werror=missing-prototypes -Werror=return-type -Werror=pointer-arith -Winit-self
+CXXFLAGS := -O3 -std=c++2a -W -Wall -Wextra -Werror=write-strings -Werror=redundant-decls -Werror=format -Werror=format-security -Werror=date-time -Werror=return-type -Werror=pointer-arith -Winit-self
 
 SOURCES_COMMON := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp)
 

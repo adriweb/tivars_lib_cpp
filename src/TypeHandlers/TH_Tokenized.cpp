@@ -103,6 +103,10 @@ namespace tivars
         const size_t dataSize = data.size();
 
         const bool fromRawBytes = has_option(options, "fromRawBytes") && options.at("fromRawBytes") == 1;
+        if (fromRawBytes && dataSize == 0)
+        {
+            return "";
+        }
         if (!fromRawBytes && dataSize < 2)
         {
             throw std::invalid_argument("Invalid data array. Needs to contain at least 2 bytes (size fields)");

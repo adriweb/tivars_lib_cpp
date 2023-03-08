@@ -62,7 +62,7 @@ namespace tivars
         insertType("Program",              0x05,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_Tokenized) );
         insertType("ProtectedProgram",     0x06,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_Tokenized) );
         insertType("Picture",              0x07,  {  _  ,   _  , "8xi", "8xi", "8xi", "8ci", "8ci", "8ci", "8ci"});
-        insertType("GraphDataBase",        0x08,  {"82d", "83d", "8xd", "8xd", "8xd", "8xd", "8xd", "8xd", "8xd"});
+        insertType("GraphDataBase",        0x08,  {"82d", "83d", "8xd", "8xd", "8xd", "8xd", "8xd", "8xd", "8xd"},  make_handler_pair(TH_GDB) );
         // insertType("Unknown",              0x09,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         // insertType("UnknownEqu",           0x0A,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("SmartEquation",        0x0B,  {"82y", "83y", "8xy", "8xy", "8xy", "8xy", "8xy", "8xy", "8xy"},  make_handler_pair(TH_Tokenized) ); // aka "New Equation"

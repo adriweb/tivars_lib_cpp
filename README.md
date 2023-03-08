@@ -36,24 +36,25 @@ You can find code that use this project as a JS lib here: https://github.com/TI-
 
 | Vartype                   | data->string | string->data |
 |---------------------------|:------------:|:------------:|
-| Real                      |     **✓**    |     **✓**    |
-| Real List                 |     **✓**    |     **✓**    |
-| Matrix                    |     **✓**    |     **✓**    |
-| Equation                  |     **✓**    |     **✓**    |
-| String                    |     **✓**    |     **✓**    |
-| Program                   |     **✓**    |     **✓**    |
-| Protected Program         |     **✓**    |     **✓**    |
-| Complex                   |     **✓**    |     **✓**    |
-| Complex List              |     **✓**    |     **✓**    |
-| Application Variable      |     **✓**    |     **✓**    |
-| Python AppVar             |     **✓**    |     **✓**    |
-| Exact Complex Fraction    |     **✓**    |     **✗**    |
-| Exact Real Radical        |     **✓**    |     **✗**    |
-| Exact Complex Radical     |     **✓**    |     **✗**    |
-| Exact Complex Pi          |     **✓**    |     **✗**    |
-| Exact Complex Pi Fraction |     **✓**    |     **✗**    |
-| Exact Real Pi             |     **✓**    |     **✗**    |
-| Exact Real Pi Fraction    |     **✓**    |     **✗**    |
+| Real                      |    **✓**     |    **✓**     |
+| Real List                 |    **✓**     |    **✓**     |
+| Matrix                    |    **✓**     |    **✓**     |
+| Equation                  |    **✓**     |    **✓**     |
+| String                    |    **✓**     |    **✓**     |
+| Program                   |    **✓**     |    **✓**     |
+| Protected Program         |    **✓**     |    **✓**     |
+| Graph DataBase (GDB)      | **✓** (JSON) | **✓** (JSON) |
+| Complex                   |    **✓**     |    **✓**     |
+| Complex List              |    **✓**     |    **✓**     |
+| Application Variable      |    **✓**     |    **✓**     |
+| Python AppVar             |    **✓**     |    **✓**     |
+| Exact Complex Fraction    |    **✓**     |              |
+| Exact Real Radical        |    **✓**     |              |
+| Exact Complex Radical     |    **✓**     |              |
+| Exact Complex Pi          |    **✓**     |              |
+| Exact Complex Pi Fraction |    **✓**     |              |
+| Exact Real Pi             |    **✓**     |              |
+| Exact Real Pi Fraction    |    **✓**     |              |
 
 Note that some of the special varnames restrictions (for strings, matrices, list...) aren't implemented yet.
 
