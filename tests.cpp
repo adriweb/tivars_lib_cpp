@@ -25,6 +25,8 @@ int main(int argc, char** argv)
     (void)argc;
     (void)argv;
 
+    setlocale(LC_ALL, ".UTF-8");
+
     /* Init Stuff */
 
     TIModels::initTIModelsArray();
