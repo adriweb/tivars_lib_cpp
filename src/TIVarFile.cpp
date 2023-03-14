@@ -85,7 +85,7 @@ namespace tivars
 
     TIVarFile TIVarFile::createNew(const TIVarType& type, const std::string& name)
     {
-        return createNew(type, name, TIModel::createFromName("84+"));
+        return createNew(type, name, "84+");
     }
 
     TIVarFile TIVarFile::createNew(const TIVarType& type)
@@ -236,7 +236,7 @@ namespace tivars
 
     void TIVarFile::var_entry_t::determineFullType()
     {
-        _type = TIVarType::createFromID(typeID);
+        _type = TIVarType{typeID};
         if (_type.getName() == "AppVar")
         {
             if (data.size() >= 6)

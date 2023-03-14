@@ -18,8 +18,15 @@ namespace tivars
     {
 
     public:
+        /*** "Constructors" ***/
+        static TIVarType createFromID(uint8_t id);
+        static TIVarType createFromName(const std::string& name);
 
         TIVarType() = default;
+
+        explicit TIVarType(uint8_t id) { *this = createFromID(id); }
+        TIVarType(const std::string& name) { *this = createFromName(name); }
+        TIVarType(const char name[]) { *this = createFromName(name); }
 
         TIVarType(int id, const std::string& name, const std::vector<std::string>& exts, const handler_pair_t& handlers) : id(id), name(name), exts(exts), handlers(handlers)
         {}
@@ -31,10 +38,6 @@ namespace tivars
         std::string getName() const { return this->name; }
         const std::vector<std::string>& getExts() const { return this->exts; }
         const handler_pair_t& getHandlers() const { return this->handlers; };
-
-        /*** "Constructors" ***/
-        static TIVarType createFromID(uint8_t id);
-        static TIVarType createFromName(const std::string& name);
 
     private:
         int id = -1;

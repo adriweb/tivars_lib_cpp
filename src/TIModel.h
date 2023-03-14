@@ -18,8 +18,20 @@ namespace tivars
     {
 
     public:
+        /*** "Constructors" ***/
+        /**
+         * @param   string  name   The version name
+         */
+        static TIModel createFromName(const std::string& name);
+
+        /**
+         * @param   string  sig    The signature (magic bytes)
+         */
+        static TIModel createFromSignature(const std::string& sig);
 
         TIModel() = default;
+        TIModel(const std::string& name) { *this = createFromName(name); }
+        TIModel(const char name[]) { *this = createFromName(name); }
 
         TIModel(int orderId, const std::string& name, uint32_t flags, const std::string& sig) : orderID(orderId), name(name), flags(flags), sig(sig)
         {}
@@ -33,23 +45,6 @@ namespace tivars
         std::string getSig() const { return this->sig; }
 
         bool supportsType(const TIVarType& type);
-
-
-        /*** "Constructors" ***/
-        /**
-         * @param   string  name   The version name
-         * @return  TIModel
-         * @throws  \Exception
-         */
-        static TIModel createFromName(const std::string& name);
-
-        /**
-         * @param   string  sig    The signature (magic bytes)
-         * @return  TIModel
-         * @throws  \Exception
-         */
-        static TIModel createFromSignature(const std::string& sig);
-
 
     private:
         int orderID      = -1;

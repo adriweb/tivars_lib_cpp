@@ -50,7 +50,8 @@ namespace tivars
     void TIVarTypes::initTIVarTypesArray() // order: 82     83    82A   84+T  82+/83+  84+C  84+CE  83PCE  82AEP
                                            //                                   84+         84+CE-T
     {
-        insertType("Unknown",                -1,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "",   "" });
+        const std::string _;
+        insertType("Unknown",                -1,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _ ,   _  });
 
         /* Standard types */
         insertType("Real",                 0x00,  {"82n", "83n", "8xn", "8xn", "8xn", "8xn", "8xn", "8xn", "8xn"},  GenericHandlerPair(Real, 0x00)  );
@@ -60,48 +61,48 @@ namespace tivars
         insertType("String",               0x04,  {"82s", "83s", "8xs", "8xs", "8xs", "8xs", "8xs", "8xs", "8xs"},  make_handler_pair(TH_Tokenized) );
         insertType("Program",              0x05,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_Tokenized) );
         insertType("ProtectedProgram",     0x06,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_Tokenized) );
-        insertType("Picture",              0x07,  {  "" ,   "" , "8xi", "8xi", "8xi", "8ci", "8ci", "8ci", "8ci"});
+        insertType("Picture",              0x07,  {  _  ,   _  , "8xi", "8xi", "8xi", "8ci", "8ci", "8ci", "8ci"});
         insertType("GraphDataBase",        0x08,  {"82d", "83d", "8xd", "8xd", "8xd", "8xd", "8xd", "8xd", "8xd"});
-        // insertType("Unknown",              0x09,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
-        // insertType("UnknownEqu",           0x0A,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
+        // insertType("Unknown",              0x09,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
+        // insertType("UnknownEqu",           0x0A,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("SmartEquation",        0x0B,  {"82y", "83y", "8xy", "8xy", "8xy", "8xy", "8xy", "8xy", "8xy"},  make_handler_pair(TH_Tokenized) ); // aka "New Equation"
-        insertType("Complex",              0x0C,  {  "" , "83c", "8xc", "8xc", "8xc", "8xc", "8xc", "8xc", "8xc"},  GenericHandlerPair(Complex, 0x0C) );
-        insertType("ComplexList",          0x0D,  {  "" , "83l", "8xl", "8xl", "8xl", "8xl", "8xl", "8xl", "8xl"},  GenericHandlerPair(List,    0x0C) );
-        // insertType("Undef",                0x0E,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
+        insertType("Complex",              0x0C,  {  _  , "83c", "8xc", "8xc", "8xc", "8xc", "8xc", "8xc", "8xc"},  GenericHandlerPair(Complex, 0x0C) );
+        insertType("ComplexList",          0x0D,  {  _  , "83l", "8xl", "8xl", "8xl", "8xl", "8xl", "8xl", "8xl"},  GenericHandlerPair(List,    0x0C) );
+        // insertType("Undef",                0x0E,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("WindowSettings",       0x0F,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw", "8xw", "8xw"});
         insertType("RecallWindow",         0x10,  {"82z", "83z", "8xz", "8xz", "8xz", "8xz", "8xz", "8xz", "8xz"});
         insertType("TableRange",           0x11,  {"82t", "83t", "8xt", "8xt", "8xt", "8xt", "8xt", "8xt", "8xt"});
-        insertType("ScreenImage",          0x12,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
-        insertType("Backup",               0x13,  {"82b", "83b", "8xb",   "" , "8xb", "8cb",   "" ,   "" ,   "" });
-        insertType("App",                  0x14,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
-        insertType("AppVar",               0x15,  {  "" ,   "" ,   "" ,   "" , "8xv", "8xv", "8xv", "8xv", "8xv"},  GenericHandlerPair(AppVar, 0x15) );
-        insertType("PythonAppVar",         0x15,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xv", "8xv", "8xv"},  make_handler_pair(STH_PythonAppVar) );
-        insertType("TemporaryItem",        0x16,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
+        insertType("ScreenImage",          0x12,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
+        insertType("Backup",               0x13,  {"82b", "83b", "8xb",   _  , "8xb", "8cb",   _  ,   _  ,   _  });
+        insertType("App",                  0x14,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
+        insertType("AppVar",               0x15,  {  _  ,   _  ,   _  ,   _  , "8xv", "8xv", "8xv", "8xv", "8xv"},  GenericHandlerPair(AppVar, 0x15) );
+        insertType("PythonAppVar",         0x15,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xv", "8xv", "8xv"},  make_handler_pair(STH_PythonAppVar) );
+        insertType("TemporaryItem",        0x16,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("GroupObject",          0x17,  {"82g", "83g", "8xg", "8xg", "8xg", "8xg", "8cg", "8cg", "8cg"});
-        insertType("RealFraction",         0x18,  {  "" ,   "" ,   "" ,   "" , "8xn", "8xn", "8xn", "8xn", "8xn"},  GenericHandlerPair(Real, 0x18) );
-        insertType("MixedFraction",        0x19,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
-        insertType("Image",                0x1A,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8ca", "8ca", "8ca"});
+        insertType("RealFraction",         0x18,  {  _  ,   _  ,   _  ,   _  , "8xn", "8xn", "8xn", "8xn", "8xn"},  GenericHandlerPair(Real, 0x18) );
+        insertType("MixedFraction",        0x19,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
+        insertType("Image",                0x1A,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8ca", "8ca", "8ca"});
 
         /* Exact values (TI-83 Premium CE [Edition Python] and TI-82 Advanced Edition Python) */
         /* See https://docs.google.com/document/d/1P_OUbnZMZFg8zuOPJHAx34EnwxcQZ8HER9hPeOQ_dtI and especially this lib's implementation */
-        insertType("ExactComplexFrac",     0x1B,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc", "8xc"},  GenericHandlerPair(Complex, 0x1B) );
-        insertType("ExactRealRadical",     0x1C,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn", "8xn"},  GenericHandlerPair(Real,    0x1C) );
-        insertType("ExactComplexRadical",  0x1D,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc", "8xc"},  GenericHandlerPair(Complex, 0x1D) );
-        insertType("ExactComplexPi",       0x1E,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc", "8xc"},  GenericHandlerPair(Complex, 0x1E) );
-        insertType("ExactComplexPiFrac",   0x1F,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xc", "8xc"},  GenericHandlerPair(Complex, 0x1F) );
-        insertType("ExactRealPi",          0x20,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn", "8xn"},  GenericHandlerPair(Real,    0x20) );
-        insertType("ExactRealPiFrac",      0x21,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" , "8xn", "8xn"},  GenericHandlerPair(Real,    0x21) );
+        insertType("ExactComplexFrac",     0x1B,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xc", "8xc"},  GenericHandlerPair(Complex, 0x1B) );
+        insertType("ExactRealRadical",     0x1C,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xn", "8xn"},  GenericHandlerPair(Real,    0x1C) );
+        insertType("ExactComplexRadical",  0x1D,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xc", "8xc"},  GenericHandlerPair(Complex, 0x1D) );
+        insertType("ExactComplexPi",       0x1E,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xc", "8xc"},  GenericHandlerPair(Complex, 0x1E) );
+        insertType("ExactComplexPiFrac",   0x1F,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xc", "8xc"},  GenericHandlerPair(Complex, 0x1F) );
+        insertType("ExactRealPi",          0x20,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xn", "8xn"},  GenericHandlerPair(Real,    0x20) );
+        insertType("ExactRealPiFrac",      0x21,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xn", "8xn"},  GenericHandlerPair(Real,    0x21) );
 
         /* System/Flash-related things */
         // 0x22 - IDList (68k calcs)
         insertType("OperatingSystem",      0x23,  {"82u", "83u", "82u", "8xu", "8xu", "8cu", "8eu", "8pu", "8yu"});
-        insertType("FlashApp",             0x24,  {  "" ,   "" ,   "" ,   "" , "8xk", "8ck", "8ek", "8ek",   "" });
-        insertType("Certificate",          0x25,  {  "" ,   "" ,   "" ,   "" , "8xq", "8cq",   "" ,   "" ,   "" });
-        insertType("AppIDList",            0x26,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
-        insertType("CertificateMemory",    0x27,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
+        insertType("FlashApp",             0x24,  {  _  ,   _  ,   _  ,   _  , "8xk", "8ck", "8ek", "8ek",   _  });
+        insertType("Certificate",          0x25,  {  _  ,   _  ,   _  ,   _  , "8xq", "8cq",   _  ,   _  ,   _  });
+        insertType("AppIDList",            0x26,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
+        insertType("CertificateMemory",    0x27,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         // 0x28 - unknown
-        insertType("Clock",                0x29,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
-        insertType("FlashLicense",         0x3E,  {  "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" ,   "" });
+        insertType("Clock",                0x29,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
+        insertType("FlashLicense",         0x3E,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
     }
 
     /**

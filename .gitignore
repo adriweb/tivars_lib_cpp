@@ -43,6 +43,7 @@ moc_*.cpp
 *~
 \#*\#
 cmake-build-*/
+out/
 
 # Windows and Mac crap
 Thumbs.db
@@ -55,7 +56,9 @@ Thumbs.db
 *.bc
 *.js.mem
 
-# IntelliJ IDEs things
+# IDEs things
 **/.idea/
+.vs/
+.vscode/
 
 testData/*new.8*
