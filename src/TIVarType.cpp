@@ -51,8 +51,6 @@ namespace tivars
     EMSCRIPTEN_BINDINGS(_tivartype) {
             class_<tivars::TIVarType>("TIVarType")
                     .constructor<>()
-                    .constructor<uint8_t>()
-                    .constructor<const std::string&>()
                     .constructor<const char*>()
                     .constructor<int, const std::string&, const std::vector<std::string>&, const tivars::handler_pair_t&>()
 

@@ -30,6 +30,16 @@ _Note: The code throws exceptions for you to catch in case of trouble._
 #### In JavaScript (via Emscripten)
 
 Bindings are done for the necessary classes, so it should be pretty obvious.  
+Integration example:
+```html
+<script type="module">
+    import TIVarsLib from './TIVarsLib.js';
+    const lib = await TIVarsLib();
+    lib.TIVarFile.createNew(lib.TIVarType.createFromName("Program"), "HELLO");
+    ...
+</script>
+```
+
 You can find code that use this project as a JS lib here: https://github.com/TI-Planet/zText (look at `generator.js`)
 
 ### Vartype handlers implementation: current status
