@@ -307,10 +307,10 @@ namespace
         };
 
         switch (gdb.graphMode) {
-            case Function:   getSpecificDataFromJSON(j, gdb.graphMode, std::get<FunctionData>(gdb.specificData));   break;
-            case Parametric: getSpecificDataFromJSON(j, gdb.graphMode, std::get<ParametricData>(gdb.specificData)); break;
-            case Polar:      getSpecificDataFromJSON(j, gdb.graphMode, std::get<PolarData>(gdb.specificData));      break;
-            case Sequence:   getSpecificDataFromJSON(j, gdb.graphMode, std::get<SequenceData>(gdb.specificData));   break;
+            case Function:   gdb.specificData = FunctionData{};   getSpecificDataFromJSON(j, gdb.graphMode, std::get<FunctionData>(gdb.specificData));   break;
+            case Parametric: gdb.specificData = ParametricData{}; getSpecificDataFromJSON(j, gdb.graphMode, std::get<ParametricData>(gdb.specificData)); break;
+            case Polar:      gdb.specificData = PolarData{};      getSpecificDataFromJSON(j, gdb.graphMode, std::get<PolarData>(gdb.specificData));      break;
+            case Sequence:   gdb.specificData = SequenceData{};   getSpecificDataFromJSON(j, gdb.graphMode, std::get<SequenceData>(gdb.specificData));   break;
             default:
                 throw std::runtime_error("Unknown graphMode value " + std::to_string(gdb.graphMode));
         }
@@ -522,10 +522,10 @@ namespace tivars
         };
 
         switch (gdb.graphMode) {
-            case Function:   parseSpecificData(std::get<FunctionData>(gdb.specificData));   break;
-            case Parametric: parseSpecificData(std::get<ParametricData>(gdb.specificData)); break;
-            case Polar:      parseSpecificData(std::get<PolarData>(gdb.specificData));      break;
-            case Sequence:   parseSpecificData(std::get<SequenceData>(gdb.specificData));   break;
+            case Function:   gdb.specificData = FunctionData{};   parseSpecificData(std::get<FunctionData>(gdb.specificData));   break;
+            case Parametric: gdb.specificData = ParametricData{}; parseSpecificData(std::get<ParametricData>(gdb.specificData)); break;
+            case Polar:      gdb.specificData = PolarData{};      parseSpecificData(std::get<PolarData>(gdb.specificData));      break;
+            case Sequence:   gdb.specificData = SequenceData{};   parseSpecificData(std::get<SequenceData>(gdb.specificData));   break;
             default:
                 throw std::runtime_error("Unknown graphMode value " + std::to_string(gdb.graphMode));
         }
