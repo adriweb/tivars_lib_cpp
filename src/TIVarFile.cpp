@@ -228,7 +228,13 @@ namespace tivars
             throw std::invalid_argument("Invalid name given. 8 chars (A-Z, 0-9, θ) max, starting by a letter or θ.");
         }
 
-        for (auto & c: newName) c = (char) toupper(c);
+        // TODO: again, properly handle names according to _type... (needs to be implemented by each type)
+        // Quick hack for now...
+        const auto& typeName = _type.getName();
+        if (typeName == "Real" || typeName == "Real" || typeName == "Program" || typeName == "ProtectedProgram")
+        {
+            for (auto & c: newName) c = (char) toupper(c);
+        }
 
         newName = str_pad(newName, sizeof(varname), "\0");
         std::copy(newName.begin(), newName.end(), varname);
