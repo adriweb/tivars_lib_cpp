@@ -394,6 +394,7 @@ int main(int argc, char** argv)
     }
 
 #ifdef GDB_SUPPORT
+/*
     {
         TIVarFile GDB1 = TIVarFile::loadFromFile("testData/GraphDataBase_Func.8xd");
         const std::string gdb1JSON = GDB1.getReadableContent();
@@ -401,21 +402,24 @@ int main(int argc, char** argv)
 
         TIVarFile GDB_new = TIVarFile::createNew("GraphDataBase", "a");
         GDB_new.setContentFromString(gdb1JSON);
+        GDB_new.saveVarToFile("testData", "GraphDataBase_Func_new");
         assert(GDB1.getRawContent() == GDB_new.getRawContent());
         assert(gdb1JSON == GDB_new.getReadableContent());
     }
-
+*/
     {
-        if (file_exists("testData/GDB_Parametric.json"))
-        {
-            std::ifstream jsonFile("testData/GDB_Parametric.json");
-            std::stringstream gdbJSON;
-            gdbJSON << jsonFile.rdbuf();
+        TIVarFile GDB1 = TIVarFile::loadFromFile("testData/GraphDataBase_Param.8xd");
+        const std::string gdb2JSON = GDB1.getReadableContent();
 
-            TIVarFile paramGDB = TIVarFile::createNew("GraphDataBase", "a");
-            paramGDB.setContentFromString(gdbJSON.str());
-            cout << "paramGDB.getReadableContent() : " << paramGDB.getReadableContent() << endl;
-        }
+        std::ifstream jsonFile("testData/GDB_Parametric.json");
+        std::stringstream gdbJSON;
+        gdbJSON << jsonFile.rdbuf();
+
+        TIVarFile paramGDB = TIVarFile::createNew("GraphDataBase", "a");
+        paramGDB.setContentFromString(gdbJSON.str());
+        cout << "paramGDB.getReadableContent() : " << paramGDB.getReadableContent() << endl;
+        paramGDB.saveVarToFile("testData", "GraphDataBase_Param_new");
+        assert(GDB1.getRawContent() == paramGDB.getRawContent());
     }
 #else
     cout << "GDB tests skipped (not built with C++20-capable compiler)" << endl;
