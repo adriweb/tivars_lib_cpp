@@ -15,6 +15,7 @@
 #include "../json.hpp"
 using json = nlohmann::ordered_json;
 
+#include <sstream>
 #include <variant>
 
 namespace
@@ -114,7 +115,7 @@ namespace
     public:
         TIReal() = default;
         ~TIReal() = default;
-        TIReal(auto i) : str(std::to_string(i)) {}
+        TIReal(int i) : str(std::to_string(i)) {}
         TIReal(const char* s) : str(s) {}
         TIReal(std::string s) : str(std::move(s)) {}
         operator const std::string&() const { return str; }
@@ -127,7 +128,10 @@ namespace
     void from_json(const json& j, TIReal& real) {
         if (j.is_number())
         {
-            real = std::to_string(j.get<double>());
+            std::ostringstream out;
+            out.precision(15);
+            out << j.get<double>();
+            real = std::move(out).str();
         } else if (j.is_string()) {
             real = j.get<std::string>();
         } else {
