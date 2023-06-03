@@ -8,10 +8,13 @@
 #include "TypeHandlers.h"
 #include "../tivarslib_utils.h"
 
+#include <stdexcept>
+
+#ifdef GDB_SUPPORT
+
 #include "../json.hpp"
 using json = nlohmann::ordered_json;
 
-#include <stdexcept>
 #include <variant>
 
 namespace
@@ -532,3 +535,20 @@ namespace tivars
         return json(gdb).dump(compactJSON ? -1 : 4);
     }
 }
+
+#else
+
+namespace tivars
+{
+    data_t TH_GDB::makeDataFromString(const std::string&, const options_t&)
+    {
+        throw std::runtime_error("GDB support is not compiled in this tivars_lib_cpp version");
+    }
+
+    std::string TH_GDB::makeStringFromData(const data_t&, const options_t&)
+    {
+        throw std::runtime_error("GDB support is not compiled in this tivars_lib_cpp version");
+    }
+}
+
+#endif /* GDB_SUPPORT */

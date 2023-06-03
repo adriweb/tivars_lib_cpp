@@ -3,7 +3,7 @@ CXX := em++
 # Emscripten stuff
 EMFLAGS := --bind --memory-init-file 0 -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME="'TIVarsLib'" -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 -s EXPORTED_RUNTIME_METHODS="['FS']" --embed-file programs_tokens.csv
 
-CXXFLAGS := -O3 -flto -std=c++20 -W -Wall -Wextra
+CXXFLAGS := -O3 -flto -std=c++2a -DGDB_SUPPORT=1 -W -Wall -Wextra
 LFLAGS := -flto $(EMFLAGS)
 
 SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp)

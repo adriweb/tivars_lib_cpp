@@ -4,7 +4,20 @@ project(tivars_lib_cpp
         VERSION     1.3.0
         LANGUAGES   CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+include(CheckCXXCompilerFlag)
+if(MSVC)
+    CHECK_CXX_COMPILER_FLAG("/std::c++20" COMPILER_SUPPORTS_CXX20)
+else()
+    CHECK_CXX_COMPILER_FLAG("-std=c++2a" COMPILER_SUPPORTS_CXX20)
+endif()
+if(COMPILER_SUPPORTS_CXX20)
+    set(CMAKE_CXX_STANDARD 20)
+    add_definitions(-DGDB_SUPPORT=1)
+else()
+    set(CMAKE_CXX_STANDARD 11)
+    message(WARNING "Compiler ${CMAKE_CXX_COMPILER} has no C++20 support, will disable GDB vartype support.")
+endif()
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(MSVC)

@@ -381,6 +381,7 @@ int main(int argc, char** argv)
         assert(std::equal(firstVarEntry.varname, firstVarEntry.varname + 8, testThetaVarName));
     }
 
+#ifdef GDB_SUPPORT
     {
         TIVarFile GDB1 = TIVarFile::loadFromFile("testData/GraphDataBase.8xd");
         const std::string gdb1JSON = GDB1.getReadableContent();
@@ -391,6 +392,9 @@ int main(int argc, char** argv)
         assert(GDB1.getRawContent() == GDB_new.getRawContent());
         assert(gdb1JSON == GDB_new.getReadableContent());
     }
+#else
+    cout << "GDB tests skipped (not built with C++20-capable compiler)" << endl;
+#endif
 
     return 0;
 }
