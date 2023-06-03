@@ -44,6 +44,16 @@ int main(int argc, char** argv)
     assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
 
     {
+        TIVarFile testReal = TIVarFile::createNew("Real");
+        for (const auto& str : { "0.0", "0", "+0.0", "+0" })
+        {
+            testReal.setContentFromString(str);
+            assert(testReal.getRawContent() == data_t({ 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }));
+            assert(testReal.getReadableContent() == "0");
+        }
+    }
+
+    {
         TIVarFile toksPrgm = TIVarFile::loadFromFile("testData/ALLTOKS.8Xp");
         cout << toksPrgm.getReadableContent() << "\n" << endl;
     }

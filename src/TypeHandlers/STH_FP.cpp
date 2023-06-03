@@ -98,7 +98,7 @@ namespace tivars
         if (exponent < 0x80 - 99 || exponent > 0x80 + 99) {
             throw std::invalid_argument("Exponent out of range.");
         }
-        data[1] = exponent;
+        data[1] = zero ? 0x80 : exponent; // TI forces 0x80 as exp for zero values.
         return data;
     }
 
