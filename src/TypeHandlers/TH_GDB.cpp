@@ -219,26 +219,53 @@ namespace
 
         try { gdb.graphMode = j["graphMode"]; } catch(...) {}
 
-        try { gdb.formatSettings.style      = j["formatSettings"][0]; } catch(...) {}
-        try { gdb.formatSettings.tracing    = j["formatSettings"][1]; } catch(...) {}
-        try { gdb.formatSettings.grid       = j["formatSettings"][2]; } catch(...) {}
-        try { gdb.formatSettings.coordsType = j["formatSettings"][3]; } catch(...) {}
-        try { gdb.formatSettings.coords     = j["formatSettings"][4]; } catch(...) {}
-        try { gdb.formatSettings.axes       = j["formatSettings"][5]; } catch(...) {}
-        try { gdb.formatSettings.label      = j["formatSettings"][6]; } catch(...) {}
-        try { gdb.formatSettings.gridType   = j["formatSettings"][7]; } catch(...) {}
+        if (j.contains("formatSettings"))
+        {
+            if (!j["formatSettings"].is_array()) {
+                throw std::runtime_error("bad type for formatSettings, expected array");
+            }
+            const size_t size = j["formatSettings"].size();
+            if (size >= 1) try { gdb.formatSettings.style      = j["formatSettings"][0]; } catch(...) {}
+            if (size >= 2) try { gdb.formatSettings.tracing    = j["formatSettings"][1]; } catch(...) {}
+            if (size >= 3) try { gdb.formatSettings.grid       = j["formatSettings"][2]; } catch(...) {}
+            if (size >= 4) try { gdb.formatSettings.coordsType = j["formatSettings"][3]; } catch(...) {}
+            if (size >= 5) try { gdb.formatSettings.coords     = j["formatSettings"][4]; } catch(...) {}
+            if (size >= 6) try { gdb.formatSettings.axes       = j["formatSettings"][5]; } catch(...) {}
+            if (size >= 7) try { gdb.formatSettings.label      = j["formatSettings"][6]; } catch(...) {}
+            if (size >= 8) try { gdb.formatSettings.gridType   = j["formatSettings"][7]; } catch(...) {}
+        }
 
-        try { gdb.seqSettings.mode = j["seqSettings"]["mode"]; } catch(...) {}
+        if (j.contains("seqSettings"))
+        {
+            if (!j["seqSettings"].is_object()) {
+                throw std::runtime_error("bad type for seqSettings, expected object");
+            }
+            try { gdb.seqSettings.mode = j["seqSettings"]["mode"]; } catch(...) {}
+        }
 
-        try { gdb.extSettings.expr = j["extSettings"]["showExpr"].get<bool>() ? ExtModeSettings::ExprOn : ExtModeSettings::ExprOff; } catch(...) {}
-        try { gdb.extSettings.seqMode = j["extSettings"]["seqMode"]; } catch(...) {}
+        if (j.contains("extSettings"))
+        {
+            if (!j["extSettings"].is_object()) {
+                throw std::runtime_error("bad type for extSettings, expected object");
+            }
+            const auto& es = j["globalWindowSettings"];
+            if (es.contains("showExpr")) try { gdb.extSettings.expr = es["showExpr"].get<bool>() ? ExtModeSettings::ExprOn : ExtModeSettings::ExprOff; } catch(...) {}
+            if (es.contains("seqMode")) try { gdb.extSettings.seqMode = es["seqMode"]; } catch(...) {}
+        }
 
-        try { from_json(j["globalWindowSettings"]["Xmin"], gdb.globalWindowSettings.Xmin); } catch(...) {}
-        try { from_json(j["globalWindowSettings"]["Xmax"], gdb.globalWindowSettings.Xmax); } catch(...) {}
-        try { from_json(j["globalWindowSettings"]["Xscl"], gdb.globalWindowSettings.Xscl); } catch(...) {}
-        try { from_json(j["globalWindowSettings"]["Ymin"], gdb.globalWindowSettings.Ymin); } catch(...) {}
-        try { from_json(j["globalWindowSettings"]["Ymax"], gdb.globalWindowSettings.Ymax); } catch(...) {}
-        try { from_json(j["globalWindowSettings"]["Yscl"], gdb.globalWindowSettings.Yscl); } catch(...) {}
+        if (j.contains("globalWindowSettings"))
+        {
+            if (!j["globalWindowSettings"].is_object()) {
+                throw std::runtime_error("bad type for globalWindowSettings, expected object");
+            }
+            const auto& gws = j["globalWindowSettings"];
+            if (gws.contains("Xmin")) try { from_json(gws["Xmin"], gdb.globalWindowSettings.Xmin); } catch(...) {}
+            if (gws.contains("Xmax")) try { from_json(gws["Xmax"], gdb.globalWindowSettings.Xmax); } catch(...) {}
+            if (gws.contains("Xscl")) try { from_json(gws["Xscl"], gdb.globalWindowSettings.Xscl); } catch(...) {}
+            if (gws.contains("Ymin")) try { from_json(gws["Ymin"], gdb.globalWindowSettings.Ymin); } catch(...) {}
+            if (gws.contains("Ymax")) try { from_json(gws["Ymax"], gdb.globalWindowSettings.Ymax); } catch(...) {}
+            if (gws.contains("Yscl")) try { from_json(gws["Yscl"], gdb.globalWindowSettings.Yscl); } catch(...) {}
+        }
 
         const auto getSpecificDataFromJSON = [&](const json& j, const GraphMode& graphMode, auto& specificData) -> void
         {
