@@ -169,23 +169,23 @@ namespace
     struct FunctionData
     {
         std::pair<const char*, TIReal> settings[1] = { {"Xres",1} };
-        std::pair<const char*, GraphStyle> styles[10] = { {"y1",{}}, {"y2",{}}, {"y3",{}}, {"y4",{}}, {"y5",{}},
-                                                           {"y6",{}}, {"y7",{}}, {"y8",{}}, {"y9",{}}, {"y0",{}} };
-        std::pair<const char*, EquDefWrapper> equations[10] = { {"y1",{}}, {"y2",{}}, {"y3",{}}, {"y4",{}}, {"y5",{}},
-                                                                 {"y6",{}}, {"y7",{}}, {"y8",{}}, {"y9",{}}, {"y0",{}} };
-        std::pair<const char*, OSColor> colors[10] = { {"y1",Blue}, {"y2",Red}, {"y3",Black}, {"y4",Magenta}, {"y5",Green},
-                                                       {"y6",Orange}, {"y7",Brown}, {"y8",Blue}, {"y9",Red}, {"y0",Black} };
+        std::pair<const char*, GraphStyle> styles[10] = { {"Y1",{}}, {"Y2",{}}, {"Y3",{}}, {"Y4",{}}, {"Y5",{}},
+                                                           {"Y6",{}}, {"Y7",{}}, {"Y8",{}}, {"Y9",{}}, {"Y0",{}} };
+        std::pair<const char*, EquDefWrapper> equations[10] = { {"Y1",{}}, {"Y2",{}}, {"Y3",{}}, {"Y4",{}}, {"Y5",{}},
+                                                                 {"Y6",{}}, {"Y7",{}}, {"Y8",{}}, {"Y9",{}}, {"Y0",{}} };
+        std::pair<const char*, OSColor> colors[10] = { {"Y1",Blue}, {"Y2",Red}, {"Y3",Black}, {"Y4",Magenta}, {"Y5",Green},
+                                                       {"Y6",Orange}, {"Y7",Brown}, {"Y8",Blue}, {"Y9",Red}, {"Y0",Black} };
     };
 
     struct ParametricData
     {
         std::pair<const char*, TIReal> settings[3] = { {"Tmin",0}, {"Tmax",STR_2_PI}, {"Tstep",STR_PI_1_24TH} };
-        std::pair<const char*, GraphStyle> styles[6] = { {"x1t_y1t",{}}, {"x2t_y2t",{}}, {"x3t_y3t",{}},
-                                                         {"x4t_y4t",{}}, {"x5t_y5t",{}}, {"x6t_y6t",{}} };
-        std::pair<const char*, EquDefWrapper> equations[12] = { {"x1t",{}}, {"y1t",{}}, {"x2t",{}}, {"y2t",{}}, {"x3t",{}}, {"y3t",{}},
-                                                                 {"x4t",{}}, {"y4t",{}}, {"x5t",{}}, {"y5t",{}}, {"x6t",{}}, {"y6t",{}} };
-        std::pair<const char*, OSColor> colors[6] = { {"x1t_y1t",Blue}, {"x2t_y2t",Red}, {"x3t_y3t",Black},
-                                                      {"x4t_y4t",Magenta}, {"x5t_y5t",Green}, {"x6t_y6t",Orange} };
+        std::pair<const char*, GraphStyle> styles[6] = { {"X1T_Y1T",{}}, {"X2T_Y2T",{}}, {"X3T_Y3T",{}},
+                                                         {"X4T_Y4T",{}}, {"X5T_Y5T",{}}, {"X6T_Y6T",{}} };
+        std::pair<const char*, EquDefWrapper> equations[12] = { {"X1T",{}}, {"Y1T",{}}, {"X2T",{}}, {"Y2T",{}}, {"X3T",{}}, {"Y3T",{}},
+                                                                 {"X4T",{}}, {"Y4T",{}}, {"X5T",{}}, {"Y5T",{}}, {"X6T",{}}, {"Y6T",{}} };
+        std::pair<const char*, OSColor> colors[6] = { {"X1T_Y1T",Blue}, {"X2T_Y2T",Red}, {"X3T_Y3T",Black},
+                                                      {"X4T_Y4T",Magenta}, {"X5T_Y5T",Green}, {"X6T_Y6T",Orange} };
     };
 
     struct PolarData
