@@ -82,12 +82,16 @@ namespace
     };
     static_assert(sizeof(FuncFlags) == 1);
 
-    struct FuncDefWrapper
+    struct EquDefWrapper
     {
         FuncFlags flags{};
         std::string expr;
     };
-    void to_json(json& j, const FuncDefWrapper& fdw) {
+    void to_json(json& j, const EquDefWrapper& fdw, const GraphStyle& graphStyle, const OSColor* color) {
+        j["style"] = graphStyle;
+        if (color) {
+            j["color"] = *color;
+        }
        j["flags"] = {
            { "selected", fdw.flags.selected },
            { "wasUsedForGraph", fdw.flags.wasUsedForGraph },
@@ -95,7 +99,10 @@ namespace
        };
        j["expr"] = fdw.expr;
     }
-    void from_json(const json& j, FuncDefWrapper& fdw) {
+    void from_json(const json& j, EquDefWrapper& fdw, GraphStyle& graphStyle, OSColor* color) {
+        try { graphStyle = j["style"]; } catch (...) {}
+        try { if (color && j.contains("color")) { *color = j["color"]; } } catch (...) {}
+        try { fdw.flags.selected = j["flags"]["selected"]; } catch (...) {}
         try { fdw.flags.selected = j["flags"]["selected"]; } catch (...) {}
         try { fdw.flags.wasUsedForGraph = j["flags"]["wasUsedForGraph"]; } catch (...) {}
         try { fdw.flags.linkTransfer = j["flags"]["linkTransfer"]; } catch (...) {}
@@ -146,7 +153,7 @@ namespace
     {
         OSColor gridColor = MedGray;
         OSColor axesColor = Black;
-        GlobalLineStyle lineStyle = Thick;
+        GlobalLineStyle globalStyle = Thick;
         uint8_t borderColor : 3 = 1; // 1,2,3,4 ; corresponds approximately to: LightGray, Green, LightBlue, White
         ExtSettings2 extSettings2{};
     };
@@ -160,7 +167,7 @@ namespace
         std::pair<const char*, TIReal> settings[1] = { {"Xres",1} };
         std::pair<const char*, GraphStyle> styles[10] = { {"y1",{}}, {"y2",{}}, {"y3",{}}, {"y4",{}}, {"y5",{}},
                                                            {"y6",{}}, {"y7",{}}, {"y8",{}}, {"y9",{}}, {"y0",{}} };
-        std::pair<const char*, FuncDefWrapper> functions[10] = { {"y1",{}}, {"y2",{}}, {"y3",{}}, {"y4",{}}, {"y5",{}},
+        std::pair<const char*, EquDefWrapper> equations[10] = { {"y1",{}}, {"y2",{}}, {"y3",{}}, {"y4",{}}, {"y5",{}},
                                                                  {"y6",{}}, {"y7",{}}, {"y8",{}}, {"y9",{}}, {"y0",{}} };
         std::pair<const char*, OSColor> colors[10] = { {"y1",Blue}, {"y2",Red}, {"y3",Black}, {"y4",Magenta}, {"y5",Green},
                                                        {"y6",Orange}, {"y7",Brown}, {"y8",Blue}, {"y9",Red}, {"y0",Black} };
@@ -171,7 +178,7 @@ namespace
         std::pair<const char*, TIReal> settings[3] = { {"Tmin",0}, {"Tmax",STR_2_PI}, {"Tstep",STR_PI_1_24TH} };
         std::pair<const char*, GraphStyle> styles[6] = { {"x1t_y1t",{}}, {"x2t_y2t",{}}, {"x3t_y3t",{}},
                                                          {"x4t_y4t",{}}, {"x5t_y5t",{}}, {"x6t_y6t",{}} };
-        std::pair<const char*, FuncDefWrapper> functions[12] = { {"x1t",{}}, {"y1t",{}}, {"x2t",{}}, {"y2t",{}}, {"x3t",{}}, {"y3t",{}},
+        std::pair<const char*, EquDefWrapper> equations[12] = { {"x1t",{}}, {"y1t",{}}, {"x2t",{}}, {"y2t",{}}, {"x3t",{}}, {"y3t",{}},
                                                                  {"x4t",{}}, {"y4t",{}}, {"x5t",{}}, {"y5t",{}}, {"x6t",{}}, {"y6t",{}} };
         std::pair<const char*, OSColor> colors[6] = { {"x1t_y1t",Blue}, {"x2t_y2t",Red}, {"x3t_y3t",Black},
                                                       {"x4t_y4t",Magenta}, {"x5t_y5t",Green}, {"x6t_y6t",Orange} };
@@ -181,7 +188,7 @@ namespace
     {
         std::pair<const char*, TIReal> settings[3] = { {"THmin",{}}, {"THmax",STR_2_PI}, {"THstep",STR_PI_1_24TH} };
         std::pair<const char*, GraphStyle> styles[6] = { {"r1",{}}, {"r2",{}}, {"r3",{}}, {"r4",{}}, {"r5",{}}, {"r6",{}} };
-        std::pair<const char*, FuncDefWrapper> functions[6] = { {"r1",{}}, {"r2",{}}, {"r3",{}}, {"r4",{}}, {"r5",{}}, {"r6",{}} };
+        std::pair<const char*, EquDefWrapper> equations[6] = { {"r1",{}}, {"r2",{}}, {"r3",{}}, {"r4",{}}, {"r5",{}}, {"r6",{}} };
         std::pair<const char*, OSColor> colors[6] = { {"r1",Blue}, {"r2",Red}, {"r3",Black}, {"r4",Magenta}, {"r5",Green}, {"r6",Orange} };
     };
 
@@ -190,7 +197,7 @@ namespace
         std::pair<const char*, TIReal> settings[10] = { {"PlotStart",1}, {"nMax",10}, {"u(nMin)",0}, {"v(nMin)",0}, {"nMin",1},
                                                         {"u(nMin+1)",0}, {"v(nMin+1)",0}, {"w(nMin+1)",0}, {"PlotStep",1}, {"w(nMin)",0}};
         std::pair<const char*, GraphStyle> styles[3] = { {"u",{}}, {"v",{}}, {"w",{}} };
-        std::pair<const char*, FuncDefWrapper> functions[3] = { {"u",{}}, {"v",{}}, {"w",{}} };
+        std::pair<const char*, EquDefWrapper> equations[3] = { {"u",{}}, {"v",{}}, {"w",{}} };
         std::pair<const char*, OSColor> colors[3] = { {"u",Blue}, {"v",Red}, {"w",Black} };
     };
 
@@ -233,65 +240,46 @@ namespace
         try { from_json(j["globalWindowSettings"]["Ymax"], gdb.globalWindowSettings.Ymax); } catch(...) {}
         try { from_json(j["globalWindowSettings"]["Yscl"], gdb.globalWindowSettings.Yscl); } catch(...) {}
 
-        const auto getSpecificDataFromJSON = [&](const json& j, auto& specificData) -> void
+        const auto getSpecificDataFromJSON = [&](const json& j, const GraphMode& graphMode, auto& specificData) -> void
         {
-            uint8_t i = 0;
-
             for (auto& [name, value] : specificData.settings)
             {
-                from_json(j["specificData"]["settings"][name], value);
-            }
-
-            for (auto& [_, value] : specificData.styles)
-            {
-                try { value = j["specificData"]["styles"][i]; } catch (...) {}
-                i++;
-            }
-
-            i = 0;
-            if (j["specificData"]["functions"].is_array() && j["specificData"]["functions"].size() <= std::size(specificData.functions))
-            {
-                for (const auto& value : j["specificData"]["functions"])
+                if (j["specificData"].contains("settings") && j["specificData"]["settings"].contains(name))
                 {
-                    if (value.is_null()) { i++; continue; }
-                    else if (value.is_object())
-                    {
-                        from_json(value, specificData.functions[i].second);
-                        i++;
-                    } else {
-                        throw std::runtime_error("bad type, expected object for function definition (flags and expr)");
-                    }
+                    from_json(j["specificData"]["settings"][name], value);
                 }
-            } else {
-                throw std::runtime_error("need specificData.functions array");
             }
 
-            i = 0;
-            if (gdb._has84CAndLaterData)
+            if (j["specificData"].contains("equations"))
             {
-                if (j["specificData"]["colors"].is_array() && j["specificData"]["colors"].size() <= std::size(specificData.functions))
+                if (!j["specificData"]["equations"].is_object())
                 {
-                    for (const auto& value : j["specificData"]["colors"])
+                    throw std::runtime_error("need specificData.equations to be an object");
+                }
+
+                uint8_t i = 0;
+                for (auto& [name, equDefWrapper] : specificData.equations)
+                {
+                    if (j["specificData"]["equations"].contains(name))
                     {
-                        if (value.is_string())
+                        auto& value = j["specificData"]["equations"][name];
+                        if (value.is_object())
                         {
-                            from_json(value, specificData.colors[i].second);
-                            i++;
-                        } else {
-                            throw std::runtime_error("bad type, expected string for specificData.colors[i]");
+                            const uint8_t idx = graphMode == Parametric ? (uint8_t)(i/2.0) : i; // Parametric is split in 2 eqs
+                            from_json(value, equDefWrapper, specificData.styles[idx].second, gdb._has84CAndLaterData ? &specificData.colors[idx].second : nullptr);
                         }
                     }
-                } else {
-                    throw std::runtime_error("need specificData.colors array, and of size " + std::to_string(std::size(specificData.functions)));
+                    i++;
                 }
             }
+
         };
 
         switch (gdb.graphMode) {
-            case Function:   getSpecificDataFromJSON(j, std::get<FunctionData>(gdb.specificData));   break;
-            case Parametric: getSpecificDataFromJSON(j, std::get<ParametricData>(gdb.specificData)); break;
-            case Polar:      getSpecificDataFromJSON(j, std::get<PolarData>(gdb.specificData));      break;
-            case Sequence:   getSpecificDataFromJSON(j, std::get<SequenceData>(gdb.specificData));   break;
+            case Function:   getSpecificDataFromJSON(j, gdb.graphMode, std::get<FunctionData>(gdb.specificData));   break;
+            case Parametric: getSpecificDataFromJSON(j, gdb.graphMode, std::get<ParametricData>(gdb.specificData)); break;
+            case Polar:      getSpecificDataFromJSON(j, gdb.graphMode, std::get<PolarData>(gdb.specificData));      break;
+            case Sequence:   getSpecificDataFromJSON(j, gdb.graphMode, std::get<SequenceData>(gdb.specificData));   break;
             default:
                 throw std::runtime_error("Unknown graphMode value " + std::to_string(gdb.graphMode));
         }
@@ -301,7 +289,7 @@ namespace
             try { gdb.global84CSettings.gridColor = j["global84CSettings"]["colors"]["grid"]; } catch (...) {}
             try { gdb.global84CSettings.axesColor = j["global84CSettings"]["colors"]["axes"]; } catch (...) {}
             try { gdb.global84CSettings.borderColor = j["global84CSettings"]["colors"]["border"]; } catch (...) {}
-            try { gdb.global84CSettings.lineStyle = j["global84CSettings"]["other"]["lineStyle"]; } catch (...) {}
+            try { gdb.global84CSettings.globalStyle = j["global84CSettings"]["other"]["globalStyle"]; } catch (...) {}
             try { gdb.global84CSettings.extSettings2.detectAsymptotes = j["global84CSettings"]["other"]["detectAsymptotes"].get<bool>() ? ExtSettings2::DetectAsymptotesOn : ExtSettings2::DetectAsymptotesOff; } catch(...) {}
         }
     }
@@ -342,24 +330,13 @@ namespace
                to_json(j["specificData"]["settings"][name], value);
            }
 
-           for (const auto& [_, value] : specificData.styles)
-           {
-               j["specificData"]["styles"].push_back(value);
-           }
-
            uint8_t i = 0;
-           for (const auto& [_, func] : specificData.functions)
+           for (const auto& [name, equDefWrapper] : specificData.equations)
            {
-               to_json(j["specificData"]["functions"][i], func);
+               const uint8_t idx = (std::is_same_v<std::decay_t<decltype(specificData)>, ParametricData>) ? (uint8_t)(i/2.) : i;
+               const OSColor* oscolorPtr = gdb._has84CAndLaterData ? &specificData.colors[idx].second : nullptr;
+               to_json(j["specificData"]["equations"][name], equDefWrapper, specificData.styles[idx].second, oscolorPtr);
                i++;
-           }
-
-           if (gdb._has84CAndLaterData)
-           {
-               for (const auto& [_, value] : specificData.colors)
-               {
-                   j["specificData"]["colors"].push_back(value);
-               }
            }
         }, gdb.specificData);
 
@@ -372,7 +349,7 @@ namespace
                     { "border", gdb.global84CSettings.borderColor },
                 } },
                 { "other", {
-                    { "lineStyle", gdb.global84CSettings.lineStyle },
+                    { "globalStyle", gdb.global84CSettings.globalStyle },
                     { "detectAsymptotes", gdb.global84CSettings.extSettings2.detectAsymptotes == ExtSettings2::DetectAsymptotesOn }
                 } },
             };
@@ -416,10 +393,10 @@ namespace tivars
                data.push_back(value);
            }
 
-           for (const auto& [_, func] : specificData.functions)
+           for (const auto& [_, equ] : specificData.equations)
            {
-               data.push_back(*((uint8_t*)(&func.flags)));
-               vector_append(data, TH_Tokenized::makeDataFromString(func.expr));
+               data.push_back(*((uint8_t*)(&equ.flags)));
+               vector_append(data, TH_Tokenized::makeDataFromString(equ.expr));
            }
 
            if (gdb._has84CAndLaterData)
@@ -436,7 +413,7 @@ namespace tivars
         {
             data.push_back(gdb.global84CSettings.gridColor);
             data.push_back(gdb.global84CSettings.axesColor);
-            data.push_back(gdb.global84CSettings.lineStyle);
+            data.push_back(gdb.global84CSettings.globalStyle);
             data.push_back(gdb.global84CSettings.borderColor);
             data.push_back(*((uint8_t*)(&gdb.global84CSettings.extSettings2)));
         }
@@ -493,12 +470,12 @@ namespace tivars
                 tmpOff++;
             }
 
-            for (auto& [_, func] : specificData.functions)
+            for (auto& [_, equ] : specificData.equations)
             {
                 const uint16_t equLen = (data[tmpOff + 2] << 1) + data[tmpOff + 1];
-                func.flags = *(FuncFlags*)(&(data[tmpOff]));
-                func.expr = TH_Tokenized::makeStringFromData(data_t(data.begin() + tmpOff + 3, data.begin() + tmpOff + 3 + equLen), {{"fromRawBytes", true}});
-                tmpOff += sizeof(equLen) + sizeof(func.flags) + equLen;
+                equ.flags = *(FuncFlags*)(&(data[tmpOff]));
+                equ.expr = TH_Tokenized::makeStringFromData(data_t(data.begin() + tmpOff + 3, data.begin() + tmpOff + 3 + equLen), {{"fromRawBytes", true}});
+                tmpOff += sizeof(equLen) + sizeof(equ.flags) + equLen;
             }
 
             if (std::memcmp(&data[tmpOff], magic84CAndLaterSectionMarker, strlen(magic84CAndLaterSectionMarker)) == 0)
@@ -526,7 +503,7 @@ namespace tivars
         {
             gdb.global84CSettings.gridColor = static_cast<OSColor>(data[tmpOff++]);
             gdb.global84CSettings.axesColor = static_cast<OSColor>(data[tmpOff++]);
-            gdb.global84CSettings.lineStyle = static_cast<GlobalLineStyle>(data[tmpOff++]);
+            gdb.global84CSettings.globalStyle = static_cast<GlobalLineStyle>(data[tmpOff++]);
             gdb.global84CSettings.borderColor = data[tmpOff++];
             gdb.global84CSettings.extSettings2 = *((ExtSettings2*)(&data[tmpOff++]));
         }

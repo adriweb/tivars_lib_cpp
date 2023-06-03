@@ -383,7 +383,7 @@ int main(int argc, char** argv)
 
 #ifdef GDB_SUPPORT
     {
-        TIVarFile GDB1 = TIVarFile::loadFromFile("testData/GraphDataBase.8xd");
+        TIVarFile GDB1 = TIVarFile::loadFromFile("testData/GraphDataBase_Func.8xd");
         const std::string gdb1JSON = GDB1.getReadableContent();
         cout << "GDB1.getReadableContent() : " << gdb1JSON << endl;
 
@@ -392,6 +392,18 @@ int main(int argc, char** argv)
         assert(GDB1.getRawContent() == GDB_new.getRawContent());
         assert(gdb1JSON == GDB_new.getReadableContent());
     }
+/*
+    {
+        TIVarFile GDB2 = TIVarFile::loadFromFile("testData/GraphDataBase_Param.8xd");
+        const std::string gdb2JSON = GDB2.getReadableContent();
+        cout << "GDB2.getReadableContent() : " << gdb2JSON << endl;
+
+        TIVarFile GDB_new = TIVarFile::createNew("GraphDataBase", "a");
+        GDB_new.setContentFromString(gdb2JSON);
+        assert(GDB2.getRawContent() == GDB_new.getRawContent());
+        assert(gdb2JSON == GDB_new.getReadableContent());
+    }
+*/
 #else
     cout << "GDB tests skipped (not built with C++20-capable compiler)" << endl;
 #endif
