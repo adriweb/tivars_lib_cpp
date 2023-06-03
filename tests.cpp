@@ -9,6 +9,8 @@
 #include <cstring>
 #include <string>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 #include "src/TIModels.h"
 #include "src/TIVarTypes.h"
@@ -392,18 +394,19 @@ int main(int argc, char** argv)
         assert(GDB1.getRawContent() == GDB_new.getRawContent());
         assert(gdb1JSON == GDB_new.getReadableContent());
     }
-/*
-    {
-        TIVarFile GDB2 = TIVarFile::loadFromFile("testData/GraphDataBase_Param.8xd");
-        const std::string gdb2JSON = GDB2.getReadableContent();
-        cout << "GDB2.getReadableContent() : " << gdb2JSON << endl;
 
-        TIVarFile GDB_new = TIVarFile::createNew("GraphDataBase", "a");
-        GDB_new.setContentFromString(gdb2JSON);
-        assert(GDB2.getRawContent() == GDB_new.getRawContent());
-        assert(gdb2JSON == GDB_new.getReadableContent());
+    {
+        if (file_exists("testData/GDB_Parametric.json"))
+        {
+            std::ifstream jsonFile("testData/GDB_Parametric.json");
+            std::stringstream gdbJSON;
+            gdbJSON << jsonFile.rdbuf();
+
+            TIVarFile paramGDB = TIVarFile::createNew("GraphDataBase", "a");
+            paramGDB.setContentFromString(gdbJSON.str());
+            cout << "paramGDB.getReadableContent() : " << paramGDB.getReadableContent() << endl;
+        }
     }
-*/
 #else
     cout << "GDB tests skipped (not built with C++20-capable compiler)" << endl;
 #endif
