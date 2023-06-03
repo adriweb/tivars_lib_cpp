@@ -317,11 +317,18 @@ namespace
 
         if (gdb._has84CAndLaterData && j["global84CSettings"].is_object())
         {
-            try { gdb.global84CSettings.gridColor = j["global84CSettings"]["colors"]["grid"]; } catch (...) {}
-            try { gdb.global84CSettings.axesColor = j["global84CSettings"]["colors"]["axes"]; } catch (...) {}
-            try { gdb.global84CSettings.borderColor = j["global84CSettings"]["colors"]["border"]; } catch (...) {}
-            try { gdb.global84CSettings.globalLineStyle = j["global84CSettings"]["other"]["globalLineStyle"]; } catch (...) {}
-            try { gdb.global84CSettings.extSettings2.detectAsymptotes = j["global84CSettings"]["other"]["detectAsymptotes"].get<bool>() ? ExtSettings2::DetectAsymptotesOn : ExtSettings2::DetectAsymptotesOff; } catch(...) {}
+            const auto& g84cs = j["global84CSettings"];
+            if (g84cs.contains("colors"))
+            {
+                if (g84cs["colors"].contains("grid")) try { gdb.global84CSettings.gridColor = g84cs["colors"]["grid"]; } catch (...) {}
+                if (g84cs["colors"].contains("axes")) try { gdb.global84CSettings.axesColor = g84cs["colors"]["axes"]; } catch (...) {}
+                if (g84cs["colors"].contains("border")) try { gdb.global84CSettings.borderColor = g84cs["colors"]["border"]; } catch (...) {}
+            }
+            if (g84cs.contains("other"))
+            {
+                if (g84cs["other"].contains("globalLineStyle")) try { gdb.global84CSettings.globalLineStyle = g84cs["other"]["globalLineStyle"]; } catch (...) {}
+                if (g84cs["other"].contains("detectAsymptotes")) try { gdb.global84CSettings.extSettings2.detectAsymptotes = g84cs["other"]["detectAsymptotes"].get<bool>() ? ExtSettings2::DetectAsymptotesOn : ExtSettings2::DetectAsymptotesOff; } catch(...) {}
+            }
         }
     }
 
