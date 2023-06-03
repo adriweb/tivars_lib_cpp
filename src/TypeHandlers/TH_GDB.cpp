@@ -157,7 +157,7 @@ namespace
     {
         OSColor gridColor = MedGray;
         OSColor axesColor = Black;
-        GlobalLineStyle globalStyle = Thick;
+        GlobalLineStyle globalLineStyle = Thick;
         uint8_t borderColor : 3 = 1; // 1,2,3,4 ; corresponds approximately to: LightGray, Green, LightBlue, White
         ExtSettings2 extSettings2{};
     };
@@ -320,7 +320,7 @@ namespace
             try { gdb.global84CSettings.gridColor = j["global84CSettings"]["colors"]["grid"]; } catch (...) {}
             try { gdb.global84CSettings.axesColor = j["global84CSettings"]["colors"]["axes"]; } catch (...) {}
             try { gdb.global84CSettings.borderColor = j["global84CSettings"]["colors"]["border"]; } catch (...) {}
-            try { gdb.global84CSettings.globalStyle = j["global84CSettings"]["other"]["globalStyle"]; } catch (...) {}
+            try { gdb.global84CSettings.globalLineStyle = j["global84CSettings"]["other"]["globalLineStyle"]; } catch (...) {}
             try { gdb.global84CSettings.extSettings2.detectAsymptotes = j["global84CSettings"]["other"]["detectAsymptotes"].get<bool>() ? ExtSettings2::DetectAsymptotesOn : ExtSettings2::DetectAsymptotesOff; } catch(...) {}
         }
     }
@@ -380,7 +380,7 @@ namespace
                     { "border", gdb.global84CSettings.borderColor },
                 } },
                 { "other", {
-                    { "globalStyle", gdb.global84CSettings.globalStyle },
+                    { "globalLineStyle", gdb.global84CSettings.globalLineStyle },
                     { "detectAsymptotes", gdb.global84CSettings.extSettings2.detectAsymptotes == ExtSettings2::DetectAsymptotesOn }
                 } },
             };
@@ -444,7 +444,7 @@ namespace tivars
         {
             data.push_back(gdb.global84CSettings.gridColor);
             data.push_back(gdb.global84CSettings.axesColor);
-            data.push_back(gdb.global84CSettings.globalStyle);
+            data.push_back(gdb.global84CSettings.globalLineStyle);
             data.push_back(gdb.global84CSettings.borderColor);
             data.push_back(*((uint8_t*)(&gdb.global84CSettings.extSettings2)));
         }
@@ -534,7 +534,7 @@ namespace tivars
         {
             gdb.global84CSettings.gridColor = static_cast<OSColor>(data[tmpOff++]);
             gdb.global84CSettings.axesColor = static_cast<OSColor>(data[tmpOff++]);
-            gdb.global84CSettings.globalStyle = static_cast<GlobalLineStyle>(data[tmpOff++]);
+            gdb.global84CSettings.globalLineStyle = static_cast<GlobalLineStyle>(data[tmpOff++]);
             gdb.global84CSettings.borderColor = data[tmpOff++];
             gdb.global84CSettings.extSettings2 = *((ExtSettings2*)(&data[tmpOff++]));
         }

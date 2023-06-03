@@ -156,7 +156,7 @@
 			"border": 1
 		},
 		"other": {
-			"globalStyle": "Thick",
+			"globalLineStyle": "Thick",
 			"detectAsymptotes": true
 		}
 	}
