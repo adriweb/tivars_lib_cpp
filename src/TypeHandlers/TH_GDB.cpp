@@ -41,8 +41,8 @@ namespace
         u8enum(Tracing) { Sequential, Simul }  tracing    : 1 = Sequential;
         u8enum(Grid) { GridOff, GridOn }       grid       : 1 = GridOff;
         u8enum(CoordsType) { RectGC, PolarGC } coordsType : 1 = RectGC;
-        u8enum(Coords) { CoordOff, CoordOn }   coords     : 1 = CoordOff;
-        u8enum(Axes) { AxesOff, AxesOn }       axes       : 1 = AxesOff;
+        u8enum(Coords) { CoordOn, CoordOff }   coords     : 1 = CoordOn;
+        u8enum(Axes) { AxesOn, AxesOff }       axes       : 1 = AxesOn;
         u8enum(Label) { LabelOff, LabelOn }    label      : 1 = LabelOff;
         u8enum(GridType) { GridDot, GridLine } gridType   : 1 = GridDot;
     };
@@ -51,15 +51,15 @@ namespace
     NLOHMANN_JSON_SERIALIZE_ENUM(FormatSettings::Tracing, { {FormatSettings::Sequential, "Sequential"}, {FormatSettings::Simul, "Simul"} })
     NLOHMANN_JSON_SERIALIZE_ENUM(FormatSettings::Grid, { {FormatSettings::GridOff, "GridOff"}, {FormatSettings::GridOn, "GridOn"} })
     NLOHMANN_JSON_SERIALIZE_ENUM(FormatSettings::CoordsType, { {FormatSettings::RectGC, "RectGC"}, {FormatSettings::PolarGC, "PolarGC"} })
-    NLOHMANN_JSON_SERIALIZE_ENUM(FormatSettings::Coords, { {FormatSettings::CoordOff, "CoordOff"}, {FormatSettings::CoordOn, "CoordOn"} })
-    NLOHMANN_JSON_SERIALIZE_ENUM(FormatSettings::Axes, { {FormatSettings::AxesOff, "AxesOff"}, {FormatSettings::AxesOn, "AxesOn"} })
+    NLOHMANN_JSON_SERIALIZE_ENUM(FormatSettings::Coords, { {FormatSettings::CoordOn, "CoordOn"}, {FormatSettings::CoordOff, "CoordOff"} })
+    NLOHMANN_JSON_SERIALIZE_ENUM(FormatSettings::Axes, { {FormatSettings::AxesOn, "AxesOn"}, {FormatSettings::AxesOff, "AxesOff"} })
     NLOHMANN_JSON_SERIALIZE_ENUM(FormatSettings::Label, { {FormatSettings::LabelOff, "LabelOff"}, {FormatSettings::LabelOn, "LabelOn"} })
     NLOHMANN_JSON_SERIALIZE_ENUM(FormatSettings::GridType, { {FormatSettings::GridDot, "GridDot"}, {FormatSettings::GridLine, "GridLine"} })
 
     struct SeqSettings
     {
         u8enum(Mode) { Time = 0, Web = 1, WebVert = 2, SeqUV = 4, SeqVW = 8, SeqUW = 16 } mode : 5 = Time;
-        uint8_t _ : 3 = 0b001;
+        uint8_t _ : 3 = 0; // We're not sure what this is, and it's also unused on the CE apparently. Sometimes it's set to 0b001.
     };
     static_assert(sizeof(SeqSettings) == 1);
     NLOHMANN_JSON_SERIALIZE_ENUM(SeqSettings::Mode, {{ SeqSettings::Time, "Time" }, { SeqSettings::Web, "Web" }, { SeqSettings::WebVert, "WebVert" }, { SeqSettings::SeqUV, "SeqUV" }, { SeqSettings::SeqVW, "SeqVW" }, { SeqSettings::SeqUW, "SeqUW" }})
@@ -149,7 +149,7 @@ namespace
     {
         u8enum(DetectAsymptotes) { DetectAsymptotesOn, DetectAsymptotesOff } detectAsymptotes : 1 = DetectAsymptotesOn;
         uint8_t unk1 : 6 = 0;
-        uint8_t unk2 : 1 = 1;
+        uint8_t unk2 : 1 = 0; // we have seen 1 here sometimes, but it doesn't appear to be used anywhere.
     };
     static_assert(sizeof(ExtSettings2) == 1);
 
