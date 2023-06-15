@@ -61,7 +61,7 @@ namespace tivars
         insertType("String",               0x04,  {"82s", "83s", "8xs", "8xs", "8xs", "8xs", "8xs", "8xs", "8xs"},  make_handler_pair(TH_Tokenized) );
         insertType("Program",              0x05,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_Tokenized) );
         insertType("ProtectedProgram",     0x06,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp"},  make_handler_pair(TH_Tokenized) );
-        insertType("Picture",              0x07,  {  _  ,   _  , "8xi", "8xi", "8xi", "8ci", "8ci", "8ci", "8ci"});
+        insertType("Picture",              0x07,  {"82i", "83i", "8xi", "8xi", "8xi", "8ci", "8ci", "8ci", "8ci"});
         insertType("GraphDataBase",        0x08,  {"82d", "83d", "8xd", "8xd", "8xd", "8xd", "8xd", "8xd", "8xd"},  make_handler_pair(TH_GDB) );
         // insertType("Unknown",              0x09,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         // insertType("UnknownEqu",           0x0A,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
@@ -75,7 +75,7 @@ namespace tivars
         insertType("ScreenImage",          0x12,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("Backup",               0x13,  {"82b", "83b", "8xb",   _  , "8xb", "8cb",   _  ,   _  ,   _  });
         insertType("App",                  0x14,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
-        insertType("AppVar",               0x15,  {  _  ,   _  ,   _  ,   _  , "8xv", "8xv", "8xv", "8xv", "8xv"},  GenericHandlerPair(AppVar, 0x15) );
+        insertType("AppVar",               0x15,  {  _  ,   _  , "8xv", "8xv", "8xv", "8xv", "8xv", "8xv", "8xv"},  GenericHandlerPair(AppVar, 0x15) );
         insertType("PythonAppVar",         0x15,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xv", "8xv", "8xv"},  make_handler_pair(STH_PythonAppVar) );
         insertType("TemporaryItem",        0x16,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("GroupObject",          0x17,  {"82g", "83g", "8xg", "8xg", "8xg", "8xg", "8cg", "8cg", "8cg"});
@@ -95,12 +95,12 @@ namespace tivars
 
         /* System/Flash-related things */
         // 0x22 - IDList (68k calcs)
-        insertType("OperatingSystem",      0x23,  {"82u", "83u", "82u", "8xu", "8xu", "8cu", "8eu", "8pu", "8yu"});
+        insertType("OperatingSystem",      0x23,  {  _  ,   _  , "82u", "8xu", "8xu", "8cu", "8eu", "8pu", "8yu"});
         insertType("FlashApp",             0x24,  {  _  ,   _  ,   _  ,   _  , "8xk", "8ck", "8ek", "8ek",   _  });
         insertType("Certificate",          0x25,  {  _  ,   _  ,   _  ,   _  , "8xq", "8cq",   _  ,   _  ,   _  });
         insertType("AppIDList",            0x26,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("CertificateMemory",    0x27,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
-        // 0x28 - unknown
+        insertType("UnitCertificate",      0x28,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("Clock",                0x29,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("FlashLicense",         0x3E,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
     }
