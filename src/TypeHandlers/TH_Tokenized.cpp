@@ -29,7 +29,7 @@ namespace tivars
         uint8_t lengthOfLongestTokenName;
         std::vector<uint8_t> firstByteOfTwoByteTokens;
         const uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
-        const std::regex toPrettifyRX(R"(\[?\|([a-zA-Z]+)\]?)");
+        const std::regex toPrettifyRX(R"(\[?\|?([a-zA-Z]+)\]?)");
     }
 
     /* TODO: handle TI-Innovator Send( exception for in-strings tokenization (=> not shortest tokens) */
