@@ -170,7 +170,12 @@ namespace tivars
 
         if (has_option(options, "reindent") && options.at("reindent") == 1)
         {
-            str = reindentCodeString(str);
+            options_t indent_options{};
+            if (has_option(options, "indent_char"))
+                indent_options["indent_char"] = options.at("indent_char");
+            if (has_option(options, "indent_n"))
+                indent_options["indent_n"] = options.at("indent_n");
+            str = reindentCodeString(str, indent_options);
         }
 
         return str;
