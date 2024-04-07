@@ -153,9 +153,72 @@ int main(int argc, char** argv)
     }
 
     {
-        string test = "Disp 42:Wait 5:toString(42):Pause\nInput A,\"?\":Asdf(123)\nFor(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
-        cout << "Indented code:" << endl << TH_Tokenized::reindentCodeString(test) << endl;
+        string test = "Disp 42\nInput A,\"?\":For(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
+        const std::string reindented = TH_Tokenized::reindentCodeString(test);
+        cout << "Indented code:" << endl << reindented << endl;
+        const std::string expected = R"(Disp 42
+Input A,"?"
+For(I,1,10)
+Then
+   Disp I
+   For(J,1,10)
+   Then
+      Disp J
+   End
+End)";
+        assert(reindented == expected);
     }
+
+    {
+        string test = "   Disp 42\nInput A,\"?\":  For(I,1,10)\n Then\n \xA0 Disp I:For(J,1,10)\nThen\n Disp J\nEnd\nEnd";
+        const std::string reindented = TH_Tokenized::reindentCodeString(test);
+        cout << "Indented code:" << endl << reindented << endl;
+        const std::string expected = R"(Disp 42
+Input A,"?"
+For(I,1,10)
+Then
+   Disp I
+   For(J,1,10)
+   Then
+      Disp J
+   End
+End)";
+        assert(reindented == expected);
+    }
+
+    {
+        string test = "Disp 42\nInput A,\"?\":For(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
+        const std::string reindented = TH_Tokenized::reindentCodeString(test, {{"indent_n", 8}});
+        cout << "Indented code:" << endl << reindented << endl;
+        const std::string expected = R"(Disp 42
+Input A,"?"
+For(I,1,10)
+Then
+        Disp I
+        For(J,1,10)
+        Then
+                Disp J
+        End
+End)";
+        assert(reindented == expected);
+    }
+
+{
+    string test = "Disp 42\nInput A,\"?\":For(I,1,10)\nThen\nDisp I:For(J,1,10)\nThen\nDisp J\nEnd\nEnd";
+    const std::string reindented = TH_Tokenized::reindentCodeString(test, {{"indent_char", TH_Tokenized::INDENT_CHAR_TAB}});
+    cout << "Indented code:" << endl << reindented << endl;
+    const std::string expected = R"(Disp 42
+Input A,"?"
+For(I,1,10)
+Then
+	Disp I
+	For(J,1,10)
+	Then
+		Disp J
+	End
+End)";
+    assert(reindented == expected);
+}
 
     {
         TIVarFile testPrgmReindent = TIVarFile::createNew("Program", "asdf");

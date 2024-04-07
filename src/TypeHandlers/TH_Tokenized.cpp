@@ -190,6 +190,22 @@ namespace tivars
             lang = PRGMLANG_BASIC;
         }
 
+        char indent_char = INDENT_CHAR_SPACE;
+        if (has_option(options, "indent_char") && options.at("indent_char") == INDENT_CHAR_TAB)
+        {
+            indent_char = INDENT_CHAR_TAB;
+        }
+
+        size_t indent_n = indent_char == INDENT_CHAR_SPACE ? 3 : 1;
+        if (has_option(options, "indent_n"))
+        {
+            const size_t wanted_indent_n = options.at("indent_n");
+            if (wanted_indent_n != indent_n)
+            {
+                indent_n = wanted_indent_n;
+            }
+        }
+
         std::string str(str_orig);
 
         str = std::regex_replace(str, std::regex("([^\\s])(Del|Eff)Var "), "$1\n$2Var ");
@@ -215,6 +231,12 @@ namespace tivars
                     isWithinString = false;
                 }
             }
+        }
+
+        // Take care of NBSP stuff
+        for (auto& line : lines_tmp)
+        {
+            line = std::regex_replace(line, std::regex("^[\u00A0\uC2A0]*\\s*[\u00A0\uC2A0]*"), "");
         }
 
         std::vector<std::pair<uint16_t, std::string>> lines(lines_tmp.size()); // indent, text
@@ -266,7 +288,7 @@ namespace tivars
         str = "";
         for (const auto& line : lines)
         {
-            str += str_repeat(" ", line.first * 3) + line.second + '\n';
+            str += std::string(line.first * indent_n, indent_char) + line.second + '\n';
         }
 
         return ltrim(rtrim(str, "\t\n\r\f\v"));

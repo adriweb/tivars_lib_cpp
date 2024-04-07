@@ -48,8 +48,6 @@ std::string rtrim(std::string s, const char* t = " \t\n\r\f\v");
 
 std::string trim(const std::string& s, const char* t = " \t\n\r\f\v");
 
-std::string str_repeat(const std::string& str, unsigned int times);
-
 void ParseCSV(const std::string& csvSource, std::vector<std::vector<std::string>>& lines);
 
 bool is_numeric(const std::string& str);

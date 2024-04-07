@@ -89,6 +89,7 @@ namespace tivars
         th();
         enum lang { LANG_EN = 0, LANG_FR };
         enum typelang { PRGMLANG_BASIC = 0, PRGMLANG_AXE, PRGMLANG_ICE };
+        enum indentchar : char { INDENT_CHAR_SPACE = ' ', INDENT_CHAR_TAB = '\t' };
         struct token_posinfo { uint16_t line; uint16_t column; uint8_t len; };
         std::string reindentCodeString(const std::string& str_orig, const options_t& options = options_t());
         token_posinfo getPosInfoAtOffset(const data_t& data, uint16_t byteOffset, const options_t& options = options_t());

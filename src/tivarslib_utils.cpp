@@ -80,17 +80,6 @@ std::string trim(const std::string& s, const char* t)
     return ltrim(rtrim(s, t), t);
 }
 
-std::string str_repeat(const std::string& str, unsigned int times)
-{
-    std::string result;
-    result.reserve(times * str.length()); // avoid repeated reallocation
-    for (unsigned char i = 0; i < times; i++)
-    {
-        result += str;
-    }
-    return result;
-}
-
 // From http://stackoverflow.com/a/2481126/378298
 void ParseCSV(const std::string& csvSource, std::vector<std::vector<std::string>>& lines)
 {
