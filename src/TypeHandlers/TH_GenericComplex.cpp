@@ -36,9 +36,9 @@ namespace tivars
             return false;
         }
         // Handle real only, real+imag, imag only.
-        bool isValid = regex_match(str, matches, std::regex(std::string("^")   + typePattern + "()$"))
-                    || regex_match(str, matches, std::regex(std::string("^")   + typePattern + typePattern + "i$"))
-                    || regex_match(str, matches, std::regex(std::string("^()") + typePattern + "i$"));
+        const bool isValid = regex_match(str, matches, std::regex(std::string("^")   + typePattern + "()$"))
+                          || regex_match(str, matches, std::regex(std::string("^")   + typePattern + typePattern + "i$"))
+                          || regex_match(str, matches, std::regex(std::string("^()") + typePattern + "i$"));
         return isValid;
     }
 
@@ -46,7 +46,7 @@ namespace tivars
     // TODO: guess, by parsing, the type instead of reading it from the options
     data_t TH_GenericComplex::makeDataFromString(const std::string& str, const options_t& options)
     {
-        const size_t bytesPerMember = 9;
+        constexpr size_t bytesPerMember = 9;
         const auto& typeIter = options.find("_type");
         if (typeIter == options.end())
         {
@@ -66,7 +66,7 @@ namespace tivars
         newStr = std::regex_replace(newStr, std::regex("-i"), "-1i");
 
         std::smatch matches;
-        bool isValid = checkValidStringAndGetMatches(newStr, type2patterns.at(type), matches);
+        const bool isValid = checkValidStringAndGetMatches(newStr, type2patterns.at(type), matches);
         if (!isValid || matches.size() != 3)
         {
             throw std::invalid_argument("Invalid input string. Needs to be a valid complex subtype string");
@@ -97,7 +97,7 @@ namespace tivars
 
     std::string TH_GenericComplex::makeStringFromData(const data_t& data, const options_t& options)
     {
-        const size_t bytesPerMember = 9;
+        constexpr size_t bytesPerMember = 9;
 
         if (data.size() != 2*bytesPerMember)
         {
@@ -123,8 +123,8 @@ namespace tivars
         const auto& handlerI = handlerIIter->second.second;
 
         const data_t::const_iterator mid = data.cbegin() + bytesPerMember;
-        std::string coeffR = handlerR(data_t(data.cbegin(), mid), options);
-        std::string coeffI = handlerI(data_t(mid, data.cend()), options);
+        const std::string coeffR = handlerR(data_t(data.cbegin(), mid), options);
+        const std::string coeffI = handlerI(data_t(mid, data.cend()), options);
 
         const bool coeffRZero = coeffR == "0";
         const bool coeffIZero = coeffI == "0";

@@ -31,8 +31,8 @@ namespace tivars
         data_t data(2 + length);
         data[0] = (uint8_t)(length & 0xFF);
         data[1] = (uint8_t)((length >> 8) & 0xFF);
-        memcpy(&data[2], &STH_PythonAppVar::ID_CODE, sizeof(STH_PythonAppVar::ID_CODE));
-        memcpy(&data[2+sizeof(STH_PythonAppVar::ID_CODE)], &str[0], str.size());
+        memcpy(&data[2], &ID_CODE, sizeof(ID_CODE));
+        memcpy(&data[2+sizeof(ID_CODE)], &str[0], str.size());
 
         return data;
     }
@@ -44,7 +44,7 @@ namespace tivars
         const size_t byteCount = data.size();
         const size_t lengthDat = byteCount - 2;
 
-        if (byteCount < 2 + sizeof(STH_PythonAppVar::ID_CODE))
+        if (byteCount < 2 + sizeof(ID_CODE))
         {
             throw std::invalid_argument("Invalid data array. Need at least 6 bytes, got " + std::to_string(lengthDat));
         }
@@ -56,8 +56,8 @@ namespace tivars
             throw std::invalid_argument("Invalid data array. Expected " + std::to_string(lengthExp) + " bytes, got " + std::to_string(lengthDat));
         }
 
-        if (memcmp(STH_PythonAppVar::ID_CODE,   &(data[2]), strlen(STH_PythonAppVar::ID_CODE))   != 0
-         && memcmp(STH_PythonAppVar::ID_SCRIPT, &(data[2]), strlen(STH_PythonAppVar::ID_SCRIPT)) != 0)
+        if (memcmp(ID_CODE,   &(data[2]), strlen(ID_CODE))   != 0
+         && memcmp(ID_SCRIPT, &(data[2]), strlen(ID_SCRIPT)) != 0)
         {
             throw std::invalid_argument("Invalid data array. Magic header 'PYCD' or 'PYSC' not found");
         }

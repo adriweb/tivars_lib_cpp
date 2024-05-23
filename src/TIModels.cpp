@@ -23,12 +23,12 @@ namespace tivars
      */
     void TIModels::insertModel(int orderID, uint32_t flags, const std::string& name, const std::string& sig)
     {
-        TIModel model(orderID, name, flags, sig);
+        const TIModel model(orderID, name, flags, sig);
 
         if (!models.count(name))
             models[name] = model;
 
-        std::string flags_str = std::to_string(flags);
+        const std::string flags_str = std::to_string(flags);
         if (!models.count(flags_str))
             models[flags_str] = model;
 
@@ -39,17 +39,17 @@ namespace tivars
     // TODO : Research actual compatibility flags/"versions" from libtifiles, and maybe even TI ?
     void TIModels::initTIModelsArray()
     {
-        uint32_t flags82     = 0           | TIFeatureFlags::has82things;
-        uint32_t flags83     = flags82     | TIFeatureFlags::hasComplex;
-        uint32_t flags83p    = flags83     | TIFeatureFlags::hasFlash | TIFeatureFlags::hasApps;
-        uint32_t flags84p    = flags83p    | TIFeatureFlags::hasClock;
-        uint32_t flags82a    = flags84p    &~TIFeatureFlags::hasApps;
-        uint32_t flags84pcse = flags84p    | TIFeatureFlags::hasColorLCD;
-        uint32_t flags84pce  = flags84pcse | TIFeatureFlags::hasEZ80CPU;
-        uint32_t flags83pce  = flags84pce  | TIFeatureFlags::hasExactMath;
-        uint32_t flags83pceep= flags83pce  | TIFeatureFlags::hasPython;
-        uint32_t flags84pcepy= flags84pce  | TIFeatureFlags::hasPython;
-        uint32_t flags82aep  = flags83pceep&~TIFeatureFlags::hasApps;
+        const uint32_t flags82     = 0           | has82things;
+        const uint32_t flags83     = flags82     | hasComplex;
+        const uint32_t flags83p    = flags83     | hasFlash | hasApps;
+        const uint32_t flags84p    = flags83p    | hasClock;
+        const uint32_t flags82a    = flags84p    &~hasApps;
+        const uint32_t flags84pcse = flags84p    | hasColorLCD;
+        const uint32_t flags84pce  = flags84pcse | hasEZ80CPU;
+        const uint32_t flags83pce  = flags84pce  | hasExactMath;
+        const uint32_t flags83pceep= flags83pce  | hasPython;
+        const uint32_t flags84pcepy= flags84pce  | hasPython;
+        const uint32_t flags82aep  = flags83pceep&~hasApps;
 
         insertModel(-1, 0,           "Unknown", "");
         insertModel(0,  flags82,     "82",      "**TI82**");
@@ -75,7 +75,7 @@ namespace tivars
      */
     std::string TIModels::getDefaultNameFromFlags(uint32_t flags)
     {
-        std::string flags_str = std::to_string(flags);
+        const std::string flags_str = std::to_string(flags);
         return isValidFlags(flags) ? models[flags_str].getName() : "Unknown";
     }
 
@@ -94,7 +94,7 @@ namespace tivars
      */
     std::string TIModels::getSignatureFromFlags(uint32_t flags)
     {
-        std::string flags_str = std::to_string(flags);
+        const std::string flags_str = std::to_string(flags);
         return isValidFlags(flags) ? models[flags_str].getSig() : "";
     }
 
@@ -146,7 +146,7 @@ namespace tivars
 
     bool TIModels::isValidFlags(uint32_t flags)
     {
-        std::string flags_str = std::to_string(flags);
+        const std::string flags_str = std::to_string(flags);
         return (flags != 0 && models.count(flags_str));
     }
 

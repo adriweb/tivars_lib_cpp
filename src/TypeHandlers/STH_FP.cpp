@@ -38,7 +38,7 @@ namespace tivars
             data[0] = 1 << 7;
         }
         do {
-            char c = *i++;
+            const char c = *i++;
             if (c == '.') {
                 if (!beforePoint) {
                     throw std::invalid_argument("Extra decimal points.");
@@ -76,10 +76,10 @@ namespace tivars
                     index = (dataByteCount << 1) + 1;
                 }
             } else if (c == 'e') {
-                bool sign = parseSign(i, e);
+                const bool sign = parseSign(i, e);
                 int offset = 0;
                 do {
-                    char cdigit = *i++;
+                    const char cdigit = *i++;
                     if (cdigit >= '0' && cdigit <= '9') {
                         offset *= 10;
                         offset += cdigit - '0';
@@ -112,7 +112,7 @@ namespace tivars
             throw std::invalid_argument("Invalid data array. Needs to contain " + std::to_string(dataByteCount) + " bytes");
         }
 
-        bool negative = ((data[0] & 0x80) == 0x80);
+        const bool negative = ((data[0] & 0x80) == 0x80);
         if (!data[2]) {
             return scientific ? "0e0" : "0";
         }
@@ -132,7 +132,7 @@ namespace tivars
             *i++ = '-';
         }
         do {
-            char digit = '0' + (index < 4 ? 0 : data[index >> 1] >> ((~index & 1) << 2) & 0xF);
+            const char digit = '0' + (index < 4 ? 0 : data[index >> 1] >> ((~index & 1) << 2) & 0xF);
             *i++ = digit <= '9' ? digit : '?';
             if (index == point) {
                 *i++ = '.';

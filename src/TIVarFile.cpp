@@ -433,7 +433,7 @@ namespace tivars
         this->refreshMetadataFields();
 
         // Make and write file data
-        data_t bin_data = make_bin_data();
+        const data_t bin_data = make_bin_data();
         fwrite(&bin_data[0], sizeof(bin_data[0]), bin_data.size(), handle);
 
         // Write checksum

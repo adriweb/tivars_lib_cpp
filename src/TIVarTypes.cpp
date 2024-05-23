@@ -29,9 +29,9 @@ namespace tivars
      */
     void TIVarTypes::insertType(const std::string& name, int id, const std::vector<std::string>& exts, const handler_pair_t& handlers)
     {
-        TIVarType varType(id, name, exts, handlers);
+        const TIVarType varType(id, name, exts, handlers);
         types[name] = varType;
-        std::string id_str = std::to_string(id);
+        const std::string id_str = std::to_string(id);
         if (types.count(id_str) == 0)
         {
             types[id_str] = varType;
@@ -111,7 +111,7 @@ namespace tivars
      */
     std::string TIVarTypes::getNameFromID(uint8_t id)
     {
-        std::string id_str = std::to_string(id);
+        const std::string id_str = std::to_string(id);
         if (types.count(id_str))
         {
             return types[id_str].getName();
@@ -140,7 +140,7 @@ namespace tivars
      */
     std::vector<std::string> TIVarTypes::getExtensionsFromTypeID(uint8_t id)
     {
-        std::string id_str = std::to_string(id);
+        const std::string id_str = std::to_string(id);
         if (types.count(id_str))
         {
             return types[id_str].getExts();

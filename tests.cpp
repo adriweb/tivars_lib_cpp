@@ -36,8 +36,8 @@ int main(int argc, char** argv)
     TH_Tokenized::initTokens();
 
 
-    using tivars::TH_Tokenized::LANG_FR;
-    using tivars::TH_Tokenized::LANG_EN;
+    using TH_Tokenized::LANG_FR;
+    using TH_Tokenized::LANG_EN;
 
     /* Tests */
 

@@ -159,7 +159,7 @@ void ParseCSV(const std::string& csvSource, std::vector<std::vector<std::string>
 bool is_numeric(const std::string& str)
 {
     char* p;
-    double ignored = ::strtod(str.c_str(), &p);
+    const double ignored = strtod(str.c_str(), &p);
     (void)ignored;
     return (bool)!*p;
 }
@@ -179,8 +179,8 @@ bool file_exists(const std::string& path) {
 std::string str_pad(const std::string& str, unsigned long pad_length, std::string pad_string)
 {
     unsigned long i, j, x;
-    unsigned long str_size = str.size();
-    unsigned long pad_size = pad_string.size();
+    const unsigned long str_size = str.size();
+    const unsigned long pad_size = pad_string.size();
 
     if (pad_length <= str_size || pad_size < 1)
     {
@@ -227,7 +227,7 @@ std::string dec2frac(double num, const std::string& var, double err)
         err = 0.001;
     }
 
-    int sign = ( num > 0 ) ? 1 : ( ( num < 0 ) ? -1 : 0 );
+    const int sign = ( num > 0 ) ? 1 : ( ( num < 0 ) ? -1 : 0 );
 
     if (sign == -1)
     {
@@ -240,7 +240,7 @@ std::string dec2frac(double num, const std::string& var, double err)
         err *= num;
     }
 
-    int n = (int) std::floor(num);
+    const int n = (int) std::floor(num);
     num -= n;
 
     if (num < err)

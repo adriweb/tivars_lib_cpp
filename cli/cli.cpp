@@ -13,8 +13,8 @@
 
 using namespace std;
 using namespace tivars;
-using tivars::TH_Tokenized::LANG_EN;
-using tivars::TH_Tokenized::LANG_FR;
+using TH_Tokenized::LANG_EN;
+using TH_Tokenized::LANG_FR;
 
 enum FileType
 {

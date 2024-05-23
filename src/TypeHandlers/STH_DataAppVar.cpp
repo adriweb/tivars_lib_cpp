@@ -17,7 +17,7 @@ namespace tivars
     {
         (void)options;
 
-        bool formatOk = regex_match(str, std::regex("^([0-9a-fA-F]{2})+$"));
+        const bool formatOk = regex_match(str, std::regex("^([0-9a-fA-F]{2})+$"));
 
         const size_t length = str.size();
         const size_t bytes  = length / 2;

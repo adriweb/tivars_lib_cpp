@@ -28,7 +28,7 @@ namespace tivars
         std::unordered_map<std::string, uint16_t> tokens_NameToBytes;
         uint8_t lengthOfLongestTokenName;
         std::vector<uint8_t> firstByteOfTwoByteTokens;
-        const uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
+        constexpr uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
         const std::regex toPrettifyRX(R"(\[?\|([a-zA-Z]+)\]?)");
     }
 
@@ -112,7 +112,7 @@ namespace tivars
             throw std::invalid_argument("Invalid data array. Needs to contain at least 2 bytes (size fields)");
         }
 
-        uint8_t langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
+        const uint8_t langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
 
         const size_t howManyBytes = fromRawBytes ? (int)data.size() : ((data[0] & 0xFF) + ((data[1] & 0xFF) << 8));
         if (!fromRawBytes)
@@ -136,7 +136,7 @@ namespace tivars
         std::string str;
         for (size_t i = fromRawBytes ? 0 : 2; i < dataSize; i++)
         {
-            uint8_t currentToken = data[i];
+            const uint8_t currentToken = data[i];
             uint8_t nextToken = (i < dataSize-1) ? data[i+1] : (uint8_t)-1;
             uint16_t bytesKey = currentToken;
             if (is_in_vector(firstByteOfTwoByteTokens, currentToken))
@@ -187,7 +187,7 @@ namespace tivars
         if (has_option(options, "lang"))
         {
             lang = options.at("lang");
-        } else if (str_orig.size() > 1 && str_orig[0] == '.' && (str_orig[1] == '.' || ::isalpha(str_orig[1]))) {
+        } else if (str_orig.size() > 1 && str_orig[0] == '.' && (str_orig[1] == '.' || isalpha(str_orig[1]))) {
             lang = PRGMLANG_AXE;
         } else if (str_orig.substr(0, sizeof("\U0001D456") - 1) == "\U0001D456") {
             lang = PRGMLANG_ICE;
@@ -260,7 +260,7 @@ namespace tivars
             oldFirstCommand = firstCommand;
 
             std::string trimmedLine = trim(line.second);
-            if (trimmedLine.length() > 0) {
+            if (!trimmedLine.empty()) {
                 char* trimmedLine_c = (char*) trimmedLine.c_str();
                 firstCommand = strtok(trimmedLine_c, " ");
                 firstCommand = trim(firstCommand);
@@ -303,17 +303,17 @@ namespace tivars
     {
         const size_t dataSize = data.size();
 
-        uint8_t currentToken = data[0];
-        uint8_t nextToken = dataSize > 1 ? data[1] : (uint8_t)-1;
+        const uint8_t currentToken = data[0];
+        const uint8_t nextToken = dataSize > 1 ? data[1] : (uint8_t)-1;
         uint16_t bytesKey = currentToken;
-        bool is2ByteTok = is_in_vector(firstByteOfTwoByteTokens, currentToken);
+        const bool is2ByteTok = is_in_vector(firstByteOfTwoByteTokens, currentToken);
 
         if (incr) {
             *incr = is2ByteTok ? 2 : 1;
         }
 
-        uint8_t langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
-        bool fromPrettified = has_option(options, "prettify") && options.at("prettify") == 1;
+        const uint8_t langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
+        const bool fromPrettified = has_option(options, "prettify") && options.at("prettify") == 1;
 
         if (is2ByteTok)
         {
@@ -358,10 +358,10 @@ namespace tivars
             }
         }
 
-        TH_Tokenized::token_posinfo posinfo = { 0, 0, 0 };
+        token_posinfo posinfo = { 0, 0, 0 };
 
-        uint8_t langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
-        bool fromPrettified = has_option(options, "prettify") && options.at("prettify") == 1;
+        const uint8_t langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
+        const bool fromPrettified = has_option(options, "prettify") && options.at("prettify") == 1;
 
         // Find line number
         uint16_t lastNewLineOffset = 0;
@@ -377,10 +377,10 @@ namespace tivars
         // Find column number and token length if byteOffset is reached
         for (uint16_t i = lastNewLineOffset+1; i <= byteOffset; i++)
         {
-            uint8_t currentToken = data[i];
+            const uint8_t currentToken = data[i];
             uint8_t nextToken = (i < dataSize-1) ? data[i+1] : (uint8_t)-1;
             uint16_t bytesKey = currentToken;
-            bool is2ByteTok = is_in_vector(firstByteOfTwoByteTokens, currentToken);
+            const bool is2ByteTok = is_in_vector(firstByteOfTwoByteTokens, currentToken);
             const uint16_t currIdx = i;
 
             if (is2ByteTok)
@@ -438,13 +438,13 @@ namespace tivars
     void TH_Tokenized::initTokensFromCSVFilePath(const std::string& csvFilePath)
     {
         std::ifstream t(csvFilePath);
-        std::string csvFileStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+        const std::string csvFileStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
         initTokensFromCSVContent(csvFileStr);
     }
 
     void TH_Tokenized::initTokensFromCSVContent(const std::string& csvFileStr)
     {
-        if (csvFileStr.length() > 0)
+        if (!csvFileStr.empty())
         {
             std::vector<std::vector<std::string>> lines;
             ParseCSV(csvFileStr, lines);
@@ -465,7 +465,7 @@ namespace tivars
                 tokens_BytesToName[bytes] = { tokenInfo[4], tokenInfo[5] }; // EN, FR
                 tokens_NameToBytes[tokenInfo[4]] = bytes; // EN
                 tokens_NameToBytes[tokenInfo[5]] = bytes; // FR
-                uint8_t maxLenName = (uint8_t) std::max(tokenInfo[4].length(), tokenInfo[5].length());
+                const uint8_t maxLenName = (uint8_t) std::max(tokenInfo[4].length(), tokenInfo[5].length());
                 if (maxLenName > lengthOfLongestTokenName)
                 {
                     lengthOfLongestTokenName = maxLenName;
