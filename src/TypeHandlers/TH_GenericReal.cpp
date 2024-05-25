@@ -21,7 +21,7 @@ namespace tivars
     };
 
     // TODO: guess, by parsing, the type instead of reading it from the options
-    data_t TH_GenericReal::makeDataFromString(const std::string& str, const options_t& options)
+    data_t TH_GenericReal::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         const auto& typeIter = options.find("_type");
         if (typeIter == options.end())
@@ -34,10 +34,10 @@ namespace tivars
         {
             throw std::runtime_error("Unknown/Invalid type for this TH_GenericReal: " + std::to_string(type));
         }
-        return (handlerIter->second.first)(str, options);
+        return (handlerIter->second.first)(str, options, _ctx);
     }
 
-    std::string TH_GenericReal::makeStringFromData(const data_t& data, const options_t& options)
+    std::string TH_GenericReal::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         if (data.size() != dataByteCount)
         {
@@ -49,6 +49,6 @@ namespace tivars
         {
             throw std::runtime_error("Unknown/Invalid type in this TH_GenericReal data: " + std::to_string(type));
         }
-        return (handlerIter->second.second)(data, options);
+        return (handlerIter->second.second)(data, options, _ctx);
     }
 }

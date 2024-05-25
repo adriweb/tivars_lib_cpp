@@ -14,7 +14,7 @@
 namespace tivars
 {
     // TODO: also make it detect the type correctly...
-    data_t TH_GenericList::makeDataFromString(const std::string& str, const options_t& options)
+    data_t TH_GenericList::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         const auto& typeIter = options.find("_type");
         if (typeIter == options.end())
@@ -49,14 +49,14 @@ namespace tivars
 
         for (const auto& numStr : arr)
         {
-            const auto& tmp = handler(numStr, options);
+            const auto& tmp = handler(numStr, options, _ctx);
             data.insert(data.end(), tmp.begin(), tmp.end());
         }
 
         return data;
     }
 
-    std::string TH_GenericList::makeStringFromData(const data_t& data, const options_t& options)
+    std::string TH_GenericList::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         const size_t byteCount = data.size();
         if (byteCount < 2)
@@ -86,7 +86,7 @@ namespace tivars
         std::string str = "{";
         for (size_t i = 2, num = 0; i < byteCount; i += typeByteCount, num++)
         {
-            str += handler(data_t(data.begin()+i, data.begin()+i+typeByteCount), options);
+            str += handler(data_t(data.begin()+i, data.begin()+i+typeByteCount), options, _ctx);
             if (num < numCount - 1) // not last num
             {
                 str += ',';

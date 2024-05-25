@@ -13,10 +13,10 @@ namespace tivars
 
 // Wrap the makeDataFromStr function by one that adds the type/subtype in the options
 // Ideally, the handlers would parse the string and select the correct handler to dispatch...
-#define GenericHandlerPair(which, type) make_pair([](const std::string& str, const options_t& options) -> data_t { \
+#define GenericHandlerPair(which, type) make_pair([](const std::string& str, const options_t& options, const TIVarFile* _ctx) -> data_t { \
     options_t options_withType = options;                                                                          \
     options_withType["_type"] = type;                                                                              \
-    return (TH_Generic##which::makeDataFromString)(str, options_withType);                                         \
+    return (TH_Generic##which::makeDataFromString)(str, options_withType, _ctx);                                   \
 }, &TH_Generic##which::makeStringFromData)
 
     /**

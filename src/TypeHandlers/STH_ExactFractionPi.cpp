@@ -13,7 +13,7 @@
 namespace tivars
 {
 
-    data_t STH_ExactFractionPi::makeDataFromString(const std::string& str, const options_t& options)
+    data_t STH_ExactFractionPi::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
 
@@ -25,7 +25,7 @@ namespace tivars
         }
     }
 
-    std::string STH_ExactFractionPi::makeStringFromData(const data_t& data, const options_t& options)
+    std::string STH_ExactFractionPi::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         if (data.size() != dataByteCount)
         {

@@ -12,12 +12,12 @@
 
 namespace tivars
 {
-    data_t TH_GenericAppVar::makeDataFromString(const std::string& str, const options_t& options)
+    data_t TH_GenericAppVar::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         return STH_DataAppVar::makeDataFromString(str, options);
     }
 
-    std::string TH_GenericAppVar::makeStringFromData(const data_t& data, const options_t& options)
+    std::string TH_GenericAppVar::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         if (data.size() < 2)
         {

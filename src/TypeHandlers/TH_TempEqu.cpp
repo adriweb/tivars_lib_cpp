@@ -12,7 +12,7 @@
 
 namespace tivars
 {
-    data_t TH_TempEqu::makeDataFromString(const std::string& str, const options_t& options)
+    data_t TH_TempEqu::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)str;
         (void)options;
@@ -20,7 +20,7 @@ namespace tivars
         throw std::runtime_error("Unimplemented");
     }
 
-    std::string TH_TempEqu::makeStringFromData(const data_t& data, const options_t& options)
+    std::string TH_TempEqu::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
 

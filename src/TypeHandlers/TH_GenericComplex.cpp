@@ -44,7 +44,7 @@ namespace tivars
 
     // For this, we're going to assume that both members are of the same type...
     // TODO: guess, by parsing, the type instead of reading it from the options
-    data_t TH_GenericComplex::makeDataFromString(const std::string& str, const options_t& options)
+    data_t TH_GenericComplex::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         constexpr size_t bytesPerMember = 9;
         const auto& typeIter = options.find("_type");
@@ -81,7 +81,7 @@ namespace tivars
                 coeff = "0";
             }
 
-            const data_t& member_data = handler(coeff, options);
+            const data_t& member_data = handler(coeff, options, _ctx);
             data.insert(data.end(), member_data.begin(), member_data.end());
 
             uint8_t flags = 0;
@@ -95,7 +95,7 @@ namespace tivars
         return data;
     }
 
-    std::string TH_GenericComplex::makeStringFromData(const data_t& data, const options_t& options)
+    std::string TH_GenericComplex::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         constexpr size_t bytesPerMember = 9;
 
@@ -123,8 +123,8 @@ namespace tivars
         const auto& handlerI = handlerIIter->second.second;
 
         const data_t::const_iterator mid = data.cbegin() + bytesPerMember;
-        const std::string coeffR = handlerR(data_t(data.cbegin(), mid), options);
-        const std::string coeffI = handlerI(data_t(mid, data.cend()), options);
+        const std::string coeffR = handlerR(data_t(data.cbegin(), mid), options, _ctx);
+        const std::string coeffI = handlerI(data_t(mid, data.cend()), options, _ctx);
 
         const bool coeffRZero = coeffR == "0";
         const bool coeffIZero = coeffI == "0";

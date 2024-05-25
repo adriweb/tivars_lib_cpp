@@ -32,7 +32,7 @@ namespace tivars
         const std::regex toPrettifyRX(R"(\[?\|([a-zA-Z]+)\]?)");
     }
 
-    data_t TH_Tokenized::makeDataFromString(const std::string& str, const options_t& options)
+    data_t TH_Tokenized::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         data_t data;
 
@@ -109,7 +109,7 @@ namespace tivars
         return data;
     }
 
-    std::string TH_Tokenized::makeStringFromData(const data_t& data, const options_t& options)
+    std::string TH_Tokenized::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         const size_t dataSize = data.size();
 

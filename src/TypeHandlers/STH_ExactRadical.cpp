@@ -15,7 +15,7 @@
 namespace tivars
 {
 
-    data_t STH_ExactRadical::makeDataFromString(const std::string& str, const options_t& options)
+    data_t STH_ExactRadical::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
 
@@ -28,7 +28,7 @@ namespace tivars
     }
 
     // TODO: handle sign bit?
-    std::string STH_ExactRadical::makeStringFromData(const data_t& data, const options_t& options)
+    std::string STH_ExactRadical::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
 

@@ -13,7 +13,7 @@
 namespace tivars
 {
 
-    data_t TH_Matrix::makeDataFromString(const std::string& str, const options_t& options)
+    data_t TH_Matrix::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
 
@@ -73,7 +73,7 @@ namespace tivars
         return data;
     }
 
-    std::string TH_Matrix::makeStringFromData(const data_t& data, const options_t& options)
+    std::string TH_Matrix::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options; // TODO: prettified option
 

@@ -24,7 +24,7 @@ static bool parseSign(std::string::const_iterator &i, const std::string::const_i
 
 namespace tivars
 {
-    data_t STH_FP::makeDataFromString(const std::string& str, const options_t& options)
+    data_t STH_FP::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
 
@@ -102,7 +102,7 @@ namespace tivars
         return data;
     }
 
-    std::string STH_FP::makeStringFromData(const data_t& data, const options_t& options)
+    std::string STH_FP::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         bool scientific = false;
         (void)options;

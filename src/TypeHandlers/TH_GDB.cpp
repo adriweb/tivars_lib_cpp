@@ -397,7 +397,7 @@ namespace
 
 namespace tivars
 {
-    data_t TH_GDB::makeDataFromString(const std::string& str, const options_t& options)
+    data_t TH_GDB::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
 
@@ -463,7 +463,7 @@ namespace tivars
         return data;
     }
 
-    std::string TH_GDB::makeStringFromData(const data_t& data, const options_t& options)
+    std::string TH_GDB::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         const size_t dataSizeActual = data.size();
         if (dataSizeActual < dataByteCountMinimum)

@@ -12,9 +12,10 @@
 
 namespace tivars
 {
+    class TIVarFile;
 
-#define th()    data_t      makeDataFromString(const std::string& str,  const options_t& options = options_t()); \
-                std::string makeStringFromData(const data_t& data,      const options_t& options = options_t())
+#define th()    data_t      makeDataFromString(const std::string& str, const options_t& options = options_t(), const TIVarFile* _ctx = nullptr); \
+                std::string makeStringFromData(const data_t& data,     const options_t& options = options_t(), const TIVarFile* _ctx = nullptr);
 
     namespace DummyHandler { th(); }
 
