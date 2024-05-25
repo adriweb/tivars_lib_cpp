@@ -85,7 +85,7 @@ namespace tivars
 
     TIVarFile TIVarFile::createNew(const TIVarType& type, const std::string& name)
     {
-        return createNew(type, name, "84+");
+        return createNew(type, name, "84+CE");
     }
 
     TIVarFile TIVarFile::createNew(const TIVarType& type)
