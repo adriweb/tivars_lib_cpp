@@ -32,7 +32,6 @@ namespace tivars
         const std::regex toPrettifyRX(R"(\[?\|([a-zA-Z]+)\]?)");
     }
 
-    /* TODO: handle TI-Innovator Send( exception for in-strings tokenization (=> not shortest tokens) */
     data_t TH_Tokenized::makeDataFromString(const std::string& str, const options_t& options)
     {
         data_t data;
@@ -57,6 +56,8 @@ namespace tivars
         data.push_back(0); data.push_back(0);
 
         bool isWithinString = false;
+        bool inEvaluatedString = false;
+        uint16_t lastTokenBytes = 0;
 
         for (size_t strCursorPos = 0; strCursorPos < str_new.length(); strCursorPos++)
         {
@@ -65,17 +66,20 @@ namespace tivars
             {
                 if(currChar == "\"") {
                     isWithinString = !isWithinString;
+                    inEvaluatedString = isWithinString && (lastTokenBytes == 0xE7 || lastTokenBytes == 0xE8); // Send( and Get(
                 } else if(currChar == "\n" || (strCursorPos < str_new.length()-strlen("→") && memcmp(&str_new[strCursorPos], "→", strlen("→")) == 0)) {
                     isWithinString = false;
+                    inEvaluatedString = false;
                 }
             }
 
             const uint8_t maxTokSearchLen = std::min(str_new.length() - strCursorPos, (size_t)lengthOfLongestTokenName);
+            const bool needMinMunch = isWithinString && !inEvaluatedString;
 
-            /* isWithinString => minimum token length, otherwise maximal munch */
-            for (size_t currentLength = isWithinString ? 1 : maxTokSearchLen;
-                 isWithinString ? (currentLength <= maxTokSearchLen) : (currentLength > 0);
-                 currentLength += (isWithinString ? 1 : -1))
+            /* needMinMunch => minimum token length, otherwise maximal munch */
+            for (size_t currentLength = needMinMunch ? 1 : maxTokSearchLen;
+                 needMinMunch ? (currentLength <= maxTokSearchLen) : (currentLength > 0);
+                 currentLength += (needMinMunch ? 1 : -1))
             {
                 std::string currentSubString = str_new.substr(strCursorPos, currentLength);
                 if (tokens_NameToBytes.count(currentSubString))
@@ -87,6 +91,7 @@ namespace tivars
                     }
                     data.push_back((uint8_t)(tokenValue & 0xFF));
                     strCursorPos += currentLength - 1;
+                    lastTokenBytes = tokenValue;
                     break;
                 }
             }

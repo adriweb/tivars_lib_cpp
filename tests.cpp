@@ -65,6 +65,16 @@ int main(int argc, char** argv)
     }
 
     {
+        // Test string interpolation behaviour
+        TIVarFile testPrgm = TIVarFile::createNew("Program", "INTERP");
+        testPrgm.setContentFromString(R"(A and B:Disp "A and B":Send("SET SOUND eval(A and B) TIME 2)");
+        string detok_fr = testPrgm.getReadableContent({{"lang", LANG_FR}});
+        string detok_en = testPrgm.getReadableContent({{"lang", LANG_EN}});
+        assert(detok_en == R"(A and B:Disp "A and B":Send("SET SOUND eval(A and B) TIME 2)");
+        assert(detok_fr == R"(A et B:Disp "A and B":Envoi("SET SOUND eval(A et B) TIME 2)");
+    }
+
+    {
         TIVarFile clibs = TIVarFile::loadFromFile("testData/clibs.8xg");
         const auto& entries = clibs.getVarEntries();
         assert(entries.size() == 9);
