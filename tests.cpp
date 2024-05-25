@@ -75,6 +75,16 @@ int main(int argc, char** argv)
     }
 
     {
+        // Test tokenization exceptions
+        TIVarFile testPrgm = TIVarFile::createNew("Program", "FOOBAR");
+        testPrgm.setContentFromString(R"(Disp "WHITE,ʟWHITE,prgmWHITE",WHITE,ʟWHITE:prgmWHITE:prgmABCDEF)");
+        string detok_fr = testPrgm.getReadableContent({{"lang", LANG_FR}});
+        string detok_en = testPrgm.getReadableContent({{"lang", LANG_EN}});
+        assert(detok_en == R"(Disp "WHITE,ʟWHITE,prgmWHITE",WHITE,ʟWHITE:prgmWHITE:prgmABCDEF)");
+        assert(detok_fr == R"(Disp "WHITE,ʟWHITE,prgmWHITE",BLANC,ʟWHITE:prgmWHITE:prgmABCDEF)");
+    }
+
+    {
         TIVarFile clibs = TIVarFile::loadFromFile("testData/clibs.8xg");
         const auto& entries = clibs.getVarEntries();
         assert(entries.size() == 9);

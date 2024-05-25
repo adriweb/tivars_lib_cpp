@@ -55,6 +55,7 @@ namespace tivars
         // two bytes reserved for the size. Filled later
         data.push_back(0); data.push_back(0);
 
+        bool isInCustomName = false; // after a "prgm" or ʟ token (
         bool isWithinString = false;
         bool inEvaluatedString = false;
         uint16_t lastTokenBytes = 0;
@@ -64,17 +65,22 @@ namespace tivars
             const std::string currChar = str_new.substr(strCursorPos, 1);
             if(detect_strings)
             {
-                if(currChar == "\"") {
+                if((lastTokenBytes == 0x5F || lastTokenBytes == 0xEB)) { // prgm and ʟ
+                    isInCustomName = true;
+                } else if(currChar == "\"") {
                     isWithinString = !isWithinString;
                     inEvaluatedString = isWithinString && (lastTokenBytes == 0xE7 || lastTokenBytes == 0xE8); // Send( and Get(
                 } else if(currChar == "\n" || (strCursorPos < str_new.length()-strlen("→") && memcmp(&str_new[strCursorPos], "→", strlen("→")) == 0)) {
+                    isInCustomName = false;
                     isWithinString = false;
                     inEvaluatedString = false;
+                } else if(isInCustomName && !isalnum(currChar[0])) {
+                    isInCustomName = false;
                 }
             }
 
             const uint8_t maxTokSearchLen = std::min(str_new.length() - strCursorPos, (size_t)lengthOfLongestTokenName);
-            const bool needMinMunch = isWithinString && !inEvaluatedString;
+            const bool needMinMunch = isInCustomName || (isWithinString && !inEvaluatedString);
 
             /* needMinMunch => minimum token length, otherwise maximal munch */
             for (size_t currentLength = needMinMunch ? 1 : maxTokSearchLen;
