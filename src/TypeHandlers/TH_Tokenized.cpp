@@ -57,7 +57,7 @@ namespace tivars
 
         bool isInCustomName = false; // after a "prgm" or ʟ token (
         bool isWithinString = false;
-        bool inEvaluatedString = false;
+        bool inEvaluatedString = false; // CE OS 5.2 added string interpolation with eval() for TI-Innovator commands
         uint16_t lastTokenBytes = 0;
 
         for (size_t strCursorPos = 0; strCursorPos < str_new.length(); strCursorPos++)
@@ -69,7 +69,7 @@ namespace tivars
                     isInCustomName = true;
                 } else if(currChar == "\"") {
                     isWithinString = !isWithinString;
-                    inEvaluatedString = isWithinString && (lastTokenBytes == 0xE7 || lastTokenBytes == 0xE8); // Send( and Get(
+                    inEvaluatedString = isWithinString && lastTokenBytes == 0xE7; // Send(
                 } else if(currChar == "\n" || (strCursorPos < str_new.length()-strlen("→") && memcmp(&str_new[strCursorPos], "→", strlen("→")) == 0)) {
                     isInCustomName = false;
                     isWithinString = false;

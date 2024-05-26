@@ -82,6 +82,17 @@ int main(int argc, char** argv)
         string detok_en = testPrgm.getReadableContent({{"lang", LANG_EN}});
         assert(detok_en == R"(Disp "WHITE,ʟWHITE,prgmWHITE",WHITE,ʟWHITE:prgmWHITE:prgmABCDEF)");
         assert(detok_fr == R"(Disp "WHITE,ʟWHITE,prgmWHITE",BLANC,ʟWHITE:prgmWHITE:prgmABCDEF)");
+        // While this is visually fine, the "prgm" inside the token should probably be the token, not p r g m ...
+    }
+
+    {
+        // Test tokenization exceptions in an interpolated string
+        TIVarFile testPrgm = TIVarFile::createNew("Program", "FOOBAR");
+        testPrgm.setContentFromString(R"(Send("SET SOUND eval(A and prgmWHITE) TIME 2)");
+        string detok_fr = testPrgm.getReadableContent({{"lang", LANG_FR}});
+        string detok_en = testPrgm.getReadableContent({{"lang", LANG_EN}});
+        assert(detok_en == R"(Send("SET SOUND eval(A and prgmWHITE) TIME 2)");
+        assert(detok_fr == R"(Envoi("SET SOUND eval(A et prgmWHITE) TIME 2)");
     }
 
     {
