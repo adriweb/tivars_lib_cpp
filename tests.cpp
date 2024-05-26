@@ -101,6 +101,17 @@ int main(int argc, char** argv)
     }
 
     {
+        TH_Tokenized::token_posinfo actual{}, expected{};
+        const std::string hexStr = "0700DEEF983170323F";
+        actual = TH_Tokenized::getPosInfoAtOffsetFromHexStr(hexStr, 2);
+        expected = { 0, 0, 5 };
+        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        actual = TH_Tokenized::getPosInfoAtOffsetFromHexStr(hexStr, 3);
+        expected = { 0, 5, 5 };
+        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+    }
+
+    {
         // Test string interpolation behaviour
         TIVarFile testPrgm = TIVarFile::createNew("Program", "INTERP");
         testPrgm.setContentFromString(R"(A and B:Disp "A and B":Send("SET SOUND eval(A and B) TIME 2)");

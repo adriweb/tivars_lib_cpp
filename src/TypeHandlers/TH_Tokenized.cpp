@@ -407,7 +407,7 @@ namespace tivars
         }
 
         // Find column number and token length if byteOffset is reached
-        for (uint16_t i = lastNewLineOffset+1; i <= byteOffset; i++)
+        for (uint16_t i = std::max(2, lastNewLineOffset+1); i <= byteOffset; i++)
         {
             const uint8_t currentToken = data[i];
             uint8_t nextToken = (i < dataSize-1) ? data[i+1] : (uint8_t)-1;
@@ -440,7 +440,7 @@ namespace tivars
 
             posinfo.column += (uint16_t)tokStr.size();
 
-            if (posinfo.len == 0 && ((currIdx == byteOffset && !is2ByteTok) || (currIdx == byteOffset-1 && is2ByteTok)))
+            if (posinfo.len == 0 && ((currIdx == byteOffset && !is2ByteTok) || (currIdx >= byteOffset-1 && is2ByteTok)))
             {
                 posinfo.len = (uint8_t)tokStr.size();
                 posinfo.column -= posinfo.len; // column will be the beginning of the token
