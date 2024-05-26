@@ -94,7 +94,9 @@ namespace tivars
         struct token_posinfo { uint16_t line; uint16_t column; uint8_t len; };
         std::string reindentCodeString(const std::string& str_orig, const options_t& options = options_t());
         token_posinfo getPosInfoAtOffset(const data_t& data, uint16_t byteOffset, const options_t& options = options_t());
+        token_posinfo getPosInfoAtOffsetFromHexStr(const std::string& hexBytesStr, uint16_t byteOffset);
         std::string tokenToString(const data_t& data, int *incr, const options_t& options);
+        std::string oneTokenBytesToString(uint16_t tokenBytes);
         void initTokens();
         void initTokensFromCSVFilePath(const std::string& csvFilePath);
         void initTokensFromCSVContent(const std::string& csvFileStr);

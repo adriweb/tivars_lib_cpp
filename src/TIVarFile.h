@@ -91,6 +91,8 @@ namespace tivars
         data_t getRawContent(uint16_t entryIdx);
         data_t getRawContent();
 
+        std::string getRawContentHexStr();
+
         std::string getReadableContent(const options_t& options, uint16_t entryIdx);
         std::string getReadableContent(const options_t& options);
         std::string getReadableContent();

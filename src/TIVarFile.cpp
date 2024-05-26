@@ -6,12 +6,16 @@
  */
 
 #include "TIVarFile.h"
+
+#include <iomanip>
+
 #include "tivarslib_utils.h"
 #include "TIModels.h"
 
 #include <stdexcept>
 #include <numeric>
 #include <regex>
+#include <sstream>
 
 namespace tivars
 {
@@ -338,6 +342,17 @@ namespace tivars
         return this->getRawContent(0);
     }
 
+    std::string TIVarFile::getRawContentHexStr()
+    {
+        const data_t rawContent = getRawContent();
+        std::ostringstream result;
+        for (const auto& v : rawContent)
+        {
+            result << std::setfill('0') << std::setw(sizeof(v) * 2) << std::hex << +v;
+        }
+        return result.str();
+    }
+
     std::string TIVarFile::getReadableContent(const options_t& options, uint16_t entryIdx)
     {
         const auto& entry = this->entries[entryIdx];
@@ -474,6 +489,7 @@ namespace tivars
                     .function("setArchived"              , select_overload<void(bool)>(&tivars::TIVarFile::setArchived))
                     .function("isCorrupt"                , &tivars::TIVarFile::isCorrupt)
                     .function("getRawContent"            , select_overload<data_t(void)>(&tivars::TIVarFile::getRawContent))
+                    .function("getRawContentHexStr"      , &tivars::TIVarFile::getRawContentHexStr)
                     .function("getReadableContent"       , select_overload<std::string(const options_t&)>(&tivars::TIVarFile::getReadableContent))
                     .function("getReadableContent"       , select_overload<std::string(void)>(&tivars::TIVarFile::getReadableContent))
 

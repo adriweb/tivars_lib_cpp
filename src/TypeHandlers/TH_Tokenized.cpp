@@ -351,6 +351,27 @@ namespace tivars
         return tokStr;
     }
 
+    std::string TH_Tokenized::oneTokenBytesToString(uint16_t tokenBytes)
+    {
+        if (tokenBytes < 0xFF && is_in_vector(firstByteOfTwoByteTokens, (uint8_t)(tokenBytes & 0xFF)))
+        {
+            std::cerr << "[Warning] Encountered an unfinished two-byte token!";
+            return "";
+        }
+
+        std::string tokStr;
+        if (tokens_BytesToName.find(tokenBytes) != tokens_BytesToName.end())
+        {
+            tokStr = tokens_BytesToName[tokenBytes][LANG_EN];
+        } else {
+            tokStr = " [???] ";
+        }
+
+        tokStr = std::regex_replace(tokStr, toPrettifyRX, "$1");
+
+        return tokStr;
+    }
+
     TH_Tokenized::token_posinfo TH_Tokenized::getPosInfoAtOffset(const data_t& data, uint16_t byteOffset, const options_t& options)
     {
         const size_t dataSize = data.size();
@@ -429,6 +450,21 @@ namespace tivars
         return posinfo;
     }
 
+    TH_Tokenized::token_posinfo TH_Tokenized::getPosInfoAtOffsetFromHexStr(const std::string& hexBytesStr, uint16_t byteOffset)
+    {
+        const size_t strLen = hexBytesStr.length();
+        if (strLen % 2 != 0 || strLen > 65500 * 2) // todo: actual len?
+        {
+            throw std::invalid_argument("invalid hexBytesStr length!");
+        }
+
+        data_t data;
+        for (size_t i = 0; i < strLen; i += 2) {
+            data.push_back((char) strtol(hexBytesStr.substr(i, 2).c_str(), nullptr, 16));
+        }
+
+        return getPosInfoAtOffset(data, byteOffset, { { "prettify", 1 } });
+    }
 
     void TH_Tokenized::initTokens()
     {
@@ -488,3 +524,18 @@ namespace tivars
     }
 
 }
+
+#ifdef __EMSCRIPTEN__
+    #include <emscripten/bind.h>
+    using namespace emscripten;
+    EMSCRIPTEN_BINDINGS(_thtokenized) {
+
+        value_object<tivars::TH_Tokenized::token_posinfo>("token_posinfo")
+            .field("line",   &tivars::TH_Tokenized::token_posinfo::line)
+            .field("column", &tivars::TH_Tokenized::token_posinfo::column)
+            .field("len",    &tivars::TH_Tokenized::token_posinfo::len);
+
+        function("TH_Tokenized_getPosInfoAtOffsetFromHexStr", &tivars::TH_Tokenized::getPosInfoAtOffsetFromHexStr);
+        function("TH_Tokenized_oneTokenBytesToString"       , &tivars::TH_Tokenized::oneTokenBytesToString);
+    }
+#endif

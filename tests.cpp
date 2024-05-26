@@ -65,6 +65,42 @@ int main(int argc, char** argv)
     }
 
     {
+        assert(TH_Tokenized::oneTokenBytesToString(0x00) == "");
+        assert(TH_Tokenized::oneTokenBytesToString(0xBB) == "");
+        assert(TH_Tokenized::oneTokenBytesToString(0x3F) == "\n");
+        assert(TH_Tokenized::oneTokenBytesToString(0xAD) == "getKey");
+        assert(TH_Tokenized::oneTokenBytesToString(0xEF97) == "toString(");
+    }
+
+    {
+        TH_Tokenized::token_posinfo actual{}, expected{};
+        const data_t data = { 0x12,0x00,0x41,0x40,0x42,0x3f,0xde,0x2a,0x41,0x29,0xbb,0xb0,0xbb,0xbe,0xbb,0xb3,0x29,0x42,0x2a,0x3f };
+        actual = TH_Tokenized::getPosInfoAtOffset(data, 2);
+        expected = { 0, 0, 1 };
+        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        actual = TH_Tokenized::getPosInfoAtOffset(data, 3);
+        expected = { 0, 1, 5 };
+        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        actual = TH_Tokenized::getPosInfoAtOffset(data, 6);
+        expected = { 1, 0, 5 };
+        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+    }
+
+    {
+        TH_Tokenized::token_posinfo actual{}, expected{};
+        const std::string hexStr = "12004140423fde2a4129bbb0bbbebbb329422a3f";
+        actual = TH_Tokenized::getPosInfoAtOffsetFromHexStr(hexStr, 2);
+        expected = { 0, 0, 1 };
+        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        actual = TH_Tokenized::getPosInfoAtOffsetFromHexStr(hexStr, 3);
+        expected = { 0, 1, 5 };
+        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        actual = TH_Tokenized::getPosInfoAtOffsetFromHexStr(hexStr, 6);
+        expected = { 1, 0, 5 };
+        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+    }
+
+    {
         // Test string interpolation behaviour
         TIVarFile testPrgm = TIVarFile::createNew("Program", "INTERP");
         testPrgm.setContentFromString(R"(A and B:Disp "A and B":Send("SET SOUND eval(A and B) TIME 2)");
@@ -133,6 +169,7 @@ int main(int argc, char** argv)
     {
         TIVarFile testReal = TIVarFile::loadFromFile("testData/Real.8xn");
         assert(testReal.getRawContent() == data_t({0x80,0x81,0x42,0x13,0x37,0x00,0x00,0x00,0x00}));
+        assert(testReal.getRawContentHexStr() == "808142133700000000");
         assert(testReal.getReadableContent() == "-42.1337");
         testReal.setContentFromString("5");
         cout << "testReal.getReadableContent() : " << testReal.getReadableContent() << endl;
