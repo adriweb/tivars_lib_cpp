@@ -20,6 +20,14 @@
 #include <regex>
 #include <fstream>
 
+static size_t strlen_mb(const std::string& s)
+{
+    size_t len = 0;
+    for (const char* p = s.data(); *p != 0; ++p)
+        len += (*p & 0xc0) != 0x80;
+    return len;
+}
+
 namespace tivars
 {
     namespace TH_Tokenized
@@ -438,11 +446,12 @@ namespace tivars
                 tokStr = std::regex_replace(tokStr, toPrettifyRX, "$1");
             }
 
-            posinfo.column += (uint16_t)tokStr.size();
+            const size_t tokStrLen = strlen_mb(tokStr);
+            posinfo.column += (uint16_t)tokStrLen;
 
             if (posinfo.len == 0 && ((currIdx == byteOffset && !is2ByteTok) || (currIdx >= byteOffset-1 && is2ByteTok)))
             {
-                posinfo.len = (uint8_t)tokStr.size();
+                posinfo.len = (uint8_t)tokStrLen;
                 posinfo.column -= posinfo.len; // column will be the beginning of the token
             }
         }
