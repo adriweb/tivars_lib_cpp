@@ -120,6 +120,18 @@ int main(int argc, char** argv)
     }
 
     {
+        // Test lower alpha being the expected lowercase tokens, not special-meaning ones
+        TIVarFile testPrgm = TIVarFile::createNew("Program", "INTERP");
+        testPrgm.setContentFromString("Disp \"abcdefghijklmnopqrstuvwxyz\"");
+        string detok_fr = testPrgm.getReadableContent({{"lang", LANG_FR}});
+        string detok_en = testPrgm.getReadableContent({{"lang", LANG_EN}});
+        string hex = testPrgm.getRawContentHexStr();
+        assert(detok_fr == "Disp \"abcdefghijklmnopqrstuvwxyz\"");
+        assert(detok_en == "Disp \"abcdefghijklmnopqrstuvwxyz\"");
+        assert(hex == "3700de2abbb0bbb1bbb2bbb3bbb4bbb5bbb6bbb7bbb8bbb9bbbabbbcbbbdbbbebbbfbbc0bbc1bbc2bbc3bbc4bbc5bbc6bbc7bbc8bbc9bbca2a");
+    }
+
+    {
         // Test string interpolation behaviour
         TIVarFile testPrgm = TIVarFile::createNew("Program", "INTERP");
         testPrgm.setContentFromString(R"(A and B:Disp "A and B":Send("SET SOUND eval(A and B) TIME 2)");

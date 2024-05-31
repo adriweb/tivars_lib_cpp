@@ -96,6 +96,19 @@ namespace tivars
                  currentLength += (needMinMunch ? 1 : -1))
             {
                 std::string currentSubString = str_new.substr(strCursorPos, currentLength);
+
+                // We want to use true-lowercase alpha tokens in this case.
+                if ((isWithinString && !inEvaluatedString) && currentLength == 1 && std::islower(currentSubString[0]))
+                {
+                    // 0xBBB0 is 'a', etc. But we skip what would be 'l' at 0xBBBB which doesn't exist (prefix conflict)
+                    const char letter = currentSubString[0];
+                    uint16_t tokenValue = 0xBBB0 + (letter - 'a') + (letter >= 'l' ? 1 : 0);
+                    data.push_back(tokenValue >> 8);
+                    data.push_back(tokenValue & 0xFF);
+                    lastTokenBytes = tokenValue;
+                    break;
+                }
+
                 if (tokens_NameToBytes.count(currentSubString))
                 {
                     uint16_t tokenValue = tokens_NameToBytes[currentSubString];
