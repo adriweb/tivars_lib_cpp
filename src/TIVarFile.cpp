@@ -235,7 +235,7 @@ namespace tivars
         // TODO: again, properly handle names according to _type... (needs to be implemented by each type)
         // Quick hack for now...
         const auto& typeName = _type.getName();
-        if (typeName == "Real" || typeName == "Real" || typeName == "Program" || typeName == "ProtectedProgram")
+        if (typeName == "Real" || typeName == "Complex" || typeName == "Program" || typeName == "ProtectedProgram")
         {
             for (auto & c: newName) c = (char) toupper(c);
         }
