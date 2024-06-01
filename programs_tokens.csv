@@ -699,7 +699,7 @@
 ,,,ClockOff,ClockOff,HorlNAff,2,EF,0F,,Action,,,,
 ,,,ClockOn,ClockOn,HorlAff,2,EF,10,,Action,,,,
 ,,,OpenLib(,OpenLib(,OuvrirBiblio(,2,EF,11,,Function,,,,
-,,,ExecLib,ExecLib,ExécBiblio,2,EF,12,,Action,,,,
+,,,ExecLib ,ExecLib ,ExécBiblio ,2,EF,12,,Action,,,,
 ,,,invT(,invT(,invT(,2,EF,13,,Function,,,,
 ,,,\u03c7\u00b2GOF-Test(,χ²GOF-Test(,χ²GOF-Test(,2,EF,14,,Function,,,,
 ,,,LinRegTInt ,LinRegTInt ,LinRegTInt ,2,EF,15,,Function,,,,
