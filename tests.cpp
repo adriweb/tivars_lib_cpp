@@ -22,6 +22,11 @@
 using namespace std;
 using namespace tivars;
 
+static bool compare_token_posinfo(const TH_Tokenized::token_posinfo& tp1, const TH_Tokenized::token_posinfo& tp2)
+{
+    return tp1.column == tp2.column && tp1.line == tp2.line && tp1.len == tp2.len;
+}
+
 int main(int argc, char** argv)
 {
     (void)argc;
@@ -77,13 +82,13 @@ int main(int argc, char** argv)
         const data_t data = { 0x12,0x00,0x41,0x40,0x42,0x3f,0xde,0x2a,0x41,0x29,0xbb,0xb0,0xbb,0xbe,0xbb,0xb3,0x29,0x42,0x2a,0x3f };
         actual = TH_Tokenized::getPosInfoAtOffset(data, 2);
         expected = { 0, 0, 1 };
-        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        assert(compare_token_posinfo(actual, expected) == true);
         actual = TH_Tokenized::getPosInfoAtOffset(data, 3);
         expected = { 0, 1, 5 };
-        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        assert(compare_token_posinfo(actual, expected) == true);
         actual = TH_Tokenized::getPosInfoAtOffset(data, 6);
         expected = { 1, 0, 5 };
-        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        assert(compare_token_posinfo(actual, expected) == true);
     }
 
     {
@@ -91,13 +96,13 @@ int main(int argc, char** argv)
         const std::string hexStr = "12004140423fde2a4129bbb0bbbebbb329422a3f";
         actual = TH_Tokenized::getPosInfoAtOffsetFromHexStr(hexStr, 2);
         expected = { 0, 0, 1 };
-        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        assert(compare_token_posinfo(actual, expected) == true);
         actual = TH_Tokenized::getPosInfoAtOffsetFromHexStr(hexStr, 3);
         expected = { 0, 1, 5 };
-        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        assert(compare_token_posinfo(actual, expected) == true);
         actual = TH_Tokenized::getPosInfoAtOffsetFromHexStr(hexStr, 6);
         expected = { 1, 0, 5 };
-        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        assert(compare_token_posinfo(actual, expected) == true);
     }
 
     {
@@ -105,10 +110,10 @@ int main(int argc, char** argv)
         const std::string hexStr = "0700DEEF983170323F";
         actual = TH_Tokenized::getPosInfoAtOffsetFromHexStr(hexStr, 2);
         expected = { 0, 0, 5 };
-        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        assert(compare_token_posinfo(actual, expected) == true);
         actual = TH_Tokenized::getPosInfoAtOffsetFromHexStr(hexStr, 3);
         expected = { 0, 5, 5 };
-        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        assert(compare_token_posinfo(actual, expected) == true);
     }
 
     {
@@ -116,7 +121,7 @@ int main(int argc, char** argv)
         const std::string hexStr = "010004";
         actual = TH_Tokenized::getPosInfoAtOffsetFromHexStr(hexStr, 2);
         expected = { 0, 0, 1 };
-        assert(memcmp(&actual, &expected, sizeof(actual)) == 0);
+        assert(compare_token_posinfo(actual, expected) == true);
     }
 
     {
