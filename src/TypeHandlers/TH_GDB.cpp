@@ -555,12 +555,12 @@ namespace tivars
 
 namespace tivars
 {
-    data_t TH_GDB::makeDataFromString(const std::string&, const options_t&)
+    data_t TH_GDB::makeDataFromString(const std::string&, const options_t&, const TIVarFile* _ctx)
     {
         throw std::runtime_error("GDB support is not compiled in this tivars_lib_cpp version");
     }
 
-    std::string TH_GDB::makeStringFromData(const data_t&, const options_t&)
+    std::string TH_GDB::makeStringFromData(const data_t&, const options_t&, const TIVarFile* _ctx)
     {
         throw std::runtime_error("GDB support is not compiled in this tivars_lib_cpp version");
     }
