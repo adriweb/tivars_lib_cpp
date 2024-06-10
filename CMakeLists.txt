@@ -6,7 +6,7 @@ project(tivars_lib_cpp
 
 include(CheckCXXCompilerFlag)
 if(MSVC)
-    CHECK_CXX_COMPILER_FLAG("/std::c++20" COMPILER_SUPPORTS_CXX20)
+    CHECK_CXX_COMPILER_FLAG("/std:c++20" COMPILER_SUPPORTS_CXX20)
 else()
     CHECK_CXX_COMPILER_FLAG("-std=c++2a" COMPILER_SUPPORTS_CXX20)
 endif()
