@@ -16,6 +16,7 @@
 #include <numeric>
 #include <regex>
 #include <sstream>
+#include <cstring>
 
 namespace tivars
 {

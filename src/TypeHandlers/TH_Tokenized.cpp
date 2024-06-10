@@ -19,6 +19,7 @@
 #include <sstream>
 #include <regex>
 #include <fstream>
+#include <cstring>
 
 static size_t strlen_mb(const std::string& s)
 {

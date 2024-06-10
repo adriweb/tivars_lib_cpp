@@ -9,6 +9,7 @@
 #include "../tivarslib_utils.h"
 
 #include <stdexcept>
+#include <cstring>
 
 #if defined(TH_GDB_SUPPORT) || defined(__cpp_lib_variant)
 
