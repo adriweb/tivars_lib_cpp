@@ -1,4 +1,4 @@
-CXXFLAGS := -O3 -std=c++2a -DGDB_SUPPORT=1 -W -Wall -Wextra -Werror=write-strings -Werror=redundant-decls -Werror=format -Werror=format-security -Werror=date-time -Werror=return-type -Werror=pointer-arith -Winit-self
+CXXFLAGS := -O3 -std=c++2a -DTH_GDB_SUPPORT=1 -W -Wall -Wextra -Werror=write-strings -Werror=redundant-decls -Werror=format -Werror=format-security -Werror=date-time -Werror=return-type -Werror=pointer-arith -Winit-self
 
 SOURCES_COMMON := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp)
 

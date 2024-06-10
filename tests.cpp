@@ -560,7 +560,7 @@ End)";
         assert(std::equal(firstVarEntry.varname, firstVarEntry.varname + 8, testThetaVarName));
     }
 
-#ifdef GDB_SUPPORT
+#if defined(TH_GDB_SUPPORT) || defined(__cpp_lib_variant)
 /*
     {
         TIVarFile GDB1 = TIVarFile::loadFromFile("testData/GraphDataBase_Func.8xd");
