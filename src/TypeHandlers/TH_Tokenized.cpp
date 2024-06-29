@@ -152,7 +152,7 @@ namespace tivars
         {
             if (howManyBytes != dataSize - 2)
             {
-                std::cerr << "[Warning] Byte count (" << (dataSize - 2) << ") and size field (" << howManyBytes  << ") mismatch!";
+                std::cerr << "[Warning] Byte count (" << (dataSize - 2) << ") and size field (" << howManyBytes  << ") mismatch!" << std::endl;
             }
         }
 
@@ -176,7 +176,7 @@ namespace tivars
             {
                 if (nextToken == (uint8_t)-1)
                 {
-                    std::cerr << "[Warning] Encountered an unfinished two-byte token! Setting the second byte to 0x00";
+                    std::cerr << "[Warning] Encountered an unfinished two-byte token! Setting the second byte to 0x00" << std::endl;
                     nextToken = 0x00;
                 }
                 bytesKey = nextToken + (currentToken << 8);
@@ -193,7 +193,7 @@ namespace tivars
 
         if (errCount > 0)
         {
-            std::cerr << "[Warning] " << errCount << " token(s) could not be detokenized (' [???] ' was used)!";
+            std::cerr << "[Warning] " << errCount << " token(s) could not be detokenized (' [???] ' was used)!" << std::endl;
         }
 
         if (has_option(options, "prettify") && options.at("prettify") == 1)
@@ -352,7 +352,7 @@ namespace tivars
         {
             if (nextToken == (uint8_t)-1)
             {
-                std::cerr << "[Warning] Encountered an unfinished two-byte token!";
+                std::cerr << "[Warning] Encountered an unfinished two-byte token!" << std::endl;
                 return std::string();
             }
             bytesKey = nextToken + (currentToken << 8);
@@ -377,7 +377,7 @@ namespace tivars
     {
         if (tokenBytes < 0xFF && is_in_vector(firstByteOfTwoByteTokens, (uint8_t)(tokenBytes & 0xFF)))
         {
-            std::cerr << "[Warning] Encountered an unfinished two-byte token!";
+            std::cerr << "[Warning] Encountered an unfinished two-byte token!" << std::endl;
             return "";
         }
 
@@ -441,7 +441,7 @@ namespace tivars
             {
                 if (nextToken == (uint8_t)-1)
                 {
-                    std::cerr << "[Warning] Encountered an unfinished two-byte token! Setting the second byte to 0x00";
+                    std::cerr << "[Warning] Encountered an unfinished two-byte token! Setting the second byte to 0x00" << std::endl;
                     nextToken = 0x00;
                 }
                 bytesKey = nextToken + (currentToken << 8);
