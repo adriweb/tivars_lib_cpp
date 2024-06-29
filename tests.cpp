@@ -125,6 +125,15 @@ int main(int argc, char** argv)
     }
 
     {
+        // Make sure \r\n is tokenized the same as \n (because \r is just ignored as it's not a known token)
+        TIVarFile testPrgm = TIVarFile::createNew("Program", "TEST1");
+        testPrgm.setContentFromString("Pause 1\nPause 1");
+        TIVarFile testPrgm2 = TIVarFile::createNew("Program", "TEST2");
+        testPrgm2.setContentFromString("Pause 1\r\nPause 1");
+        assert(testPrgm.getRawContentHexStr() == testPrgm2.getRawContentHexStr());
+    }
+
+    {
         // Test lower alpha being the expected lowercase tokens, not special-meaning ones
         TIVarFile testPrgm = TIVarFile::createNew("Program", "INTERP");
         testPrgm.setContentFromString("Disp \"abcdefghijklmnopqrstuvwxyz\"");
