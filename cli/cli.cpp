@@ -157,7 +157,8 @@ int main(int argc, char** argv)
 
                 data_t data;
                 data.resize(filesize + 2);
-                *(uint16_t*) &data[0] = filesize & 0xFFFFu;
+                data[0] = filesize & 0xFF;
+                data[1] = (filesize >> 8) & 0xFF;
                 in.read((char*) &data[2], filesize);
                 in.close();
 
