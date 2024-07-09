@@ -25,7 +25,8 @@ namespace tivars
         struct var_header_t
         {
             uint8_t  signature[8]  = {};
-            uint8_t  sig_extra[3]  = { 0x1A, 0x0A, OWNER_PID_NONE };
+            uint8_t  sig_extra[2]  = { 0x1A, 0x0A }; // this never actually changes
+            uint8_t  ownerPID      = OWNER_PID_NONE; // informational - may reflect what's on the version field in the var entries
             uint8_t  comment[42]   = {};
             uint16_t entries_len   = 0;
         };
@@ -48,7 +49,7 @@ namespace tivars
         };
 
         // comes right after the var header, so == its size
-        static const constexpr uint16_t firstVarEntryOffset = sizeof(var_header_t::signature) + sizeof(var_header_t::sig_extra) + sizeof(var_header_t::comment) + sizeof(var_header_t::entries_len);
+        static const constexpr uint16_t firstVarEntryOffset = sizeof(var_header_t::signature) + sizeof(var_header_t::sig_extra) + sizeof(var_header_t::ownerPID) + sizeof(var_header_t::comment) + sizeof(var_header_t::entries_len);
         static_assert(firstVarEntryOffset == 55, "firstVarEntryOffset size needs to be 55");
 
         static const constexpr uint16_t varEntryOldLength = sizeof(var_entry_t::data_length) + sizeof(var_entry_t::typeID) + sizeof(var_entry_t::varname);

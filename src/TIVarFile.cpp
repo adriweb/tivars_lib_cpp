@@ -106,6 +106,7 @@ namespace tivars
 
         const auto signature = this->get_string_bytes(sizeof(var_header_t::signature));
         const auto sig_extra = this->get_raw_bytes(sizeof(var_header_t::sig_extra));
+        this->header.ownerPID = this->get_raw_byte();
         const auto comment = this->get_string_bytes(sizeof(var_header_t::comment));
         std::copy(signature.begin(), signature.end(), this->header.signature);
         std::copy(sig_extra.begin(), sig_extra.end(), this->header.sig_extra);
@@ -376,6 +377,7 @@ namespace tivars
         {
             bin_data.insert(bin_data.end(), this->header.signature, this->header.signature + sizeof(var_header_t::signature));
             bin_data.insert(bin_data.end(), this->header.sig_extra, this->header.sig_extra + sizeof(var_header_t::sig_extra));
+            bin_data.push_back(this->header.ownerPID);
             bin_data.insert(bin_data.end(), this->header.comment,   this->header.comment   + sizeof(var_header_t::comment));
             bin_data.push_back((uint8_t) (this->header.entries_len & 0xFF)); bin_data.push_back((uint8_t) ((this->header.entries_len >> 8) & 0xFF));
         }
