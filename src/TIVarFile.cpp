@@ -41,11 +41,12 @@ namespace tivars
         }
         this->makeHeaderFromFile();
         this->makeVarEntriesFromFile();
+        this->checkVarEntriesVersionCompat();
         this->computedChecksum = this->computeChecksumFromFileData();
         this->fileChecksum = this->getChecksumValueFromFile();
         if (this->computedChecksum != this->fileChecksum)
         {
-            // puts("[Warning] File is corrupt (read and calculated checksums differ)");
+            printf("[Warning] File is corrupt (file checksum = 0x%02X, calculated checksum = 0x%02X)\n", this->fileChecksum, this->computedChecksum);
             this->corrupt = true;
         }
         this->close(); // let's free the resource up as early as possible
@@ -222,8 +223,26 @@ namespace tivars
         {
             entry.data_length2 = entry.data_length = (uint16_t) entry.data.size();
             this->header.entries_len += sizeof(var_entry_t::data_length) + sizeof(var_entry_t::data_length2) + entry.meta_length + entry.data_length;
+            // todo: update entry version field
         }
         this->computedChecksum = this->computeChecksumFromInstanceData();
+    }
+
+    void TIVarFile::checkVarEntriesVersionCompat() const
+    {
+        if (this->header.ownerPID > 0 && this->calcModel.getFlags() & TIFeatureFlags::hasFlash)
+        {
+            uint8_t max_version = 0;
+            for (const auto& entry : this->entries)
+            {
+                const uint8_t maskedVersion = entry.version & ~0x20;
+                if (maskedVersion > max_version) max_version = maskedVersion;
+            }
+            if (this->header.ownerPID < max_version)
+            {
+                printf("[Warning] The declared calculator model (owner ID 0x%02X) may not support the var entry version 0x%02X found in this file.\n", this->header.ownerPID, max_version);
+            }
+        }
     }
 
     void TIVarFile::var_entry_t::setVarName(const std::string &name) {

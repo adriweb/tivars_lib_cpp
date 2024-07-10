@@ -123,6 +123,7 @@ namespace tivars
         explicit TIVarFile(const std::string& filePath);
 
         void refreshMetadataFields();
+        void checkVarEntriesVersionCompat() const;
 
         void makeHeaderFromFile();
         void makeVarEntriesFromFile();
