@@ -71,6 +71,22 @@ namespace tivars
         static TIVarFile createNew(const TIVarType& type, const std::string& name);
         static TIVarFile createNew(const TIVarType& type);
 
+        // Additional overloads for easier Emscripten usage
+#ifdef __EMSCRIPTEN__
+        static TIVarFile createNew(const std::string& type, const std::string& name, const std::string& model)
+        {
+            return TIVarFile{TIVarType{type}, name, TIModel{model}};
+        }
+        static TIVarFile createNew(const std::string& type, const std::string& name)
+        {
+            return createNew(TIVarType{type}, name);
+        }
+        static TIVarFile createNew(const std::string& type)
+        {
+            return createNew(TIVarType{type});
+        }
+#endif
+
         uint16_t getChecksumValueFromFile();
 
         void setContentFromData(const data_t& data, uint16_t entryIdx);

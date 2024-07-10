@@ -14,22 +14,18 @@
 
 namespace tivars
 {
-    extern std::unordered_map<std::string, TIVarType> types;
-
     class TIVarTypes
     {
 
     public:
+        static TIVarType fromName(const std::string& name);
+        static TIVarType fromId(uint8_t id);
+
         static void initTIVarTypesArray();
+        static const std::unordered_map<std::string, TIVarType>& all();
 
         static bool isValidName(const std::string& name);
-
         static bool isValidID(uint8_t id);
-
-        static std::vector<std::string> getExtensionsFromName(const std::string& name);
-        static std::vector<std::string> getExtensionsFromTypeID(uint8_t id);
-        static int getIDFromName(const std::string& name);
-        static std::string getNameFromID(uint8_t id);
 
     private:
         static void insertType(const std::string& name, int id, const std::vector<std::string>& exts, const handler_pair_t& handlers = make_handler_pair(DummyHandler));

@@ -18,6 +18,8 @@
 #include <sstream>
 #include <cstring>
 
+#include "TIVarTypes.h"
+
 namespace tivars
 {
 
@@ -90,7 +92,7 @@ namespace tivars
 
     TIVarFile TIVarFile::createNew(const TIVarType& type, const std::string& name)
     {
-        return createNew(type, name, "84+CE");
+        return TIVarFile(type, name, TIModel{"84+CE"});
     }
 
     TIVarFile TIVarFile::createNew(const TIVarType& type)
@@ -112,7 +114,14 @@ namespace tivars
         std::copy(sig_extra.begin(), sig_extra.end(), this->header.sig_extra);
         std::copy(comment.begin(), comment.end(), this->header.comment);
         this->header.entries_len  = this->get_two_bytes_swapped();
-        this->calcModel = TIModel::createFromSignature(signature); // TODO: check sig_extra bytes instead/too since it has the PID which may be more precise
+
+        // the calcModel may later get updated with a more precise one
+        if (TIModels::isValidPID(header.ownerPID))
+            this->calcModel = TIModels::fromPID(header.ownerPID);
+        else if (TIModels::isValidSignature(signature))
+            this->calcModel = TIModels::fromSignature(signature);
+        else
+            throw std::invalid_argument("Unhandled file type. No known model usable for this header.");
     }
 
     void TIVarFile::makeVarEntriesFromFile()
@@ -256,7 +265,7 @@ namespace tivars
                 if (memcmp(&data[2], STH_PythonAppVar::ID_CODE, 4) == 0
                  || memcmp(&data[2], STH_PythonAppVar::ID_SCRIPT, 4) == 0)
                 {
-                    _type = TIVarType::createFromName("PythonAppVar");
+                    _type = TIVarType{"PythonAppVar"};
                 }
             }
         }
@@ -501,9 +510,9 @@ namespace tivars
                     .function("saveVarToFile"            , select_overload<std::string(void)>(&tivars::TIVarFile::saveVarToFile))
 
                     .class_function("loadFromFile", &tivars::TIVarFile::loadFromFile)
-                    .class_function("createNew", select_overload<tivars::TIVarFile(const tivars::TIVarType&, const std::string&, const tivars::TIModel&)>(&tivars::TIVarFile::createNew))
-                    .class_function("createNew", select_overload<tivars::TIVarFile(const tivars::TIVarType&, const std::string&)>(&tivars::TIVarFile::createNew))
-                    .class_function("createNew", select_overload<tivars::TIVarFile(const tivars::TIVarType&)>(&tivars::TIVarFile::createNew))
+                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&, const std::string&, const std::string&)>(&tivars::TIVarFile::createNew))
+                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&, const std::string&)>(&tivars::TIVarFile::createNew))
+                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&)>(&tivars::TIVarFile::createNew))
             ;
     }
 #endif

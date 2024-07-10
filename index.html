@@ -3,8 +3,13 @@
 
 <head>
 <script type="module">
-    import { lib } from './tivars_lib.js';
-    window.TIVarsLib = await lib();
+    import TIVarsLib from './TIVarsLib.js';
+    const lib = await TIVarsLib();
+    const prgm = lib.TIVarFile.createNew("Program", "TEST");
+    prgm.setContentFromString("ClrHome:Disp \"Hello World!\"");
+    const filePath = prgm.saveVarToFile("", "MyTestProgram");
+    const file = lib.FS.readFile(filePath, {encoding: 'binary'});
+    console.log(file);
 </script>
 </head>
 

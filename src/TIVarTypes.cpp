@@ -9,7 +9,26 @@
 
 namespace tivars
 {
-    std::unordered_map<std::string, TIVarType> types;
+    namespace
+    {
+        std::unordered_map<std::string, TIVarType> types;
+        const TIVarType unknownVarType{};
+    }
+
+    const std::unordered_map<std::string, TIVarType>& TIVarTypes::all()
+    {
+        return types;
+    }
+
+    TIVarType TIVarTypes::fromName(const std::string& name)
+    {
+        return isValidName(name) ? types[name] : unknownVarType;
+    }
+
+    TIVarType TIVarTypes::fromId(uint8_t id)
+    {
+        return isValidID(id) ? types[std::to_string(id)] : unknownVarType;
+    }
 
 // Wrap the makeDataFromStr function by one that adds the type/subtype in the options
 // Ideally, the handlers would parse the string and select the correct handler to dispatch...
@@ -19,14 +38,6 @@ namespace tivars
     return (TH_Generic##which::makeDataFromString)(str, options_withType, _ctx);                                   \
 }, &TH_Generic##which::makeStringFromData)
 
-    /**
-     *  Make and insert the associative arrays for the type.
-     *
-     * @param string    name        The name of the type
-     * @param int       id          The ID of the type
-     * @param vector    exts        The extensions the type can have, ordered by feature flags.
-     * @param pair      handlers    The data2str and str2data funcs
-     */
     void TIVarTypes::insertType(const std::string& name, int id, const std::vector<std::string>& exts, const handler_pair_t& handlers)
     {
         const TIVarType varType(id, name, exts, handlers);
@@ -51,7 +62,6 @@ namespace tivars
                                            //                                   84+         84+CE-T
     {
         const std::string _;
-        insertType("Unknown",                -1,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _ ,   _  });
 
         /* Standard types */
         insertType("Real",                 0x00,  {"82n", "83n", "8xn", "8xn", "8xn", "8xn", "8xn", "8xn", "8xn"},  GenericHandlerPair(Real, 0x00)  );
@@ -103,64 +113,6 @@ namespace tivars
         insertType("UnitCertificate",      0x28,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("Clock",                0x29,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("FlashLicense",         0x3E,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
-    }
-
-    /**
-     * @param   int     id     The type ID
-     * @return  string          The type name for that ID
-     */
-    std::string TIVarTypes::getNameFromID(uint8_t id)
-    {
-        const std::string id_str = std::to_string(id);
-        if (types.count(id_str))
-        {
-            return types[id_str].getName();
-        } else {
-            return "Unknown";
-        }
-    }
-
-    /**
-     * @param   string  name   The type name
-     * @return  int             The type ID for that name
-     */
-    int TIVarTypes::getIDFromName(const std::string& name)
-    {
-        if (!name.empty() && types.count(name))
-        {
-            return types[name].getId();
-        } else {
-            return -1;
-        }
-    }
-
-    /**
-     * @param   uint8_t     id  The type ID
-     * @return  string[]        The array of extensions for that ID
-     */
-    std::vector<std::string> TIVarTypes::getExtensionsFromTypeID(uint8_t id)
-    {
-        const std::string id_str = std::to_string(id);
-        if (types.count(id_str))
-        {
-            return types[id_str].getExts();
-        } else {
-            return {};
-        }
-    }
-
-    /**
-     * @param   string  name
-     * @return  string[]        The array of extensions for that ID
-     */
-    std::vector<std::string> TIVarTypes::getExtensionsFromName(const std::string& name)
-    {
-        if (!name.empty() && types.count(name))
-        {
-            return types[name].getExts();
-        } else {
-            return {};
-        }
     }
 
     bool TIVarTypes::isValidID(uint8_t id)

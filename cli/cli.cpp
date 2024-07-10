@@ -97,12 +97,12 @@ int main(int argc, char** argv)
 
             try
             {
-                varvarType = TIVarType::createFromName(typeName);
+                varvarType = TIVarType(typeName);
             } catch (std::invalid_argument& e)
             {
                 cout << typeName << "is not a valid variable type." << endl;
                 cout << "Valid types:";
-                for (const auto& type: tivars::types)
+                for (const auto& type: TIVarTypes::all())
                 {
                     cout << " " << type.first;
                 }
@@ -126,13 +126,13 @@ int main(int argc, char** argv)
                 string modelStr = result["calc"].as<string>();
                 try
                 {
-                    TIModel model = TIModel::createFromName(modelStr);
+                    TIModel model{modelStr};
                     file.setCalcModel(model);
                 } catch (invalid_argument& e)
                 {
                     cout << modelStr << "is not a valid calc model." << endl;
                     cout << "Valid models:";
-                    for (const auto& model: tivars::models)
+                    for (const auto& model: TIModels::all())
                     {
                         cout << " " << model.first;
                     }
@@ -299,7 +299,7 @@ enum FileType getType(const cxxopts::ParseResult& options, const string& filenam
     if (extension == "txt")
         return READABLE;
 
-    for (const auto& type: tivars::types)
+    for (const auto& type: TIVarTypes::all())
     {
         const vector<string>& exts = type.second.getExts();
         if (std::find(exts.begin(), exts.end(), extension) != exts.end())

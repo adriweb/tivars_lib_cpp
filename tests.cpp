@@ -46,7 +46,7 @@ int main(int argc, char** argv)
 
     /* Tests */
 
-    assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
+    assert(TIVarType{"ExactRealPi"}.getId() == 32);
 
     {
         TIVarFile testReal = TIVarFile::createNew("Real");
@@ -181,7 +181,7 @@ int main(int argc, char** argv)
         const auto& entries = clibs.getVarEntries();
         assert(entries.size() == 9);
         for (int i=0; i<9; i++) {
-            assert(entries[i].typeID == TIVarTypes::getIDFromName("AppVar"));
+            assert(entries[i].typeID == TIVarType{"AppVar"}.getId());
         }
         assert((char*)entries[1].varname == std::string("GRAPHX"));
         cout << clibs.getReadableContent() << "\n" << endl;
@@ -358,7 +358,7 @@ End)";
     }
 #endif
 
-    assert(TIVarTypes::getIDFromName("ExactRealPi") == 32);
+    assert(TIVarType{"ExactRealPi"}.getId() == 32);
 
     {
         TIVarFile testPrgm = TIVarFile::loadFromFile("testData/Program.8xp");

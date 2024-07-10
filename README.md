@@ -17,7 +17,7 @@ std::cout << basicSource << std::endl;
 ```
 **Example 2**: Here's how to create a TI-Basic program (output: .8xp file) from a string:
 ```cpp
-auto newPrgm = TIVarFile::createNew(TIVarType::createFromName("Program"));  // Create an empty "container" first
+auto newPrgm = TIVarFile::createNew("Program");                       // Create an empty "container" first
 newPrgm.setVarName("TEST");                                           // (also an optional parameter above)
 newPrgm.setContentFromString("ClrHome:Disp \"Hello World!\"");        // Set the var's content from a string
 newPrgm.saveVarToFile("path/to/output/directory/", "myNewPrgrm");     // The extension is added automatically
@@ -35,7 +35,10 @@ Integration example:
 <script type="module">
     import TIVarsLib from './TIVarsLib.js';
     const lib = await TIVarsLib();
-    lib.TIVarFile.createNew(lib.TIVarType.createFromName("Program"), "HELLO");
+    const prgm = lib.TIVarFile.createNew("Program", "TEST");
+    prgm.setContentFromString("ClrHome:Disp \"Hello World!\"");
+    const filePath = prgm.saveVarToFile("", "MyTestProgram");
+    const file = lib.FS.readFile(filePath, {encoding: 'binary'});
     ...
 </script>
 ```

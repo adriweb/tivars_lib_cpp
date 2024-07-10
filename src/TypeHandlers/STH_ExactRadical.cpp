@@ -44,7 +44,7 @@ namespace tivars
         }
 
         const auto type = data[0] & ~0x80; // sign bit discarded
-        if (type != types["ExactRealRadical"].getId() && type != types["ExactComplexRadical"].getId())
+        if (type != TIVarType{"ExactRealRadical"}.getId() && type != TIVarType{"ExactComplexRadical"}.getId())
         {
             throw std::invalid_argument("Invalid data bytes - invalid vartype: " + std::to_string(type));
         }

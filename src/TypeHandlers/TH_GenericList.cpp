@@ -23,7 +23,7 @@ namespace tivars
         }
 
         const auto type = typeIter->second;
-        if (type != types["Real"].getId() && type != types["Complex"].getId())
+        if (type != TIVarType{"Real"}.getId() && type != TIVarType{"Complex"}.getId())
         {
             throw std::invalid_argument("Invalid type for given string");
         }

@@ -14,31 +14,21 @@ namespace tivars
 {
     /*** "Constructors" ***/
 
-    /**
-     * @param   uint8_t id     The type ID
-     * @return  TIVarType
-     * @throws  \Exception
-     */
-    TIVarType TIVarType::createFromID(uint8_t id)
+    TIVarType::TIVarType(uint8_t id)
     {
         if (TIVarTypes::isValidID(id))
         {
-            return types.at(std::to_string(id));
+            *this = TIVarTypes::fromId(id);
         } else {
             throw std::invalid_argument("Invalid type ID");
         }
     }
 
-    /**
-     * @param   string  name   The type name
-     * @return  TIVarType
-     * @throws  \Exception
-     */
-    TIVarType TIVarType::createFromName(const std::string& name)
+    TIVarType::TIVarType(const std::string& name)
     {
         if (TIVarTypes::isValidName(name))
         {
-            return types.at(name);
+            *this = TIVarTypes::fromName(name);
         } else {
             throw std::invalid_argument("Invalid type name");
         }
