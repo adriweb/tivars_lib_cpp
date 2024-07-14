@@ -42,7 +42,7 @@ namespace tivars
             class_<tivars::TIVarType>("TIVarType")
                     .constructor<>()
                     .constructor<const char*>()
-                    .constructor<int, const std::string&, const std::vector<std::string>&, const tivars::handler_pair_t&>()
+                    .constructor<int, const std::string&, const std::vector<std::string>&, const tivars::TypeHandlers::TypeHandlersTuple&>()
 
                     .function("getId"      , &tivars::TIVarType::getId)
                     .function("getName"    , &tivars::TIVarType::getName)

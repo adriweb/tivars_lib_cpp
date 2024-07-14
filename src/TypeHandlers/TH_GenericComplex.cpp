@@ -14,12 +14,12 @@
 
 namespace tivars::TypeHandlers
 {
-    static const std::unordered_map<uint8_t, handler_pair_t> type2handlers = {
-        { 0x0C, make_handler_pair(STH_FP)              },
-        { 0x1B, make_handler_pair(STH_ExactFraction)   },
-        { 0x1D, make_handler_pair(STH_ExactRadical)    },
-        { 0x1E, make_handler_pair(STH_ExactPi)         },
-        { 0x1F, make_handler_pair(STH_ExactFractionPi) },
+    static const std::unordered_map<uint8_t, TypeHandlersTuple> type2handlers = {
+        { 0x0C, SpecificHandlerTuple(STH_FP) },
+        { 0x1B, SpecificHandlerTuple(STH_ExactFraction) },
+        { 0x1D, SpecificHandlerTuple(STH_ExactRadical) },
+        { 0x1E, SpecificHandlerTuple(STH_ExactPi) },
+        { 0x1F, SpecificHandlerTuple(STH_ExactFractionPi) },
     };
     static const std::unordered_map<uint8_t, const char*> type2patterns = {
         { 0x0C, STH_FP::validPattern              },
@@ -58,7 +58,7 @@ namespace tivars::TypeHandlers
         {
             throw std::runtime_error("Unknown/Invalid type for this TH_GenericComplex: " + std::to_string(type));
         }
-        const auto& handler = handlerIter->second.first;
+        const auto& handler = std::get<0>(handlerIter->second);
 
         std::string newStr = str;
         newStr = std::regex_replace(newStr, std::regex(" "), "");
@@ -119,8 +119,8 @@ namespace tivars::TypeHandlers
             throw std::runtime_error("Unknown/Invalid type for this TH_GenericComplex: " + std::to_string(typeI));
         }
 
-        const auto& handlerR = handlerRIter->second.second;
-        const auto& handlerI = handlerIIter->second.second;
+        const auto& handlerR = std::get<1>(handlerRIter->second);
+        const auto& handlerI = std::get<1>(handlerIIter->second);
 
         const data_t::const_iterator mid = data.cbegin() + bytesPerMember;
         const std::string coeffR = handlerR(data_t(data.cbegin(), mid), options, _ctx);
@@ -145,4 +145,9 @@ namespace tivars::TypeHandlers
         return str;
     }
 
+    uint8_t TH_GenericComplex::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
+    }
 }

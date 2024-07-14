@@ -35,4 +35,9 @@ namespace tivars::TypeHandlers
         return dec2frac(stod(STH_FP::makeStringFromData(data, options)));
     }
 
+    uint8_t STH_ExactFraction::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
+    }
 }

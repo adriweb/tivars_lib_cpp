@@ -12,12 +12,12 @@
 
 namespace tivars::TypeHandlers
 {
-    static const std::unordered_map<uint8_t, handler_pair_t> type2handlers = {
-        { 0x00, make_handler_pair(STH_FP)              },
-        { 0x18, make_handler_pair(STH_ExactFraction)   },
-        { 0x1C, make_handler_pair(STH_ExactRadical)    },
-        { 0x20, make_handler_pair(STH_ExactPi)         },
-        { 0x21, make_handler_pair(STH_ExactFractionPi) },
+    static const std::unordered_map<uint8_t, TypeHandlersTuple> type2handlers = {
+        { 0x00, SpecificHandlerTuple(STH_FP) },
+        { 0x18, SpecificHandlerTuple(STH_ExactFraction) },
+        { 0x1C, SpecificHandlerTuple(STH_ExactRadical) },
+        { 0x20, SpecificHandlerTuple(STH_ExactPi) },
+        { 0x21, SpecificHandlerTuple(STH_ExactFractionPi) },
     };
 
     // TODO: guess, by parsing, the type instead of reading it from the options
@@ -34,7 +34,7 @@ namespace tivars::TypeHandlers
         {
             throw std::runtime_error("Unknown/Invalid type for this TH_GenericReal: " + std::to_string(type));
         }
-        return (handlerIter->second.first)(str, options, _ctx);
+        return std::get<0>(handlerIter->second)(str, options, _ctx);
     }
 
     std::string TH_GenericReal::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
@@ -49,6 +49,12 @@ namespace tivars::TypeHandlers
         {
             throw std::runtime_error("Unknown/Invalid type in this TH_GenericReal data: " + std::to_string(type));
         }
-        return (handlerIter->second.second)(data, options, _ctx);
+        return std::get<1>(handlerIter->second)(data, options, _ctx);
+    }
+
+    uint8_t TH_GenericReal::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
     }
 }

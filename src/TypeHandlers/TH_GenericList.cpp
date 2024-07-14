@@ -96,4 +96,10 @@ namespace tivars::TypeHandlers
 
         return str;
     }
+
+    uint8_t TH_GenericList::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
+    }
 }

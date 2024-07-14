@@ -24,68 +24,60 @@ namespace tivars::TypeHandlers
     class DummyHandler
     {
         public:
+        DummyHandler() = delete;
+        DummyHandler(const DummyHandler&) = delete;
+        DummyHandler& operator=(const DummyHandler) = delete;
         th();
     };
 
-    class STH_FP : public DummyHandler
-    {
-        public:
-        th();
-        static const constexpr size_t dataByteCount = 9;
-        static const constexpr char* validPattern = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]{1,2})?)";
-    };
-
-    class STH_ExactFraction : public DummyHandler
-    {
-        public:
-        th();
-        static const constexpr size_t dataByteCount = 9;
-        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
-    };
-
-    class STH_ExactRadical : public DummyHandler
-    {
-        public:
-        th();
-        static const constexpr size_t dataByteCount = 9;
-        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
-    };
-
-    class STH_ExactPi : public DummyHandler
-    {
-        public:
-        th();
-        static const constexpr size_t dataByteCount = 9;
-        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
-    };
-
-    class STH_DataAppVar : public DummyHandler
-    {
-        public:
-        th();
-    };
-
-    class STH_PythonAppVar : public DummyHandler
-    {
-        public:
-        th();
-        static const constexpr char ID_SCRIPT[] = "PYSC";
-        static const constexpr char ID_CODE[] = "PYCD";
-    };
-
-    class STH_ExactFractionPi : public DummyHandler
-    {
-        public:
-        th();
-        static const constexpr size_t dataByteCount = 9;
-        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
-    };
+    using TypeHandlersTuple = std::tuple<decltype(&DummyHandler::makeDataFromString), decltype(&DummyHandler::makeStringFromData), decltype(&DummyHandler::getMinVersionFromData)>;
+    #define SpecificHandlerTuple(which) TypeHandlersTuple{ &(which::makeDataFromString), &(which::makeStringFromData), &(which::getMinVersionFromData) }
 
     class TH_GenericReal : public DummyHandler
     {
         public:
         th();
         static const constexpr size_t dataByteCount = 9;
+    };
+
+    class STH_FP : public TH_GenericReal
+    {
+    public:
+        th();
+        static const constexpr size_t dataByteCount = 9;
+        static const constexpr char* validPattern = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]{1,2})?)";
+    };
+
+    class STH_ExactFraction : public TH_GenericReal
+    {
+    public:
+        th();
+        static const constexpr size_t dataByteCount = 9;
+        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
+    };
+
+    class STH_ExactRadical : public TH_GenericReal
+    {
+    public:
+        th();
+        static const constexpr size_t dataByteCount = 9;
+        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
+    };
+
+    class STH_ExactPi : public TH_GenericReal
+    {
+    public:
+        th();
+        static const constexpr size_t dataByteCount = 9;
+        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
+    };
+
+    class STH_ExactFractionPi : public TH_GenericReal
+    {
+    public:
+        th();
+        static const constexpr size_t dataByteCount = 9;
+        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
     };
 
     class TH_GenericComplex : public DummyHandler
@@ -111,6 +103,20 @@ namespace tivars::TypeHandlers
     {
         public:
         th();
+    };
+
+    class STH_DataAppVar : public TH_GenericAppVar
+    {
+        public:
+        th();
+    };
+
+    class STH_PythonAppVar : public TH_GenericAppVar
+    {
+        public:
+        th();
+        static const constexpr char ID_SCRIPT[] = "PYSC";
+        static const constexpr char ID_CODE[] = "PYCD";
     };
 
     class TH_GDB : public DummyHandler
@@ -147,11 +153,7 @@ namespace tivars::TypeHandlers
         th();
     };
 
-    using dataFromString_handler_t = decltype(&DummyHandler::makeDataFromString);
-    using stringFromData_handler_t = decltype(&DummyHandler::makeStringFromData);
-    using handler_pair_t           = std::pair<dataFromString_handler_t, stringFromData_handler_t>;
-
-#define make_handler_pair(cls)   make_pair(&cls::makeDataFromString, &cls::makeStringFromData)
+#undef th
 
 }
 
