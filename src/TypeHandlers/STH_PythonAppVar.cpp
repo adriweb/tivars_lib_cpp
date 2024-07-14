@@ -68,4 +68,10 @@ namespace tivars::TypeHandlers
 
         return std::string(data.begin() + 6 + scriptOffset, data.end());
     }
+
+    uint8_t STH_PythonAppVar::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
+    }
 }

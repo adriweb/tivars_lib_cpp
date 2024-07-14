@@ -34,4 +34,10 @@ namespace tivars::TypeHandlers
 
         return STH_DataAppVar::makeStringFromData(data, options);
     }
+
+    uint8_t TH_GenericAppVar::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
+    }
 }

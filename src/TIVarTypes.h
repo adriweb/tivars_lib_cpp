@@ -28,7 +28,7 @@ namespace tivars
         static bool isValidID(uint8_t id);
 
     private:
-        static void insertType(const std::string& name, int id, const std::vector<std::string>& exts, const TypeHandlers::handler_pair_t& handlers = make_handler_pair(TypeHandlers::DummyHandler));
+        static void insertType(const std::string& name, int id, const std::vector<std::string>& exts, const TypeHandlers::TypeHandlersTuple& handlers = { &TypeHandlers::DummyHandler::makeDataFromString, &TypeHandlers::DummyHandler::makeStringFromData, &TypeHandlers::DummyHandler::getMinVersionFromData });
 
     };
 }

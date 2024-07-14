@@ -73,4 +73,9 @@ namespace tivars::TypeHandlers
         return str;
     }
 
+    uint8_t STH_ExactRadical::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
+    }
 }

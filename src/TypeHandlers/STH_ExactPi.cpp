@@ -35,4 +35,9 @@ namespace tivars::TypeHandlers
         return multiple(stoi(STH_FP::makeStringFromData(data, options)), "π");
     }
 
+    uint8_t STH_ExactPi::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
+    }
 }

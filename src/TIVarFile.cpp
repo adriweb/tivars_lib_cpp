@@ -313,7 +313,7 @@ namespace tivars
     void TIVarFile::setContentFromString(const std::string& str, const options_t& options, uint16_t entryIdx)
     {
         auto& entry = this->entries[entryIdx];
-        entry.data = (entry._type.getHandlers().first)(str, options, this);
+        entry.data = std::get<0>(entry._type.getHandlers())(str, options, this);
         this->refreshMetadataFields();
     }
     void TIVarFile::setContentFromString(const std::string& str, const options_t& options)
@@ -386,7 +386,7 @@ namespace tivars
     std::string TIVarFile::getReadableContent(const options_t& options, uint16_t entryIdx)
     {
         const auto& entry = this->entries[entryIdx];
-        return (entry._type.getHandlers().second)(entry.data, options, this);
+        return std::get<1>(entry._type.getHandlers())(entry.data, options, this);
     }
     std::string TIVarFile::getReadableContent(const options_t& options)
     {

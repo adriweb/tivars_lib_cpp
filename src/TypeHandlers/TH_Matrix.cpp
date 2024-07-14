@@ -113,4 +113,11 @@ namespace tivars::TypeHandlers
 
         return str;
     }
+
+    uint8_t TH_Matrix::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
+    }
+
 }

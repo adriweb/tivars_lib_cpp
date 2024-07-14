@@ -13,8 +13,7 @@
 
 using namespace std;
 using namespace tivars;
-using TH_Tokenized::LANG_EN;
-using TH_Tokenized::LANG_FR;
+using namespace tivars::TypeHandlers;
 
 enum FileType
 {
@@ -213,10 +212,10 @@ int main(int argc, char** argv)
                         string langStr = result["lang"].as<string>();
                         if (langStr == "en")
                         {
-                            contentOptions["lang"] = LANG_EN;
+                            contentOptions["lang"] = TH_Tokenized::LANG_EN;
                         } else if (langStr == "fr")
                         {
-                            contentOptions["lang"] = LANG_FR;
+                            contentOptions["lang"] = TH_Tokenized::LANG_FR;
                         } else
                         {
                             cout << langStr << " is not a valid language code" << endl;

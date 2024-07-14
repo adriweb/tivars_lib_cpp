@@ -161,5 +161,11 @@ namespace tivars::TypeHandlers
         }
         *++i = '\0';
         return std::string(result);
-    };
+    }
+
+    uint8_t STH_FP::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
+    }
 }

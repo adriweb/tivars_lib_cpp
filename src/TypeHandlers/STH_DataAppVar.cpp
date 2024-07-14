@@ -64,4 +64,10 @@ namespace tivars::TypeHandlers
 
         return str;
     }
+
+    uint8_t STH_DataAppVar::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
+    }
 }

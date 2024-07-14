@@ -214,6 +214,12 @@ namespace tivars::TypeHandlers
         return str;
     }
 
+    uint8_t TH_Tokenized::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
+    }
+
     std::string TH_Tokenized::reindentCodeString(const std::string& str_orig, const options_t& options)
     {
         uint8_t lang;
@@ -553,12 +559,12 @@ namespace tivars::TypeHandlers
     using namespace emscripten;
     EMSCRIPTEN_BINDINGS(_thtokenized) {
 
-        value_object<tivars::TH_Tokenized::token_posinfo>("token_posinfo")
-            .field("line",   &tivars::TH_Tokenized::token_posinfo::line)
-            .field("column", &tivars::TH_Tokenized::token_posinfo::column)
-            .field("len",    &tivars::TH_Tokenized::token_posinfo::len);
+        value_object<tivars::TypeHandlers::TH_Tokenized::token_posinfo>("token_posinfo")
+            .field("line",   &tivars::TypeHandlers::TH_Tokenized::token_posinfo::line)
+            .field("column", &tivars::TypeHandlers::TH_Tokenized::token_posinfo::column)
+            .field("len",    &tivars::TypeHandlers::TH_Tokenized::token_posinfo::len);
 
-        function("TH_Tokenized_getPosInfoAtOffsetFromHexStr", &tivars::TH_Tokenized::getPosInfoAtOffsetFromHexStr);
-        function("TH_Tokenized_oneTokenBytesToString"       , &tivars::TH_Tokenized::oneTokenBytesToString);
+        function("TH_Tokenized_getPosInfoAtOffsetFromHexStr", &tivars::TypeHandlers::TH_Tokenized::getPosInfoAtOffsetFromHexStr);
+        function("TH_Tokenized_oneTokenBytesToString"       , &tivars::TypeHandlers::TH_Tokenized::oneTokenBytesToString);
     }
 #endif

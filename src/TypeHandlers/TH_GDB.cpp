@@ -550,6 +550,12 @@ namespace tivars::TypeHandlers
         const bool compactJSON = has_option(options, "compact") && options.at("compact") == 1;
         return json(gdb).dump(compactJSON ? -1 : 4);
     }
+
+    uint8_t TH_GDB::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
+    }
 }
 
 #else
@@ -566,6 +572,12 @@ namespace tivars::TypeHandlers
     std::string TH_GDB::makeStringFromData(const data_t&, const options_t&, const TIVarFile* _ctx)
     {
         throw std::runtime_error("GDB support is not compiled in this tivars_lib_cpp version");
+    }
+
+    uint8_t TH_GDB::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        return 0;
     }
 }
 

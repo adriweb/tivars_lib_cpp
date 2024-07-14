@@ -1,6 +1,6 @@
 /*
  * Part of tivars_lib_cpp
- * (C) 2015-2021 Adrien "Adriweb" Bertrand
+ * (C) 2015-2024 Adrien "Adriweb" Bertrand
  * https://github.com/adriweb/tivars_lib_cpp
  * License: MIT
  */
@@ -22,6 +22,7 @@
 using namespace std;
 using namespace tivars;
 using namespace tivars::TypeHandlers;
+using TypeHandlers::TH_Tokenized;
 
 static bool compare_token_posinfo(const TH_Tokenized::token_posinfo& tp1, const TH_Tokenized::token_posinfo& tp2)
 {
@@ -40,10 +41,6 @@ int main(int argc, char** argv)
     TIModels::initTIModelsArray();
     TIVarTypes::initTIVarTypesArray();
     TH_Tokenized::initTokens();
-
-
-    using TH_Tokenized::LANG_FR;
-    using TH_Tokenized::LANG_EN;
 
     /* Tests */
 
@@ -138,8 +135,8 @@ int main(int argc, char** argv)
         // Test lower alpha being the expected lowercase tokens, not special-meaning ones
         TIVarFile testPrgm = TIVarFile::createNew("Program", "INTERP");
         testPrgm.setContentFromString("Disp \"abcdefghijklmnopqrstuvwxyz\"");
-        string detok_fr = testPrgm.getReadableContent({{"lang", LANG_FR}});
-        string detok_en = testPrgm.getReadableContent({{"lang", LANG_EN}});
+        string detok_fr = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
+        string detok_en = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_EN}});
         string hex = testPrgm.getRawContentHexStr();
         assert(detok_fr == "Disp \"abcdefghijklmnopqrstuvwxyz\"");
         assert(detok_en == "Disp \"abcdefghijklmnopqrstuvwxyz\"");
@@ -150,8 +147,8 @@ int main(int argc, char** argv)
         // Test string interpolation behaviour
         TIVarFile testPrgm = TIVarFile::createNew("Program", "INTERP");
         testPrgm.setContentFromString(R"(A and B:Disp "A and B":Send("SET SOUND eval(A and B) TIME 2)");
-        string detok_fr = testPrgm.getReadableContent({{"lang", LANG_FR}});
-        string detok_en = testPrgm.getReadableContent({{"lang", LANG_EN}});
+        string detok_fr = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
+        string detok_en = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_EN}});
         assert(detok_en == R"(A and B:Disp "A and B":Send("SET SOUND eval(A and B) TIME 2)");
         assert(detok_fr == R"(A et B:Disp "A and B":Envoi("SET SOUND eval(A et B) TIME 2)");
     }
@@ -160,8 +157,8 @@ int main(int argc, char** argv)
         // Test tokenization exceptions
         TIVarFile testPrgm = TIVarFile::createNew("Program", "FOOBAR");
         testPrgm.setContentFromString(R"(Disp "WHITE,ʟWHITE,prgmWHITE",WHITE,ʟWHITE:prgmWHITE:prgmABCDEF)");
-        string detok_fr = testPrgm.getReadableContent({{"lang", LANG_FR}});
-        string detok_en = testPrgm.getReadableContent({{"lang", LANG_EN}});
+        string detok_fr = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
+        string detok_en = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_EN}});
         assert(detok_en == R"(Disp "WHITE,ʟWHITE,prgmWHITE",WHITE,ʟWHITE:prgmWHITE:prgmABCDEF)");
         assert(detok_fr == R"(Disp "WHITE,ʟWHITE,prgmWHITE",BLANC,ʟWHITE:prgmWHITE:prgmABCDEF)");
         // While this is visually fine, the "prgm" inside the token should probably be the token, not p r g m ...
@@ -171,8 +168,8 @@ int main(int argc, char** argv)
         // Test tokenization exceptions in an interpolated string
         TIVarFile testPrgm = TIVarFile::createNew("Program", "FOOBAR");
         testPrgm.setContentFromString(R"(Send("SET SOUND eval(A and prgmWHITE) TIME 2)");
-        string detok_fr = testPrgm.getReadableContent({{"lang", LANG_FR}});
-        string detok_en = testPrgm.getReadableContent({{"lang", LANG_EN}});
+        string detok_fr = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
+        string detok_en = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_EN}});
         assert(detok_en == R"(Send("SET SOUND eval(A and prgmWHITE) TIME 2)");
         assert(detok_fr == R"(Envoi("SET SOUND eval(A et prgmWHITE) TIME 2)");
     }
@@ -366,11 +363,11 @@ End)";
         cout << "testPrgm.getHeader().entries_len = " << testPrgm.getHeader().entries_len
              << "\t testPrgm.size() - 57 == " << (testPrgm.size() - 57) << endl;
         assert(testPrgm.getHeader().entries_len == testPrgm.size() - 57);
-        string testPrgmcontent = testPrgm.getReadableContent({{"lang", LANG_FR}});
+        string testPrgmcontent = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
 
         TIVarFile newPrgm = TIVarFile::createNew("Program");
         newPrgm.setContentFromString(testPrgmcontent);
-        string newPrgmcontent = newPrgm.getReadableContent({{"lang", LANG_FR}});
+        string newPrgmcontent = newPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
 
         assert(testPrgmcontent == newPrgmcontent);
         newPrgm.saveVarToFile("testData", "Program_new");
