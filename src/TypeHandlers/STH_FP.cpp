@@ -22,7 +22,7 @@ static bool parseSign(std::string::const_iterator &i, const std::string::const_i
     return sign;
 }
 
-namespace tivars
+namespace tivars::TypeHandlers
 {
     data_t STH_FP::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {

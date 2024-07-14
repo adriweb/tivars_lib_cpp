@@ -10,7 +10,7 @@
 
 #include <stdexcept>
 
-namespace tivars
+namespace tivars::TypeHandlers
 {
 
     data_t TH_Matrix::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)

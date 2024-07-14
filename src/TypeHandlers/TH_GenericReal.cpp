@@ -10,7 +10,7 @@
 #include <stdexcept>
 #include <unordered_map>
 
-namespace tivars
+namespace tivars::TypeHandlers
 {
     static const std::unordered_map<uint8_t, handler_pair_t> type2handlers = {
         { 0x00, make_handler_pair(STH_FP)              },

@@ -6,9 +6,12 @@
  */
 
 #include "TIVarTypes.h"
+#include "TIVarFile.h"
 
 namespace tivars
 {
+    using namespace TypeHandlers;
+
     namespace
     {
         std::unordered_map<std::string, TIVarType> types;
@@ -35,8 +38,8 @@ namespace tivars
 #define GenericHandlerPair(which, type) make_pair([](const std::string& str, const options_t& options, const TIVarFile* _ctx) -> data_t { \
     options_t options_withType = options;                                                                          \
     options_withType["_type"] = type;                                                                              \
-    return (TH_Generic##which::makeDataFromString)(str, options_withType, _ctx);                                   \
-}, &TH_Generic##which::makeStringFromData)
+    return (TypeHandlers::TH_Generic##which::makeDataFromString)(str, options_withType, _ctx);                                   \
+}, &TypeHandlers::TH_Generic##which::makeStringFromData)
 
     void TIVarTypes::insertType(const std::string& name, int id, const std::vector<std::string>& exts, const handler_pair_t& handlers)
     {

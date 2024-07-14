@@ -281,8 +281,8 @@ namespace tivars
         {
             if (data.size() >= 6)
             {
-                if (memcmp(&data[2], STH_PythonAppVar::ID_CODE, 4) == 0
-                 || memcmp(&data[2], STH_PythonAppVar::ID_SCRIPT, 4) == 0)
+                if (memcmp(&data[2], TypeHandlers::STH_PythonAppVar::ID_CODE, 4) == 0
+                 || memcmp(&data[2], TypeHandlers::STH_PythonAppVar::ID_SCRIPT, 4) == 0)
                 {
                     _type = TIVarType{"PythonAppVar"};
                 }

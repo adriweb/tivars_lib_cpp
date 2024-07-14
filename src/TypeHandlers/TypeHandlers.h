@@ -13,100 +13,139 @@
 namespace tivars
 {
     class TIVarFile;
+}
 
-#define th()    data_t      makeDataFromString(const std::string& str, const options_t& options = options_t(), const TIVarFile* _ctx = nullptr); \
-                std::string makeStringFromData(const data_t& data,     const options_t& options = options_t(), const TIVarFile* _ctx = nullptr);
+namespace tivars::TypeHandlers
+{
+#define th()    static data_t      makeDataFromString(const std::string& str, const options_t& options = options_t(), const TIVarFile* _ctx = nullptr); \
+                static std::string makeStringFromData(const data_t& data,     const options_t& options = options_t(), const TIVarFile* _ctx = nullptr); \
+                static uint8_t     getMinVersionFromData(const data_t& data);
 
-    namespace DummyHandler { th(); }
-
-    namespace STH_FP
+    class DummyHandler
     {
+        public:
         th();
-        const constexpr size_t dataByteCount = 9;
+    };
+
+    class STH_FP : public DummyHandler
+    {
+        public:
+        th();
+        static const constexpr size_t dataByteCount = 9;
         static const constexpr char* validPattern = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]{1,2})?)";
-    }
-    namespace STH_ExactFraction
+    };
+
+    class STH_ExactFraction : public DummyHandler
     {
+        public:
         th();
-        const constexpr size_t dataByteCount = 9;
+        static const constexpr size_t dataByteCount = 9;
         static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
-    }
-    namespace STH_ExactRadical
+    };
+
+    class STH_ExactRadical : public DummyHandler
     {
+        public:
         th();
-        const constexpr size_t dataByteCount = 9;
+        static const constexpr size_t dataByteCount = 9;
         static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
-    }
-    namespace STH_ExactPi
+    };
+
+    class STH_ExactPi : public DummyHandler
     {
+        public:
         th();
-        const constexpr size_t dataByteCount = 9;
+        static const constexpr size_t dataByteCount = 9;
         static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
-    }
-    namespace STH_DataAppVar
+    };
+
+    class STH_DataAppVar : public DummyHandler
     {
+        public:
         th();
-    }
-    namespace STH_PythonAppVar
+    };
+
+    class STH_PythonAppVar : public DummyHandler
     {
+        public:
         th();
         static const constexpr char ID_SCRIPT[] = "PYSC";
         static const constexpr char ID_CODE[] = "PYCD";
-    }
-    namespace STH_ExactFractionPi
+    };
+
+    class STH_ExactFractionPi : public DummyHandler
     {
+        public:
         th();
-        const constexpr size_t dataByteCount = 9;
+        static const constexpr size_t dataByteCount = 9;
         static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
-    }
+    };
 
-    namespace TH_GenericReal
+    class TH_GenericReal : public DummyHandler
     {
+        public:
         th();
-        const constexpr size_t dataByteCount = 9;
-    }
-    namespace TH_GenericComplex
+        static const constexpr size_t dataByteCount = 9;
+    };
+
+    class TH_GenericComplex : public DummyHandler
     {
+        public:
         th();
-        const constexpr size_t dataByteCount = 2 * TH_GenericReal::dataByteCount;
-    }
+        static const constexpr size_t dataByteCount = 2 * TH_GenericReal::dataByteCount;
+    };
 
-    namespace TH_GenericList   { th(); }
-
-    namespace TH_Matrix        { th(); }
-
-    namespace TH_GenericAppVar { th(); }
-
-    namespace TH_GDB
+    class TH_GenericList : public DummyHandler
     {
+        public:
         th();
-        const constexpr size_t dataByteCountMinimum = 100;
+    };
+
+    class TH_Matrix : public DummyHandler
+    {
+        public:
+        th();
+    };
+
+    class TH_GenericAppVar : public DummyHandler
+    {
+        public:
+        th();
+    };
+
+    class TH_GDB : public DummyHandler
+    {
+        public:
+        th();
+        static const constexpr size_t dataByteCountMinimum = 100;
         static const constexpr char* magic84CAndLaterSectionMarker = "84C";
-    }
+    };
 
     // Program, Protected Program, Y-Variable, String
-    namespace TH_Tokenized
+    class TH_Tokenized : public DummyHandler
     {
+        public:
         th();
         enum lang { LANG_EN = 0, LANG_FR };
         enum typelang { PRGMLANG_BASIC = 0, PRGMLANG_AXE, PRGMLANG_ICE };
         enum indentchar : char { INDENT_CHAR_SPACE = ' ', INDENT_CHAR_TAB = '\t' };
         struct token_posinfo { uint16_t line; uint16_t column; uint8_t len; };
-        std::string reindentCodeString(const std::string& str_orig, const options_t& options = options_t());
-        token_posinfo getPosInfoAtOffset(const data_t& data, uint16_t byteOffset, const options_t& options = options_t());
-        token_posinfo getPosInfoAtOffsetFromHexStr(const std::string& hexBytesStr, uint16_t byteOffset);
-        std::string tokenToString(const data_t& data, int *incr, const options_t& options);
-        std::string oneTokenBytesToString(uint16_t tokenBytes);
-        void initTokens();
-        void initTokensFromCSVFilePath(const std::string& csvFilePath);
-        void initTokensFromCSVContent(const std::string& csvFileStr);
-    }
+        static std::string reindentCodeString(const std::string& str_orig, const options_t& options = options_t());
+        static token_posinfo getPosInfoAtOffset(const data_t& data, uint16_t byteOffset, const options_t& options = options_t());
+        static token_posinfo getPosInfoAtOffsetFromHexStr(const std::string& hexBytesStr, uint16_t byteOffset);
+        static std::string tokenToString(const data_t& data, int *incr, const options_t& options);
+        static std::string oneTokenBytesToString(uint16_t tokenBytes);
+        static void initTokens();
+        static void initTokensFromCSVFilePath(const std::string& csvFilePath);
+        static void initTokensFromCSVContent(const std::string& csvFileStr);
+    };
 
     // Special temporary type that may appear as an equation, during basic program execution
-    namespace TH_TempEqu     { th(); }
-
-#undef th
-
+    class TH_TempEqu : public DummyHandler
+    {
+        public:
+        th();
+    };
 
     using dataFromString_handler_t = decltype(&DummyHandler::makeDataFromString);
     using stringFromData_handler_t = decltype(&DummyHandler::makeStringFromData);

@@ -10,7 +10,7 @@
 
 #include <stdexcept>
 
-namespace tivars
+namespace tivars::TypeHandlers
 {
     data_t DummyHandler::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
@@ -28,4 +28,9 @@ namespace tivars
         throw std::runtime_error("This type is not supported / implemented (yet?)");
     }
 
+    uint8_t DummyHandler::getMinVersionFromData(const data_t& data)
+    {
+        (void)data;
+        throw std::runtime_error("This type is not supported / implemented (yet?)");
+    }
 }

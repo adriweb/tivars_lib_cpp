@@ -29,9 +29,9 @@ static size_t strlen_mb(const std::string& s)
     return len;
 }
 
-namespace tivars
+namespace tivars::TypeHandlers
 {
-    namespace TH_Tokenized
+    namespace
     {
         std::unordered_map<uint16_t, std::vector<std::string>> tokens_BytesToName;
         std::unordered_map<std::string, uint16_t> tokens_NameToBytes;

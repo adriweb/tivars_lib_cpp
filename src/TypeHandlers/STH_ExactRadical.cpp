@@ -12,7 +12,7 @@
 #include <stdexcept>
 #include <regex>
 
-namespace tivars
+namespace tivars::TypeHandlers
 {
 
     data_t STH_ExactRadical::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)

@@ -15,7 +15,7 @@
 // TODO: handle weird chars stuff
 // TODO: handle full metadata format
 
-namespace tivars
+namespace tivars::TypeHandlers
 {
     data_t STH_PythonAppVar::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {

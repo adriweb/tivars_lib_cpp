@@ -11,7 +11,7 @@
 
 #include <stdexcept>
 
-namespace tivars
+namespace tivars::TypeHandlers
 {
     // TODO: also make it detect the type correctly...
     data_t TH_GenericList::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)

@@ -396,7 +396,7 @@ namespace
     }
 }
 
-namespace tivars
+namespace tivars::TypeHandlers
 {
     data_t TH_GDB::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
@@ -556,7 +556,7 @@ namespace tivars
 
 #warning "Compiler is too old to handle the GDB VarType support code so it will be disabled"
 
-namespace tivars
+namespace tivars::TypeHandlers
 {
     data_t TH_GDB::makeDataFromString(const std::string&, const options_t&, const TIVarFile* _ctx)
     {
