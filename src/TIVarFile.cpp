@@ -223,7 +223,7 @@ namespace tivars
         {
             entry.data_length2 = entry.data_length = (uint16_t) entry.data.size();
             this->header.entries_len += sizeof(var_entry_t::data_length) + sizeof(var_entry_t::data_length2) + entry.meta_length + entry.data_length;
-            // todo: update entry version field
+            entry.version = (this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? std::get<2>(entry._type.getHandlers())(entry.data) : 0;
         }
         this->computedChecksum = this->computeChecksumFromInstanceData();
     }

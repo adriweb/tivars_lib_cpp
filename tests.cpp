@@ -68,6 +68,57 @@ int main(int argc, char** argv)
     }
 
     {
+        // See https://wikiti.brandonw.net/index.php?title=83Plus:OS:Variable_Versions
+        TIVarFile testPrgmStr1 = TIVarFile::createNew("Program", "asdf");
+        const auto& ver = testPrgmStr1.getVarEntries()[0].version;
+        assert(ver == 0x00);
+        testPrgmStr1.setContentFromString("Disp 41+1");
+        assert((ver & ~0x20) == 0x00);
+        testPrgmStr1.setContentFromString("Archive A");
+        assert((ver & ~0x20) == 0x01);
+        testPrgmStr1.setContentFromString("GarbageCollect");
+        assert((ver & ~0x20) == 0x01);
+        testPrgmStr1.setContentFromString("Disp 42%");
+        assert((ver & ~0x20) == 0x02);
+        testPrgmStr1.setContentFromString("~A");
+        assert((ver & ~0x20) == 0x02);
+        testPrgmStr1.setContentFromString("Disp \"…\"");
+        assert((ver & ~0x20) == 0x03);
+        testPrgmStr1.setContentFromString("Disp \"⌸\"");
+        assert((ver & ~0x20) == 0x03);
+        testPrgmStr1.setContentFromString("setDate(A,B,C)");
+        assert((ver & ~0x20) == 0x04);
+        testPrgmStr1.setContentFromString("ExecLib \"A\"");
+        assert((ver & ~0x20) == 0x04);
+        testPrgmStr1.setContentFromString("Manual-Fit ");
+        assert((ver & ~0x20) == 0x05);
+        testPrgmStr1.setContentFromString("ZQuadrant1");
+        assert((ver & ~0x20) == 0x06);
+        testPrgmStr1.setContentFromString("FRAC");
+        assert((ver & ~0x20) == 0x06);
+        testPrgmStr1.setContentFromString("STATWIZARD ON");
+        assert((ver & ~0x20) == 0x07);
+        testPrgmStr1.setContentFromString("STATWIZARD OFF");
+        assert((ver & ~0x20) == 0x07);
+        testPrgmStr1.setContentFromString("BLUE");
+        assert((ver & ~0x20) == 0x0A);
+        testPrgmStr1.setContentFromString("Dot-Thin");
+        assert((ver & ~0x20) == 0x0A);
+        testPrgmStr1.setContentFromString("TraceStep");
+        assert((ver & ~0x20) == 0x00); // 63** token ranges are not considered by a calculator when it generates the version.
+        testPrgmStr1.setContentFromString("Asm84CEPrgm:C9");
+        assert((ver & ~0x20) == 0x0B);
+        testPrgmStr1.setContentFromString("Disp eval(Str1");
+        assert((ver & ~0x20) == 0x0B); // 0Bh is used for all of TI-84 Plus CE OS 5.0 through 5.2, despite tokens being added between them.
+        testPrgmStr1.setContentFromString("Quartiles Setting…");
+        assert((ver & ~0x20) == 0x0B);
+        testPrgmStr1.setContentFromString("Execute Program");
+        assert((ver & ~0x20) == 0x0C);
+        testPrgmStr1.setContentFromString("piecewise(");
+        assert((ver & ~0x20) == 0x0C);
+    }
+
+    {
         assert(TH_Tokenized::oneTokenBytesToString(0x00) == "");
         assert(TH_Tokenized::oneTokenBytesToString(0xBB) == "");
         assert(TH_Tokenized::oneTokenBytesToString(0x3F) == "\n");

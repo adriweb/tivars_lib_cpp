@@ -216,8 +216,56 @@ namespace tivars::TypeHandlers
 
     uint8_t TH_Tokenized::getMinVersionFromData(const data_t& data)
     {
-        (void)data;
-        return 0;
+        const size_t dataSize = data.size();
+        if (dataSize < 2)
+        {
+            throw std::invalid_argument("Invalid data array. Needs to contain at least 2 bytes (size fields)");
+        }
+
+        bool usesRTC = false;
+        int maxBB = -1;
+        int maxEF = -1;
+        uint16_t offset = 2;
+        while (offset < dataSize) {
+            const uint8_t firstByte = data[offset++];
+            if (is_in_vector(firstByteOfTwoByteTokens, firstByte)) {
+                if (offset >= dataSize) {
+                    break;
+                }
+                uint8_t secondByte = data[offset++];
+                if (firstByte == 0xBB) {
+                    if (secondByte > maxBB) maxBB = secondByte;
+                } else if (firstByte == 0xEF) {
+                    if (secondByte <= 0x10) usesRTC = true;
+                    if (secondByte > maxEF) maxEF = secondByte;
+                }
+            }
+        }
+        uint8_t version = usesRTC ? 0x20 : 0x00;
+        if (maxBB > 0xF5 || maxEF > 0xA6) {
+            version = 0xFF;
+        } else if (maxEF > 0x98) {
+            version |= 0x0C;
+        } else if (maxEF > 0x75) {
+            version |= 0x0B;
+        } else if (maxEF > 0x40) {
+            version |= 0x0A;
+        } else if (maxEF > 0x3E) {
+            version |= 0x07;
+        } else if (maxEF > 0x16) {
+            version |= 0x06;
+        } else if (maxEF > 0x12) {
+            version |= 0x05;
+        } else if (maxEF > -1) {
+            version |= 0x04;
+        } else if (maxBB > 0xDA) {
+            version |= 0x03;
+        } else if (maxBB > 0xCE) {
+            version |= 0x02;
+        } else if (maxBB > 0x67) {
+            version |= 0x01;
+        }
+        return version;
     }
 
     std::string TH_Tokenized::reindentCodeString(const std::string& str_orig, const options_t& options)
