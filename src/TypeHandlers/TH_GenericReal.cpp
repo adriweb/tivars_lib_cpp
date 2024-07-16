@@ -54,7 +54,7 @@ namespace tivars::TypeHandlers
 
     uint8_t TH_GenericReal::getMinVersionFromData(const data_t& data)
     {
-        (void)data;
-        return 0;
+        const uint8_t internalType = (uint8_t)(data[0] & 0x3F);
+        return (internalType == 0) ? 0x00 : 0x06;
     }
 }

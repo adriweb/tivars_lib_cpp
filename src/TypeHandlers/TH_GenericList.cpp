@@ -99,7 +99,18 @@ namespace tivars::TypeHandlers
 
     uint8_t TH_GenericList::getMinVersionFromData(const data_t& data)
     {
-        (void)data;
-        return 0;
+        uint8_t version = 0;
+        for (size_t offset = 2; offset < data.size(); offset += 9) {
+            uint8_t internalType = data[offset] & 0x3F;
+            if (internalType > 0x1B) { // exact complex frac
+                version = 0x10;
+                break;
+            } else if (internalType == 0x1B) { // exact complex frac
+                if (version < 0x0B) version = 0x0B;
+            } else if (internalType == 0x18 || internalType == 0x19) { // real/mixed frac
+                if (version < 0x06) version = 0x06;
+            }
+        }
+        return version;
     }
 }

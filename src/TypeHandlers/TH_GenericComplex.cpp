@@ -147,7 +147,13 @@ namespace tivars::TypeHandlers
 
     uint8_t TH_GenericComplex::getMinVersionFromData(const data_t& data)
     {
-        (void)data;
-        return 0;
+        const uint8_t internalType = (uint8_t)(data[0] & 0x3F);
+        if (internalType == 0x0C) { // Complex
+            return 0x00;
+        } else if (internalType == 0x1B) { // Fraction
+            return 0x0B;
+        } else {
+            return 0x10;
+        }
     }
 }
