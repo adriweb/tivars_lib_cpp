@@ -161,7 +161,7 @@ namespace tivars::TypeHandlers
             const uint16_t twoFirstBytes = (uint16_t) ((data[3] & 0xFF) + ((data[2] & 0xFF) << 8));
             if (std::find(std::begin(squishedASMTokens), std::end(squishedASMTokens), twoFirstBytes) != std::end(squishedASMTokens))
             {
-                return "[Error] This is a squished ASM program - cannnot preview it!";
+                return "[Error] This is a squished ASM program - cannot preview it!";
             }
         }
 
@@ -462,7 +462,7 @@ namespace tivars::TypeHandlers
             const uint16_t twoFirstBytes = (uint16_t) ((data[1] & 0xFF) + ((data[0] & 0xFF) << 8));
             if (std::find(std::begin(squishedASMTokens), std::end(squishedASMTokens), twoFirstBytes) != std::end(squishedASMTokens))
             {
-                throw std::invalid_argument("This is a squished ASM program - cannnot process it!");
+                throw std::invalid_argument("This is a squished ASM program - cannot process it!");
             }
         }
 
