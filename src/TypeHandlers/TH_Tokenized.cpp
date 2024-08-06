@@ -38,7 +38,9 @@ namespace tivars::TypeHandlers
         uint8_t lengthOfLongestTokenName;
         std::vector<uint8_t> firstByteOfTwoByteTokens;
         constexpr uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
-        const std::regex toPrettifyRX(R"(\[?\|([a-zA-Z]+)\]?)");
+        const std::regex toPrettifyRX1(R"(\[\|([a-f])\])");
+        const std::regex toPrettifyRX2(R"(\[([prszt])\])");
+        const std::regex toPrettifyRX3(R"(\|([uvw]))");
     }
 
     data_t TH_Tokenized::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
@@ -200,7 +202,9 @@ namespace tivars::TypeHandlers
 
         if (has_option(options, "prettify") && options.at("prettify") == 1)
         {
-            str = std::regex_replace(str, toPrettifyRX, "$1");
+            str = std::regex_replace(str, toPrettifyRX1, "$1");
+            str = std::regex_replace(str, toPrettifyRX2, "$1");
+            str = std::regex_replace(str, toPrettifyRX3, "$1");
         }
 
         if (has_option(options, "reindent") && options.at("reindent") == 1)
@@ -423,7 +427,9 @@ namespace tivars::TypeHandlers
         }
         if (fromPrettified)
         {
-            tokStr = std::regex_replace(tokStr, toPrettifyRX, "$1");
+            tokStr = std::regex_replace(tokStr, toPrettifyRX1, "$1");
+            tokStr = std::regex_replace(tokStr, toPrettifyRX2, "$1");
+            tokStr = std::regex_replace(tokStr, toPrettifyRX3, "$1");
         }
 
         return tokStr;
@@ -445,7 +451,9 @@ namespace tivars::TypeHandlers
             tokStr = " [???] ";
         }
 
-        tokStr = std::regex_replace(tokStr, toPrettifyRX, "$1");
+        tokStr = std::regex_replace(tokStr, toPrettifyRX1, "$1");
+        tokStr = std::regex_replace(tokStr, toPrettifyRX2, "$1");
+        tokStr = std::regex_replace(tokStr, toPrettifyRX3, "$1");
 
         return tokStr;
     }
@@ -513,7 +521,9 @@ namespace tivars::TypeHandlers
             }
             if (fromPrettified)
             {
-                tokStr = std::regex_replace(tokStr, toPrettifyRX, "$1");
+                tokStr = std::regex_replace(tokStr, toPrettifyRX1, "$1");
+                tokStr = std::regex_replace(tokStr, toPrettifyRX2, "$1");
+                tokStr = std::regex_replace(tokStr, toPrettifyRX3, "$1");
             }
 
             const size_t tokStrLen = strlen_mb(tokStr);
