@@ -16,6 +16,7 @@ namespace tivars::TypeHandlers
     {
         (void)str;
         (void)options;
+        (void)_ctx;
 
         throw std::runtime_error("Unimplemented");
     }
@@ -23,6 +24,7 @@ namespace tivars::TypeHandlers
     std::string TH_TempEqu::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
+        (void)_ctx;
 
         if (data.size() < 2)
         {

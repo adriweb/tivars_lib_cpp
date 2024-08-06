@@ -401,6 +401,7 @@ namespace tivars::TypeHandlers
     data_t TH_GDB::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
+        (void)_ctx;
 
         GDB gdb{};
         from_json(json::parse(str), gdb);
@@ -466,6 +467,8 @@ namespace tivars::TypeHandlers
 
     std::string TH_GDB::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
+        (void)_ctx;
+
         const size_t dataSizeActual = data.size();
         if (dataSizeActual < dataByteCountMinimum)
         {

@@ -43,6 +43,7 @@ namespace tivars::TypeHandlers
 
     data_t TH_Tokenized::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
+        (void)_ctx;
         data_t data;
 
         const bool deindent = has_option(options, "deindent") && options.at("deindent") == 1;
@@ -133,6 +134,7 @@ namespace tivars::TypeHandlers
 
     std::string TH_Tokenized::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
+        (void)_ctx;
         const size_t dataSize = data.size();
 
         const bool fromRawBytes = has_option(options, "fromRawBytes") && options.at("fromRawBytes") == 1;

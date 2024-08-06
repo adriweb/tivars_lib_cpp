@@ -27,6 +27,7 @@ namespace tivars::TypeHandlers
     data_t STH_FP::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
+        (void)_ctx;
 
         data_t data(dataByteCount);
         bool beforePoint = true, noDigits = true, zero = true;
@@ -106,6 +107,7 @@ namespace tivars::TypeHandlers
     {
         bool scientific = false;
         (void)options;
+        (void)_ctx;
 
         if (data.size() != dataByteCount)
         {

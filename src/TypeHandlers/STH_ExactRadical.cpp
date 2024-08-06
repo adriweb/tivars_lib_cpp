@@ -18,6 +18,7 @@ namespace tivars::TypeHandlers
     data_t STH_ExactRadical::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
+        (void)_ctx;
 
         throw std::runtime_error("Unimplemented");
 
@@ -31,6 +32,7 @@ namespace tivars::TypeHandlers
     std::string STH_ExactRadical::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
+        (void)_ctx;
 
         if (data.size() != dataByteCount)
         {

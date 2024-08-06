@@ -16,6 +16,7 @@ namespace tivars::TypeHandlers
     data_t STH_ExactFractionPi::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
+        (void)_ctx;
 
         throw std::runtime_error("Unimplemented");
 
@@ -27,6 +28,8 @@ namespace tivars::TypeHandlers
 
     std::string STH_ExactFractionPi::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
+        (void)_ctx;
+
         if (data.size() != dataByteCount)
         {
             throw std::invalid_argument("Invalid data array. Needs to contain " + std::to_string(dataByteCount) + " bytes");

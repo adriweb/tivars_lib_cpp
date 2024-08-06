@@ -19,6 +19,8 @@ namespace tivars::TypeHandlers
 
     std::string TH_GenericAppVar::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
+        (void)_ctx;
+
         if (data.size() < 2)
         {
             throw std::invalid_argument("Invalid data array. Needs to contain at least 2 bytes");

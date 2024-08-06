@@ -16,6 +16,7 @@ namespace tivars::TypeHandlers
     data_t STH_DataAppVar::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
+        (void)_ctx;
 
         const bool formatOk = regex_match(str, std::regex("^([0-9a-fA-F]{2})+$"));
 
@@ -40,6 +41,7 @@ namespace tivars::TypeHandlers
     std::string STH_DataAppVar::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
+        (void)_ctx;
 
         const size_t byteCount = data.size();
         if (byteCount < 2)
