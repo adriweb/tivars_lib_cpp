@@ -396,6 +396,19 @@ namespace
     }
 }
 
+/*
+ * Some info from LogicalJoe:
+ *   For the Graph Mode byte it doesn't check for 0x10, 0x20, 0x40, and 0x80;
+ *   Instead, if bit 4 is set, then it is read as a Function GDB, else if bit 5 then Polar, else if bit 6 then Parametric, else Sequential.
+ *   i.e. Mode byte 0x60 is interpreted as Polar (0x20).
+ *   The calculator will (should) never return a GDB where this matters
+*/
+static GraphMode getGraphModeFromRawValue(uint8_t val)
+{
+    const uint8_t m = (val & 0x70) | 0x80;
+    return static_cast<GraphMode>(m & -m);
+}
+
 namespace tivars::TypeHandlers
 {
     data_t TH_GDB::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
@@ -482,7 +495,7 @@ namespace tivars::TypeHandlers
         }
 
         GDB gdb = {
-            .graphMode = static_cast<GraphMode>(data[3]),
+            .graphMode = getGraphModeFromRawValue(data[3]),
             .formatSettings = *((FormatSettings*)(&data[4])),
             .seqSettings = *((SeqSettings*)(&data[5])),
             .extSettings = *((ExtModeSettings*)(&data[6])),
