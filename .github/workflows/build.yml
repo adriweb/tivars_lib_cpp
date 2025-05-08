@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04,ubuntu-latest,macOS-12,macOS-latest]
+        os: [ubuntu-22.04,ubuntu-latest,macOS-13,macOS-latest]
     steps:
       - uses: actions/checkout@v3
       - run: make -j4
