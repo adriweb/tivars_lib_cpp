@@ -47,7 +47,7 @@ int main(int argc, char** argv)
     assert(TIVarType{"ExactRealPi"}.getId() == 32);
 
     {
-        TIVarFile testReal = TIVarFile::createNew("Real");
+        TIVarFile testReal = TIVarFile::createNew("Real", "A");
         for (const auto& str : { "0.0", "0", "+0.0", "+0" })
         {
             testReal.setContentFromString(str);
@@ -484,6 +484,14 @@ End)";
     }
 
     {
+        TIVarFile testRealList = TIVarFile::createNew("RealList", "\x5D\x00"); // L₁
+        assert(testRealList.getRawContent().empty());
+        const std::string content = "{9,0,0.5,-6e-8}";
+        testRealList.setContentFromString(content);
+        assert(testRealList.getReadableContent() == content);
+    }
+
+    {
         TIVarFile testStandardMatrix = TIVarFile::loadFromFile("testData/Matrix_3x3_standard.8xm");
         cout << "Before: " << testStandardMatrix.getReadableContent() << "\n   Now: ";
         testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7,-8,-9]]");
@@ -640,7 +648,7 @@ End)";
         std::stringstream gdbJSON;
         gdbJSON << jsonFile.rdbuf();
 
-        TIVarFile paramGDB = TIVarFile::createNew("GraphDataBase", "a");
+        TIVarFile paramGDB = TIVarFile::createNew("GraphDataBase", "\x61\x00"); // GDB0
         paramGDB.setContentFromString(gdbJSON.str());
         cout << "paramGDB.getReadableContent() : " << paramGDB.getReadableContent() << endl;
         paramGDB.saveVarToFile("testData", "GraphDataBase_Param_new");

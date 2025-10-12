@@ -255,19 +255,30 @@ namespace tivars
         // Here we handle various theta chars. Note thata in TI-ASCII, theta is at 0x5B which is "[" in ASCII.
         newName = std::regex_replace(newName, std::regex("(\u03b8|\u0398|\u03F4|\u1DBF)"), "[");
 
-        // TODO: handle names according to _type
-        newName = std::regex_replace(newName, std::regex("[^[a-zA-Z0-9]"), "");
-        if (newName.length() > sizeof(varname) || newName.empty() || is_numeric(newName.substr(0, 1)))
-        {
-            throw std::invalid_argument("Invalid name given. 8 chars (A-Z, 0-9, θ) max, starting by a letter or θ.");
-        }
-
-        // TODO: again, properly handle names according to _type... (needs to be implemented by each type)
-        // Quick hack for now...
         const auto& typeName = _type.getName();
+        const auto& typeId = _type.getId();
+
         if (typeName == "Real" || typeName == "Complex" || typeName == "Program" || typeName == "ProtectedProgram")
         {
             for (auto & c: newName) c = (char) toupper(c);
+        }
+
+        if (((typeName == "Real" || typeName == "Complex" || (typeId >= 0x1B && typeId <= 0x21)) && !regex_match(newName, std::regex(R"(^[[A-Z]$)"))) // exact types
+          || ((typeName == "RealList" || typeName == "ComplexList") && !regex_match(newName, std::regex(R"(^\x5D([\x00-\x05])?|([[0-9A-F]{0,5})$)")))
+          || ((typeName == "Program" || typeName == "ProtectedProgram") && !regex_match(newName, std::regex(R"(^[[A-Z][[A-Z0-9]{0,7}$)")))
+          || (typeName == "Equation" && !regex_match(newName, std::regex(R"(^\x5E[\x00-\xFF]?$)")))
+          || (typeName == "Matrix" && !regex_match(newName, std::regex(R"(^\x5C[\x00-\x09]?$)")))
+          || (typeName == "String" && !regex_match(newName, std::regex(R"(^\xAA[\x00-\x09]?$)")))
+          || (typeName == "Pic" && !regex_match(newName, std::regex(R"(^\x60[\x00-\x09]?$)")))
+          || (typeName == "Image" && !regex_match(newName, std::regex(R"(^\x3C[\x00-\x09]?$)")))
+          || (typeName == "GraphDataBase" && !regex_match(newName, std::regex(R"(^\x61[\x00-\x09]?$)"))))
+        {
+            newName = "";
+        }
+
+        if (newName.length() > sizeof(varname) || newName.empty())
+        {
+            throw std::invalid_argument("Invalid name given. 8 chars (A-Z, 0-9, θ) max, starting by a letter or θ.");
         }
 
         newName = str_pad(newName, sizeof(varname), "\0");
