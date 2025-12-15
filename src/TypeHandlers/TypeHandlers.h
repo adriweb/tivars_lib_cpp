@@ -132,7 +132,7 @@ namespace tivars::TypeHandlers
     {
         public:
         th();
-        enum lang { LANG_EN = 0, LANG_FR };
+        enum lang { LANG_EN = 0, LANG_FR, LANG_MAX };
         enum typelang { PRGMLANG_BASIC = 0, PRGMLANG_AXE, PRGMLANG_ICE };
         enum indentchar : char { INDENT_CHAR_SPACE = ' ', INDENT_CHAR_TAB = '\t' };
         struct token_posinfo { uint16_t line; uint16_t column; uint8_t len; };

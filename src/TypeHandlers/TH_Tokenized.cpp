@@ -1,6 +1,6 @@
 /*
  * Part of tivars_lib_cpp
- * (C) 2015-2021 Adrien "Adriweb" Bertrand
+ * (C) 2015-2025 Adrien "Adriweb" Bertrand
  * https://github.com/adriweb/tivars_lib_cpp
  * License: MIT
  */
@@ -20,6 +20,7 @@
 #include <regex>
 #include <fstream>
 #include <cstring>
+#include <array>
 
 static size_t strlen_mb(const std::string& s)
 {
@@ -33,7 +34,7 @@ namespace tivars::TypeHandlers
 {
     namespace
     {
-        std::unordered_map<uint16_t, std::vector<std::string>> tokens_BytesToName;
+        std::unordered_map<uint16_t, std::array<std::string, TH_Tokenized::LANG_MAX>> tokens_BytesToName;
         std::unordered_map<std::string, uint16_t> tokens_NameToBytes;
         uint8_t lengthOfLongestTokenName;
         std::vector<uint8_t> firstByteOfTwoByteTokens;
