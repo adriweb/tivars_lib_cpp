@@ -50,6 +50,10 @@ endif()
 file(GLOB HEADER_FILES "src/*.h" "src/TypeHandlers/*.h")
 file(GLOB COMMON_SOURCE ${HEADER_FILES} "src/*.cpp" "src/TypeHandlers/*.cpp")
 
+# pugixml (vendored)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor/pugixml)
+list(APPEND COMMON_SOURCE vendor/pugixml/pugixml.cpp)
+
 if(NOT WIN32)
     set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
     set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
@@ -66,6 +70,7 @@ add_executable(tivars_lib_cpp_cli   ${COMMON_SOURCE} cli/cli.cpp)
 
 if(TIVARS_ENABLE_FUZZING)
     set(TIVARS_FUZZ_CORPUS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus)
+    set(TIVARS_TOKENS_XML_PATH ${CMAKE_CURRENT_SOURCE_DIR}/ti-toolkit-8x-tokens.xml)
 
     add_custom_target(tivars_fuzzer_seed_corpus
             COMMAND ${CMAKE_COMMAND} -E make_directory ${TIVARS_FUZZ_CORPUS_DIR}
@@ -77,7 +82,7 @@ if(TIVARS_ENABLE_FUZZING)
     add_dependencies(tivars_lib_cpp_fuzzer tivars_fuzzer_seed_corpus)
     target_compile_definitions(tivars_lib_cpp_fuzzer PRIVATE
             FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1
-            TIVARS_PROGRAMS_TOKENS_CSV="${CMAKE_CURRENT_SOURCE_DIR}/programs_tokens.csv"
+            TIVARS_TOKENS_XML_PATH="${TIVARS_TOKENS_XML_PATH}"
     )
     target_compile_options(tivars_lib_cpp_fuzzer PRIVATE
             -O1
@@ -206,9 +211,9 @@ if(APPLE)
             $<TARGET_OBJECTS:tivars_quicklook_support>
             quicklook/PreviewProvider.mm
             quicklook/ExtensionMain.m
-            programs_tokens.csv
+            ti-toolkit-8x-tokens.xml
     )
-    set_source_files_properties(programs_tokens.csv PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    set_source_files_properties(ti-toolkit-8x-tokens.xml PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set_target_properties(tivars_quicklook_preview_extension PROPERTIES
             BUNDLE_EXTENSION appex
             OUTPUT_NAME TIVarsQuickLookPreview
@@ -226,7 +231,7 @@ if(APPLE)
             $<TARGET_OBJECTS:tivars_quicklook_support>
             quicklook/ThumbnailProvider.mm
             quicklook/ExtensionMain.m
-            programs_tokens.csv
+            ti-toolkit-8x-tokens.xml
     )
     set_target_properties(tivars_quicklook_thumbnail_extension PROPERTIES
             BUNDLE_EXTENSION appex

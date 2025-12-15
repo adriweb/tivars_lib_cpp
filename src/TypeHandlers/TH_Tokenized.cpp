@@ -19,9 +19,12 @@
 #include <unordered_map>
 #include <iostream>
 #include <sstream>
+#include <regex>
 #include <fstream>
 #include <cstring>
 #include <array>
+
+#include <pugixml.hpp>
 
 using namespace std::string_literals;
 using json = nlohmann::json;
@@ -346,6 +349,132 @@ namespace tivars::TypeHandlers
         uint8_t lengthOfLongestTokenName;
         std::vector<uint8_t> firstByteOfTwoByteTokens;
         constexpr uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
+
+        // Shared XML parsing routine used by both standard and Qt/CEmu builds
+        static void parse_tokens_xml_and_register(const std::string& xml)
+        {
+            using namespace pugi;
+            using TH_Tokenized::LANG_EN;
+            using TH_Tokenized::LANG_FR;
+
+            if (xml.empty()) return;
+
+            xml_document doc;
+            const xml_parse_result ok = doc.load_string(xml.c_str(), parse_default | parse_declaration);
+            if (!ok) return;
+
+            auto pick_display = [](const xml_node& tokenNode, const char* langCode) -> std::string
+            {
+                std::string lastVal;
+                std::string preferredParen;
+                for (const xml_node& ver : tokenNode.children("version"))
+                {
+                    for (const xml_node& lang : ver.children("lang"))
+                    {
+                        const char* code = lang.attribute("code").as_string("");
+                        if (std::strcmp(code, langCode) != 0) continue;
+                        const char* disp = lang.attribute("display").as_string(nullptr);
+                        std::string val;
+                        if (disp && *disp)
+                        {
+                            val = disp;
+                        }
+                        else
+                        {
+                            const xml_node& acc = lang.child("accessible");
+                            if (acc) val = acc.child_value();
+                        }
+                        if (!val.empty())
+                        {
+                            lastVal = val;
+                            if (preferredParen.empty() && val.back() == '(')
+                                preferredParen = val;
+                        }
+                    }
+                }
+                return !preferredParen.empty() ? preferredParen : lastVal;
+            };
+
+            auto register_aliases = [&](uint16_t bytes, const xml_node& tokenNode)
+            {
+                for (const xml_node& ver : tokenNode.children("version"))
+                {
+                    for (const xml_node& lang : ver.children("lang"))
+                    {
+                        for (const auto* which : { "variant", "accessible" })
+                        {
+                            for (const xml_node& v : lang.children(which))
+                            {
+                                const std::string s = v.child_value();
+                                if (!s.empty())
+                                {
+                                    tokens_NameToBytes[s] = bytes;
+                                    if (s.size() > lengthOfLongestTokenName)
+                                        lengthOfLongestTokenName = (uint8_t)s.size();
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            auto process_token = [&](const xml_node& tokenNode, uint16_t bytes)
+            {
+                const std::string en = pick_display(tokenNode, "en");
+                const std::string fr = pick_display(tokenNode, "fr");
+
+                if (!en.empty() || !fr.empty())
+                    tokens_BytesToName[bytes] = { en, fr.empty() ? en : fr };
+                if (!en.empty())
+                    tokens_NameToBytes[en] = bytes;
+                if (!fr.empty())
+                    tokens_NameToBytes[fr] = bytes;
+                if (en.size() > lengthOfLongestTokenName)
+                    lengthOfLongestTokenName = (uint8_t)en.size();
+                if (fr.size() > lengthOfLongestTokenName)
+                    lengthOfLongestTokenName = (uint8_t)fr.size();
+
+                register_aliases(bytes, tokenNode);
+            };
+
+            const xml_node root = doc.child("tokens");
+            if (!root) return;
+
+            // Two-byte tokens
+            for (const xml_node& twobyte : root.children("two-byte"))
+            {
+                const char* val = twobyte.attribute("value").as_string("");
+                if (val[0] == '$' && strlen(val) >= 3)
+                {
+                    const uint8_t prefix = (uint8_t) strtol(val+1, nullptr, 16);
+                    if (!is_in_vector(firstByteOfTwoByteTokens, prefix))
+                        firstByteOfTwoByteTokens.push_back(prefix);
+
+                    for (const xml_node& tok : twobyte.children("token"))
+                    {
+                        const char* s = tok.attribute("value").as_string("");
+                        if (s[0] == '$' && strlen(s) >= 3)
+                        {
+                            const uint8_t second = (uint8_t) strtol(s+1, nullptr, 16);
+                            const uint16_t bytes = (uint16_t)((prefix << 8) | second);
+                            process_token(tok, bytes);
+                        }
+                    }
+                }
+            }
+
+            // Single-byte tokens
+            for (const xml_node& tok : root.children("token"))
+            {
+                const char* s = tok.attribute("value").as_string("");
+                if (s[0] == '$' && strlen(s) >= 3)
+                {
+                    const uint8_t b = (uint8_t) strtol(s+1, nullptr, 16);
+                    if (b == 0x00) continue; // set later
+                    process_token(tok, b);
+                }
+            }
+        }
     }
 
     data_t TH_Tokenized::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
@@ -880,59 +1009,55 @@ namespace tivars::TypeHandlers
 
     void TH_Tokenized::initTokens()
     {
+        // Reset containers
+        tokens_BytesToName.clear();
+        tokens_NameToBytes.clear();
+        firstByteOfTwoByteTokens.clear();
+        lengthOfLongestTokenName = 0;
+
 #ifndef CEMU_VERSION
-        initTokensFromCSVFilePath("programs_tokens.csv");
+        // Load from XML file on disk
+        const std::string xmlPath = "ti-toolkit-8x-tokens.xml";
+        std::ifstream t(xmlPath);
+        const std::string xmlStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+        if (xmlStr.empty()) {
+            return;
+        }
+        parse_tokens_xml_and_register(xmlStr);
 #else
-        std::string csvFileStr;
-        QFile inputFile(QStringLiteral(":/other/tivars_lib_cpp/programs_tokens.csv"));
+        // In Qt/CEmu version, try loading XML from resources
+        std::string xmlFileStr;
+        QFile inputFile(QStringLiteral(":/other/tivars_lib_cpp/ti-toolkit-8x-tokens.xml"));
         if (inputFile.open(QIODevice::ReadOnly))
         {
-            csvFileStr = inputFile.readAll().toStdString();
+            xmlFileStr = inputFile.readAll().toStdString();
         }
-
-        initTokensFromCSVContent(csvFileStr);
-#endif
-    }
-
-    void TH_Tokenized::initTokensFromCSVFilePath(const std::string& csvFilePath)
-    {
-        std::ifstream t(csvFilePath);
-        const std::string csvFileStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
-        initTokensFromCSVContent(csvFileStr);
-    }
-
-    void TH_Tokenized::initTokensFromCSVContent(const std::string& csvFileStr)
-    {
-        if (!csvFileStr.empty())
+        if (xmlFileStr.empty())
         {
-            std::vector<std::vector<std::string>> lines;
-            ParseCSV(csvFileStr, lines);
-
-            for (const auto& tokenInfo : lines)
-            {
-                uint16_t bytes;
-                if (tokenInfo[6] == "2") // number of bytes for the token
-                {
-                    if (!is_in_vector(firstByteOfTwoByteTokens, hexdec(tokenInfo[7])))
-                    {
-                        firstByteOfTwoByteTokens.push_back(hexdec(tokenInfo[7]));
-                    }
-                    bytes = hexdec(tokenInfo[8]) + (hexdec(tokenInfo[7]) << 8);
-                } else {
-                    bytes = hexdec(tokenInfo[7]);
-                }
-                tokens_BytesToName[bytes] = { tokenInfo[4], tokenInfo[5] }; // EN, FR
-                tokens_NameToBytes[tokenInfo[4]] = bytes; // EN
-                tokens_NameToBytes[tokenInfo[5]] = bytes; // FR
-                const uint8_t maxLenName = (uint8_t) std::max(tokenInfo[4].length(), tokenInfo[5].length());
-                if (maxLenName > lengthOfLongestTokenName)
-                {
-                    lengthOfLongestTokenName = maxLenName;
-                }
-            }
-        } else {
-            throw std::runtime_error("Could not open the tokens CSV file or read its data");
+            return;
         }
+        parse_tokens_xml_and_register(xmlFileStr);
+#endif
+
+        tokens_BytesToName[0x00] = { "", "" };
+    }
+
+    void TH_Tokenized::initTokensFromXMLFilePath(const std::string& path)
+    {
+        // Reset containers
+        tokens_BytesToName.clear();
+        tokens_NameToBytes.clear();
+        firstByteOfTwoByteTokens.clear();
+        lengthOfLongestTokenName = 0;
+
+        std::ifstream t(path);
+        const std::string xmlStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+        if (xmlStr.empty()) {
+            return;
+        }
+
+        parse_tokens_xml_and_register(xmlStr);
+        tokens_BytesToName[0x00] = { "", "" };
     }
 
 }

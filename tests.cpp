@@ -500,6 +500,14 @@ int main(int argc, char** argv)
     }
 
     {
+        TIVarFile testPrgm = TIVarFile::createNew("Program", "asdf");
+        testPrgm.setContentFromString("{2,3→dim([A]");
+        assert(trim(testPrgm.getReadableContent({{"prettify", true}, {"reindent", true}})) == "{2,3→dim([A]");
+        string hex = testPrgm.getRawContentHexStr();
+        assert(hex == "0800""08322b3304b55c00");
+    }
+
+    {
         TIVarFile eightCharPrgm = TIVarFile::createNew("Program", "ABCDEFGH");
         eightCharPrgm.setContentFromString("piecewise(");
         const std::string savePath = eightCharPrgm.saveVarToFile("/tmp", "");
@@ -537,6 +545,8 @@ int main(int argc, char** argv)
         testPrgmStr1.setContentFromString("Disp 42%");
         assert((ver & ~0x20) == VER_83P_115);
         testPrgmStr1.setContentFromString("~A");
+        assert((ver & ~0x20) == 0x00);
+        testPrgmStr1.setContentFromString("|~A");
         assert((ver & ~0x20) == VER_83P_115);
         testPrgmStr1.setContentFromString("Disp \"…\"");
         assert((ver & ~0x20) == VER_83P_116);

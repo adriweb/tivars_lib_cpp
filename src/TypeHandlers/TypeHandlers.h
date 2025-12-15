@@ -250,8 +250,7 @@ namespace tivars::TypeHandlers
         static std::string tokenToString(const data_t& data, int *incr, const options_t& options);
         static std::string oneTokenBytesToString(uint16_t tokenBytes);
         static void initTokens();
-        static void initTokensFromCSVFilePath(const std::string& csvFilePath);
-        static void initTokensFromCSVContent(const std::string& csvFileStr);
+        static void initTokensFromXMLFilePath(const std::string& path);
     };
 
     // Special temporary type that may appear as an equation, during basic program execution

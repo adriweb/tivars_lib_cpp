@@ -15,8 +15,8 @@
 #include "../src/TypeHandlers/TypeHandlers.h"
 #include "../src/tivarslib_utils.h"
 
-#ifndef TIVARS_PROGRAMS_TOKENS_CSV
-#define TIVARS_PROGRAMS_TOKENS_CSV "programs_tokens.csv"
+#ifndef TIVARS_TOKENS_XML_PATH
+#define TIVARS_TOKENS_XML_PATH "ti-toolkit-8x-tokens.xml"
 #endif
 
 namespace
@@ -34,7 +34,7 @@ namespace
             std::setlocale(LC_ALL, ".UTF-8");
             tivars::TIModels::initTIModelsArray();
             tivars::TIVarTypes::initTIVarTypesArray();
-            tivars::TypeHandlers::TH_Tokenized::initTokensFromCSVFilePath(TIVARS_PROGRAMS_TOKENS_CSV);
+            tivars::TypeHandlers::TH_Tokenized::initTokensFromXMLFilePath(TIVARS_TOKENS_XML_PATH);
         });
     }
 
