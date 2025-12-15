@@ -28,6 +28,10 @@ endif()
 file(GLOB HEADER_FILES "src/*.h" "src/TypeHandlers/*.h")
 file(GLOB COMMON_SOURCE ${HEADER_FILES} "src/*.cpp" "src/TypeHandlers/*.cpp")
 
+# pugixml (vendored)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor/pugixml)
+list(APPEND COMMON_SOURCE vendor/pugixml/pugixml.cpp)
+
 if(NOT WIN32)
     set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
     set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
