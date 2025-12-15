@@ -1,7 +1,7 @@
 CXX := em++
 
 # Emscripten stuff
-EMFLAGS := --bind -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME="'TIVarsLib'" -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 -s EXPORTED_RUNTIME_METHODS="['FS']" --embed-file programs_tokens.csv
+EMFLAGS := --bind -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME="'TIVarsLib'" -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 -s EXPORTED_RUNTIME_METHODS="['FS']" --embed-file ti-toolkit-8x-tokens.xml
 
 CXXFLAGS := -O3 -flto -std=c++2a -DTH_GDB_SUPPORT=1 -W -Wall -Wextra
 LFLAGS := -flto $(EMFLAGS)

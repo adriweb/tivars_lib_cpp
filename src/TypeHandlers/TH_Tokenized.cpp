@@ -32,6 +32,9 @@ static size_t strlen_mb(const std::string& s)
 
 namespace tivars::TypeHandlers
 {
+    // Optional override path for the tokens XML file (set by CLI)
+    static std::string g_tokensXMLPathOverride;
+
     namespace
     {
         std::unordered_map<uint16_t, std::array<std::string, TH_Tokenized::LANG_MAX>> tokens_BytesToName;
@@ -42,6 +45,293 @@ namespace tivars::TypeHandlers
         const std::regex toPrettifyRX1(R"(\[\|([a-f])\])");
         const std::regex toPrettifyRX2(R"(\[([prszt])\])");
         const std::regex toPrettifyRX3(R"(\|([uvw]))");
+
+        static inline std::string xml_decode_entities(const std::string& in)
+        {
+            std::string out;
+            out.reserve(in.size());
+            for (size_t i = 0; i < in.size(); )
+            {
+                if (in[i] == '&')
+                {
+                    if (in.compare(i, 5, "&amp;") == 0)       { out.push_back('&'); i += 5; continue; }
+                    if (in.compare(i, 4, "&lt;") == 0)        { out.push_back('<'); i += 4; continue; }
+                    if (in.compare(i, 4, "&gt;") == 0)        { out.push_back('>'); i += 4; continue; }
+                    if (in.compare(i, 6, "&quot;") == 0)      { out.push_back('"'); i += 6; continue; }
+                    if (in.compare(i, 6, "&apos;") == 0)      { out.push_back('\''); i += 6; continue; }
+                    if (in.compare(i, 2, "&#") == 0)
+                    {
+                        size_t semi = in.find(';', i + 2);
+                        if (semi != std::string::npos)
+                        {
+                            std::string num = in.substr(i + 2, semi - (i + 2));
+                            int code = 0;
+                            try {
+                                if (!num.empty() && (num[0] == 'x' || num[0] == 'X')) {
+                                    code = (int) strtol(num.c_str() + 1, nullptr, 16);
+                                } else {
+                                    code = std::stoi(num);
+                                }
+                                if (code >= 0 && code <= 0x10FFFF)
+                                {
+                                    // naïve: only support BMP/basic ASCII properly
+                                    if (code <= 0x7F)
+                                        out.push_back((char)code);
+                                    else
+                                    {
+                                        // encode rudimentary UTF-8
+                                        if (code <= 0x7FF) {
+                                            out.push_back((char)(0xC0 | ((code >> 6) & 0x1F)));
+                                            out.push_back((char)(0x80 | (code & 0x3F)));
+                                        } else if (code <= 0xFFFF) {
+                                            out.push_back((char)(0xE0 | ((code >> 12) & 0x0F)));
+                                            out.push_back((char)(0x80 | ((code >> 6) & 0x3F)));
+                                            out.push_back((char)(0x80 | (code & 0x3F)));
+                                        } else {
+                                            out.push_back((char)(0xF0 | ((code >> 18) & 0x07)));
+                                            out.push_back((char)(0x80 | ((code >> 12) & 0x3F)));
+                                            out.push_back((char)(0x80 | ((code >> 6) & 0x3F)));
+                                            out.push_back((char)(0x80 | (code & 0x3F)));
+                                        }
+                                    }
+                                }
+                            } catch (...) {
+                                // ignore, fall through
+                            }
+                            i = semi + 1;
+                            continue;
+                        }
+                    }
+                }
+                out.push_back(in[i]);
+                i++;
+            }
+            return out;
+        }
+
+        static inline std::string extract_attr(const std::string& tag, const std::string& attr)
+        {
+            // Use a custom raw-string delimiter to avoid )" inside the pattern
+            std::regex rx(attr + R"ATTR(\s*=\s*"([^"]*)")ATTR");
+            std::smatch m;
+            if (std::regex_search(tag, m, rx) && m.size() > 1)
+            {
+                return m[1].str();
+            }
+            return {};
+        }
+
+        static inline uint8_t hex_to_byte(const std::string& s)
+        {
+            return (uint8_t) strtol(s.c_str(), nullptr, 16);
+        }
+
+        static inline bool has_prefix(const std::vector<uint8_t>& v, uint8_t b)
+        {
+            return is_in_vector(v, b);
+        }
+
+        // Extract the preferred display name for a given language code from a <token>...</token> block
+        static inline std::string get_lang_display_name(const std::string& block, const std::string& langCode)
+        {
+            std::regex rxLang(std::string(R"(<lang code=\")") + langCode + R"(\"[^>]*>)");
+            std::sregex_iterator it(block.begin(), block.end(), rxLang);
+            std::sregex_iterator end;
+            std::string lastVal;
+            std::string preferredParen;
+            for (; it != end; ++it)
+            {
+                const size_t langOpenPos = (size_t)it->position(0);
+                const size_t langOpenEnd = langOpenPos + (size_t)it->length(0);
+                const std::string langOpenTag = it->str(0);
+                std::string disp = extract_attr(langOpenTag, "display");
+                std::string val;
+                if (!disp.empty())
+                {
+                    val = xml_decode_entities(disp);
+                }
+                else
+                {
+                    size_t langClosePos = block.find("</lang>", langOpenEnd);
+                    if (langClosePos == std::string::npos) langClosePos = block.size();
+                    const std::string langInner = block.substr(langOpenEnd, langClosePos - langOpenEnd);
+                    std::regex rxAcc(R"(<accessible>(.*?)</accessible>)");
+                    std::smatch am;
+                    if (std::regex_search(langInner, am, rxAcc) && am.size() > 1)
+                    {
+                        val = xml_decode_entities(am[1].str());
+                    }
+                }
+                if (!val.empty())
+                {
+                    lastVal = val;
+                    if (!preferredParen.empty())
+                        continue;
+                    if (!val.empty() && val.back() == '(')
+                        preferredParen = val;
+                }
+            }
+            return !preferredParen.empty() ? preferredParen : lastVal;
+        }
+
+        // Shared XML parsing routine used by both standard and Qt/CEmu builds
+        static void parse_tokens_xml_and_register(const std::string& xml)
+        {
+            using TH_Tokenized::LANG_EN;
+            using TH_Tokenized::LANG_FR;
+
+            if (xml.empty()) return;
+
+            // Working copy used to blank out two-byte sections so that top-level tokens parsing doesn't see them
+            std::string content(xml);
+
+            auto registerAlias = [](uint16_t bytes, const std::string& alias) {
+                if (alias.empty()) return;
+                const std::string aliasDec = xml_decode_entities(alias);
+                if (aliasDec.empty()) return;
+                tokens_NameToBytes[aliasDec] = bytes;
+                if (aliasDec.length() > lengthOfLongestTokenName)
+                    lengthOfLongestTokenName = (uint8_t)aliasDec.length();
+            };
+
+            // Pass 1: parse <two-byte value="$PP"> ... </two-byte>
+            size_t pos = 0;
+            while (true)
+            {
+                size_t open = content.find("<two-byte", pos);
+                if (open == std::string::npos) break;
+                size_t openEnd = content.find('>', open);
+                if (openEnd == std::string::npos) break;
+                std::string openTag = content.substr(open, openEnd - open + 1);
+                std::string prefixAttr = extract_attr(openTag, "value"); // like $BB
+                uint8_t prefix = 0;
+                if (prefixAttr.size() >= 3 && prefixAttr[0] == '$')
+                    prefix = hex_to_byte(prefixAttr.substr(1));
+                if (!has_prefix(firstByteOfTwoByteTokens, prefix))
+                    firstByteOfTwoByteTokens.push_back(prefix);
+
+                size_t close = content.find("</two-byte>", openEnd + 1);
+                if (close == std::string::npos) break;
+                std::string block = content.substr(openEnd + 1, close - (openEnd + 1));
+
+                // find all nested <token value="$SS"> ... </token>
+                size_t tpos = 0;
+                while (true)
+                {
+                    size_t to = block.find("<token", tpos);
+                    if (to == std::string::npos) break;
+                    size_t toEnd = block.find('>', to);
+                    if (toEnd == std::string::npos) break;
+                    std::string tokOpen = block.substr(to, toEnd - to + 1);
+                    std::string sval = extract_attr(tokOpen, "value");
+                    if (sval.size() >= 3 && sval[0] == '$')
+                    {
+                        uint8_t second = hex_to_byte(sval.substr(1));
+                        uint16_t bytes = (uint16_t)((prefix << 8) | second);
+
+                        size_t tclose = block.find("</token>", toEnd + 1);
+                        if (tclose == std::string::npos) break;
+                        std::string tokContent = block.substr(toEnd + 1, tclose - (toEnd + 1));
+                        std::string nameEN = get_lang_display_name(tokContent, "en");
+                        std::string nameFR = get_lang_display_name(tokContent, "fr");
+                        if (!nameEN.empty() || !nameFR.empty())
+                        {
+                            tokens_BytesToName[bytes] = { nameEN, nameFR };
+                        }
+                        if (!nameEN.empty())
+                        {
+                            tokens_BytesToName[bytes][LANG_EN] = nameEN;
+                            tokens_NameToBytes[nameEN] = bytes;
+                        }
+                        if (!nameFR.empty())
+                        {
+                            tokens_BytesToName[bytes][LANG_FR] = nameFR;
+                            tokens_NameToBytes[nameFR] = bytes;
+                        } else {
+                            tokens_BytesToName[bytes][LANG_FR] = nameEN; // fallback
+                        }
+
+                        const uint8_t maxLenName = (uint8_t) std::max(nameEN.length(), nameFR.length());
+                        if (maxLenName > lengthOfLongestTokenName)
+                            lengthOfLongestTokenName = maxLenName;
+
+                        // Also register <variant> and <accessible> as aliases
+                        {
+                            std::regex rxVar(R"(<variant>(.*?)</variant>)");
+                            std::sregex_iterator vit(tokContent.begin(), tokContent.end(), rxVar), vend;
+                            for (; vit != vend; ++vit) {
+                                registerAlias(bytes, (*vit)[1].str());
+                            }
+                            std::regex rxAcc(R"(<accessible>(.*?)</accessible>)");
+                            std::sregex_iterator ait(tokContent.begin(), tokContent.end(), rxAcc);
+                            for (; vit != vend; ++vit) {
+                                registerAlias(bytes, (*vit)[1].str());
+                            }
+                        }
+                        tpos = tclose + 8;
+                    } else {
+                        tpos = toEnd + 1;
+                    }
+                }
+
+                // blank out processed section to avoid picking nested tokens on next pass
+                std::fill(content.begin() + (long)open, content.begin() + (long)(close + strlen("</two-byte>")), ' ');
+                pos = close + strlen("</two-byte>");
+            }
+
+            // Pass 2: parse top-level single-byte <token value="$XX"> ... </token>
+            size_t spos = 0;
+            while (true)
+            {
+                size_t to = content.find("<token", spos);
+                if (to == std::string::npos) break;
+                size_t toEnd = content.find('>', to);
+                if (toEnd == std::string::npos) break;
+                std::string tokOpen = content.substr(to, toEnd - to + 1);
+                std::string sval = extract_attr(tokOpen, "value");
+                size_t tclose = content.find("</token>", toEnd + 1);
+                if (tclose == std::string::npos) break;
+                std::string tokContent = content.substr(toEnd + 1, tclose - (toEnd + 1));
+                if (sval.size() >= 3 && sval[0] == '$')
+                {
+                    uint8_t single = hex_to_byte(sval.substr(1));
+                    if (single == 0x00) { spos = tclose + 8; continue; }
+                    uint16_t bytes = single;
+                    std::string nameEN = get_lang_display_name(tokContent, "en");
+                    std::string nameFR = get_lang_display_name(tokContent, "fr");
+                    if (!nameEN.empty() || !nameFR.empty())
+                    {
+                        tokens_BytesToName[bytes] = { nameEN, nameFR };
+                    }
+                    if (!nameEN.empty())
+                    {
+                        tokens_BytesToName[bytes][LANG_EN] = nameEN;
+                        tokens_NameToBytes[nameEN] = bytes;
+                    }
+                    if (!nameFR.empty())
+                    {
+                        tokens_BytesToName[bytes][LANG_FR] = nameFR;
+                        tokens_NameToBytes[nameFR] = bytes;
+                    } else {
+                        tokens_BytesToName[bytes][LANG_FR] = nameEN; // fallback
+                    }
+                    // Also register aliases for one-byte tokens
+                    {
+                        std::regex rxVar(R"(<variant>(.*?)</variant>)");
+                        std::sregex_iterator vit(tokContent.begin(), tokContent.end(), rxVar), vend;
+                        for (; vit != vend; ++vit) {
+                            registerAlias(bytes, (*vit)[1].str());
+                        }
+                        std::regex rxAcc(R"(<accessible>(.*?)</accessible>)");
+                        std::sregex_iterator ait(tokContent.begin(), tokContent.end(), rxAcc);
+                        for (; ait != vend; ++ait) {
+                            registerAlias(bytes, (*ait)[1].str());
+                        }
+                    }
+                }
+                spos = tclose + 8;
+            }
+        }
     }
 
     data_t TH_Tokenized::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
@@ -558,59 +848,43 @@ namespace tivars::TypeHandlers
 
     void TH_Tokenized::initTokens()
     {
+        // Reset containers
+        tokens_BytesToName.clear();
+        tokens_NameToBytes.clear();
+        firstByteOfTwoByteTokens.clear();
+        lengthOfLongestTokenName = 0;
+
 #ifndef CEMU_VERSION
-        initTokensFromCSVFilePath("programs_tokens.csv");
+        // Load from XML file on disk
+        const std::string xmlPath = !g_tokensXMLPathOverride.empty() ? g_tokensXMLPathOverride : std::string("ti-toolkit-8x-tokens.xml");
+        std::ifstream t(xmlPath);
+        const std::string xmlStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+        if (xmlStr.empty()) {
+            return;
+        }
+        parse_tokens_xml_and_register(xmlStr);
 #else
-        std::string csvFileStr;
-        QFile inputFile(QStringLiteral(":/other/tivars_lib_cpp/programs_tokens.csv"));
+        // In Qt/CEmu version, try loading XML from resources
+        std::string xmlFileStr;
+        QFile inputFile(QStringLiteral(":/other/tivars_lib_cpp/ti-toolkit-8x-tokens.xml"));
         if (inputFile.open(QIODevice::ReadOnly))
         {
-            csvFileStr = inputFile.readAll().toStdString();
+            xmlFileStr = inputFile.readAll().toStdString();
         }
-
-        initTokensFromCSVContent(csvFileStr);
-#endif
-    }
-
-    void TH_Tokenized::initTokensFromCSVFilePath(const std::string& csvFilePath)
-    {
-        std::ifstream t(csvFilePath);
-        const std::string csvFileStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
-        initTokensFromCSVContent(csvFileStr);
-    }
-
-    void TH_Tokenized::initTokensFromCSVContent(const std::string& csvFileStr)
-    {
-        if (!csvFileStr.empty())
+        if (xmlFileStr.empty())
         {
-            std::vector<std::vector<std::string>> lines;
-            ParseCSV(csvFileStr, lines);
-
-            for (const auto& tokenInfo : lines)
-            {
-                uint16_t bytes;
-                if (tokenInfo[6] == "2") // number of bytes for the token
-                {
-                    if (!is_in_vector(firstByteOfTwoByteTokens, hexdec(tokenInfo[7])))
-                    {
-                        firstByteOfTwoByteTokens.push_back(hexdec(tokenInfo[7]));
-                    }
-                    bytes = hexdec(tokenInfo[8]) + (hexdec(tokenInfo[7]) << 8);
-                } else {
-                    bytes = hexdec(tokenInfo[7]);
-                }
-                tokens_BytesToName[bytes] = { tokenInfo[4], tokenInfo[5] }; // EN, FR
-                tokens_NameToBytes[tokenInfo[4]] = bytes; // EN
-                tokens_NameToBytes[tokenInfo[5]] = bytes; // FR
-                const uint8_t maxLenName = (uint8_t) std::max(tokenInfo[4].length(), tokenInfo[5].length());
-                if (maxLenName > lengthOfLongestTokenName)
-                {
-                    lengthOfLongestTokenName = maxLenName;
-                }
-            }
-        } else {
-            throw std::runtime_error("Could not open the tokens CSV file or read its data");
+            return;
         }
+        parse_tokens_xml_and_register(xmlFileStr);
+#endif
+
+        tokens_BytesToName[0x00] = { "", "" };
+    }
+
+    // Public setter to override the XML path before calling initTokens()
+    void TH_Tokenized::setTokensXMLPath(const std::string& path)
+    {
+        g_tokensXMLPathOverride = path;
     }
 
 }

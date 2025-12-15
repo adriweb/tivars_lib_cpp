@@ -68,6 +68,14 @@ int main(int argc, char** argv)
     }
 
     {
+        TIVarFile testPrgm = TIVarFile::createNew("Program", "asdf");
+        testPrgm.setContentFromString("{2,3→dim([A]");
+        assert(trim(testPrgm.getReadableContent({{"prettify", true}, {"reindent", true}})) == "{2,3→dim([A]");
+        string hex = testPrgm.getRawContentHexStr();
+        assert(hex == "0800""08322b3304b55c00");
+    }
+
+    {
         // See https://wikiti.brandonw.net/index.php?title=83Plus:OS:Variable_Versions
         TIVarFile testPrgmStr1 = TIVarFile::createNew("Program", "asdf");
         const auto& ver = testPrgmStr1.getVarEntries()[0].version;
@@ -81,6 +89,8 @@ int main(int argc, char** argv)
         testPrgmStr1.setContentFromString("Disp 42%");
         assert((ver & ~0x20) == 0x02);
         testPrgmStr1.setContentFromString("~A");
+        assert((ver & ~0x20) == 0x00);
+        testPrgmStr1.setContentFromString("|~A");
         assert((ver & ~0x20) == 0x02);
         testPrgmStr1.setContentFromString("Disp \"…\"");
         assert((ver & ~0x20) == 0x03);
