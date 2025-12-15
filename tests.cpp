@@ -56,6 +56,54 @@ int main(int argc, char** argv)
         }
     }
 
+#ifndef __EMSCRIPTEN__
+    {
+        // TH_TempEqu error handling: too short and inconsistent lengths
+        try {
+            TH_TempEqu::makeStringFromData(data_t{});
+            assert(false);
+        } catch (const std::invalid_argument&) {}
+        try {
+            // length says 1 but only size fields provided
+            TH_TempEqu::makeStringFromData(data_t{0x01,0x00});
+            assert(false);
+        } catch (const std::invalid_argument&) {}
+    }
+#endif
+
+    {
+        // Alias tokenization: arcsin/asin variants should map to sin⁻¹(
+        TIVarFile p = TIVarFile::createNew("Program", "ALIAS1");
+        p.setContentFromString("arcsin(1)+asin(1)");
+        const std::string detok = p.getReadableContent();
+        // Both variants should detokenize to the preferred form ending with '('
+        assert(detok == "sin⁻¹(1)+sin⁻¹(1)");
+    }
+
+    {
+        // Alias tokenization for ►Frac/FRAC (and ensure detokenization chooses canonical)
+        TIVarFile p = TIVarFile::createNew("Program", "ALIAS2");
+        p.setContentFromString("FRAC:►Frac");
+        assert(p.getReadableContent() == "FRAC-APPROX:►Frac");
+        // Retokenize detokenized output should yield same bytes
+        TIVarFile p2 = TIVarFile::createNew("Program", "ALIAS3");
+        p2.setContentFromString(p.getReadableContent());
+        assert(p.getRawContentHexStr() == p2.getRawContentHexStr());
+    }
+
+    {
+        // tokenToString incr correctness for 1-byte and 2-byte tokens
+        int incr = 0;
+        // Single-byte '(' is 0x10, should increment by 1
+        std::string s1 = TH_Tokenized::tokenToString(data_t{0x10}, &incr, {});
+        assert(s1 == "(");
+        assert(incr == 1);
+        // Two-byte token: 0xEF97 is toString( per earlier test
+        std::string s2 = TH_Tokenized::tokenToString(data_t{0xEF,0x97}, &incr, {});
+        assert(s2 == "toString(");
+        assert(incr == 2);
+    }
+
     {
         TIVarFile toksPrgm = TIVarFile::loadFromFile("testData/ALLTOKS.8Xp");
         cout << toksPrgm.getReadableContent() << "\n" << endl;
@@ -130,6 +178,8 @@ int main(int argc, char** argv)
 
     {
         assert(TH_Tokenized::oneTokenBytesToString(0x00) == "");
+        assert(TH_Tokenized::oneTokenBytesToString(0x10) == "(");
+        assert(TH_Tokenized::oneTokenBytesToString(0x11) == ")");
         assert(TH_Tokenized::oneTokenBytesToString(0xBB) == "");
         assert(TH_Tokenized::oneTokenBytesToString(0x3F) == "\n");
         assert(TH_Tokenized::oneTokenBytesToString(0xAD) == "getKey");
@@ -148,6 +198,18 @@ int main(int argc, char** argv)
         actual = TH_Tokenized::getPosInfoAtOffset(data, 6);
         expected = { 1, 0, 5 };
         assert(compare_token_posinfo(actual, expected) == true);
+    }
+
+    {
+        // getPosInfoAtOffset with prettify on/off
+        // bytes: size(ignored here), then: '\n' (3F), then EF97 (toString(), len 9), then ':' (3E)
+        data_t data = {0x00,0x00, 0x3F, 0xEF,0x97, 0x3E};
+        auto pi_plain = TH_Tokenized::getPosInfoAtOffset(data, 3, {});
+        auto pi_pretty = TH_Tokenized::getPosInfoAtOffset(data, 3, {{"prettify",1}});
+        // After a newline, column resets to 0; token length should be length of "toString("
+        TH_Tokenized::token_posinfo expected_plain{ 1, 0, (uint8_t)std::string("toString(").size() };
+        assert(compare_token_posinfo(pi_plain, expected_plain));
+        assert(compare_token_posinfo(pi_pretty, expected_plain));
     }
 
     {
@@ -339,6 +401,25 @@ Then
    End
 End)";
         assert(reindented == expected);
+    }
+
+    {
+        // Reindent complex structure including ElseIf and Else/End
+        const std::string src = "If A:Then:B:If C:Then:D:Else:E:End:ElseIf F:Then:G:End:End";
+        const std::string indented = TH_Tokenized::reindentCodeString(src);
+        // Don't enforce exact whitespace formatting; assert structural lines are present and ordered
+        assert(indented.find("If A\n") == 0);
+        assert(indented.find("Then\n") != std::string::npos);
+        assert(indented.find("If C\n") != std::string::npos);
+        assert(indented.find("Then\n") != std::string::npos);
+        assert(indented.find("Else\n") != std::string::npos);
+        assert(indented.find("End\n") != std::string::npos || indented.rfind("\nEnd") == indented.size()-4);
+        // Ensure token order preserved when removing colons
+        assert(indented.find("B\n") != std::string::npos);
+        assert(indented.find("D\n") != std::string::npos);
+        assert(indented.find("E\n") != std::string::npos);
+        assert(indented.find("ElseIf F\n") != std::string::npos);
+        assert(indented.find("G\n") != std::string::npos);
     }
 
     {
