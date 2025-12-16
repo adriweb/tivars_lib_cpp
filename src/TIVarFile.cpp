@@ -516,6 +516,7 @@ namespace tivars
     EMSCRIPTEN_BINDINGS(_tivarfile) {
 
             register_map<std::string, int>("options_t");
+            register_vector<uint8_t>("data_t");
 
             class_<tivars::TIVarFile>("TIVarFile")
                     .function("getHeader"                , &tivars::TIVarFile::getHeader)
@@ -539,10 +540,10 @@ namespace tivars
                     .function("saveVarToFile"            , select_overload<std::string(std::string)>(&tivars::TIVarFile::saveVarToFile))
                     .function("saveVarToFile"            , select_overload<std::string(void)>(&tivars::TIVarFile::saveVarToFile))
 
-                    .class_function("loadFromFile", &tivars::TIVarFile::loadFromFile)
-                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&, const std::string&, const std::string&)>(&tivars::TIVarFile::createNew))
-                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&, const std::string&)>(&tivars::TIVarFile::createNew))
-                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&)>(&tivars::TIVarFile::createNew))
+                    .class_function("loadFromFile", &tivars::TIVarFile::loadFromFile, return_value_policy::take_ownership())
+                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&, const std::string&, const std::string&)>(&tivars::TIVarFile::createNew), return_value_policy::take_ownership())
+                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&, const std::string&)>(&tivars::TIVarFile::createNew), return_value_policy::take_ownership())
+                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&)>(&tivars::TIVarFile::createNew), return_value_policy::take_ownership())
             ;
     }
 #endif
