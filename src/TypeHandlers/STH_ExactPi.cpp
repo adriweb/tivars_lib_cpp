@@ -18,7 +18,7 @@ namespace
     {
         static const std::string piSymbol = "π";
 
-        str.erase(std::remove_if(str.begin(), str.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }), str.end());
+        std::erase_if(str, [](unsigned char ch) { return std::isspace(ch) != 0; });
         tivars::replace_all(str, "*", "");
         tivars::replace_all(str, "pi", piSymbol);
 

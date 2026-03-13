@@ -49,7 +49,7 @@ namespace tivars::TypeHandlers
         (void)_ctx;
 
         std::string normalized = str;
-        normalized.erase(std::remove_if(normalized.begin(), normalized.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }), normalized.end());
+        std::erase_if(normalized, [](unsigned char ch) { return std::isspace(ch) != 0; });
         tivars::replace_all(normalized, "*", "");
         tivars::replace_all(normalized, "sqrt", "√");
         tivars::replace_all(normalized, "√(", "√");
