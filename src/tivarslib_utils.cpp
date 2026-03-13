@@ -102,12 +102,11 @@ void ParseCSV(const std::string& csvSource, std::vector<std::vector<std::string>
     lines.clear();
     std::vector<std::string> line;
 
-    std::string::const_iterator aChar = csvSource.begin();
-    std::string::const_iterator tmp;
+    auto aChar = csvSource.begin();
 
     while (aChar != csvSource.end())
     {
-        tmp = aChar;
+        auto tmp = aChar;
         switch (*aChar)
         {
             case '"':
@@ -191,7 +190,7 @@ bool file_exists(const std::string& path) {
 
 std::string str_pad(const std::string& str, unsigned long pad_length, std::string pad_string)
 {
-    unsigned long i, j, x;
+    unsigned long i, x;
     const unsigned long str_size = str.size();
     const unsigned long pad_size = pad_string.size();
 
@@ -209,7 +208,7 @@ std::string str_pad(const std::string& str, unsigned long pad_length, std::strin
     }
     for (i = str_size; i < pad_length;)
     {
-        for (j = 0; j < pad_size && i < pad_length; j++, i++)
+        for (unsigned long j = 0; j < pad_size && i < pad_length; j++, i++)
         {
             o.push_back(pad_string[j]);
         }

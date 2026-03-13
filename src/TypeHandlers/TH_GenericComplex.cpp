@@ -204,7 +204,7 @@ namespace tivars::TypeHandlers
         const auto& handlerR = std::get<1>(handlerRIter->second);
         const auto& handlerI = std::get<1>(handlerIIter->second);
 
-        const data_t::const_iterator mid = data.cbegin() + bytesPerMember;
+        const auto mid = data.cbegin() + bytesPerMember;
         const std::string coeffR = handlerR(data_t(data.cbegin(), mid), options, _ctx);
         const std::string coeffI = handlerI(data_t(mid, data.cend()), options, _ctx);
 

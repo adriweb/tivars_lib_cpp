@@ -33,8 +33,8 @@ namespace tivars::TypeHandlers
         bool beforePoint = true, noDigits = true, zero = true;
         int exponent = 0x7F;
         unsigned index = 4;
-        std::string::const_iterator i = str.begin();
-        const std::string::const_iterator e = str.end();
+        auto i = str.begin();
+        const auto e = str.end();
         if (parseSign(i, e)) {
             data[0] = 1 << 7;
         }
