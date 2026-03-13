@@ -723,6 +723,103 @@ End)";
         assert(std::equal(firstVarEntry.varname, firstVarEntry.varname + 8, testThetaVarName));
     }
 
+    {
+        TIVarFile listDefaultVar = TIVarFile::createNew("RealList");
+        const auto& listDefault = listDefaultVar.getVarEntries()[0];
+        const uint8_t expectedListDefault[8] = {0x5D, 0x00};
+        assert(std::equal(listDefault.varname, listDefault.varname + 8, expectedListDefault));
+
+        TIVarFile customList = TIVarFile::createNew("RealList", "abcde");
+        const uint8_t expectedCustomList[8] = {'A', 'B', 'C', 'D', 'E'};
+        assert(std::equal(customList.getVarEntries()[0].varname, customList.getVarEntries()[0].varname + 8, expectedCustomList));
+
+        TIVarFile stdList = TIVarFile::createNew("RealList", "L6");
+        const uint8_t expectedStdList[8] = {0x5D, 0x05};
+        assert(std::equal(stdList.getVarEntries()[0].varname, stdList.getVarEntries()[0].varname + 8, expectedStdList));
+
+        TIVarFile idList = TIVarFile::createNew("RealList", "IDList");
+        const uint8_t expectedIdList[8] = {0x5D, 0x40};
+        assert(std::equal(idList.getVarEntries()[0].varname, idList.getVarEntries()[0].varname + 8, expectedIdList));
+    }
+
+    {
+        TIVarFile matrixDefaultVar = TIVarFile::createNew("Matrix");
+        const auto& matrixDefault = matrixDefaultVar.getVarEntries()[0];
+        const uint8_t expectedMatrixDefault[8] = {0x5C, 0x00};
+        assert(std::equal(matrixDefault.varname, matrixDefault.varname + 8, expectedMatrixDefault));
+
+        TIVarFile matrixB = TIVarFile::createNew("Matrix", "[b]");
+        const uint8_t expectedMatrixB[8] = {0x5C, 0x01};
+        assert(std::equal(matrixB.getVarEntries()[0].varname, matrixB.getVarEntries()[0].varname + 8, expectedMatrixB));
+    }
+
+    {
+        TIVarFile equationDefaultVar = TIVarFile::createNew("Equation");
+        const auto& equationDefault = equationDefaultVar.getVarEntries()[0];
+        const uint8_t expectedEquationDefault[8] = {0x5E, 0x10};
+        assert(std::equal(equationDefault.varname, equationDefault.varname + 8, expectedEquationDefault));
+
+        TIVarFile equationY0 = TIVarFile::createNew("Equation", "Y0");
+        const uint8_t expectedEquationY0[8] = {0x5E, 0x19};
+        assert(std::equal(equationY0.getVarEntries()[0].varname, equationY0.getVarEntries()[0].varname + 8, expectedEquationY0));
+
+        TIVarFile equationX3T = TIVarFile::createNew("Equation", "{x3t}");
+        const uint8_t expectedEquationX3T[8] = {0x5E, 0x24};
+        assert(std::equal(equationX3T.getVarEntries()[0].varname, equationX3T.getVarEntries()[0].varname + 8, expectedEquationX3T));
+
+        TIVarFile equationR4 = TIVarFile::createNew("Equation", "r4");
+        const uint8_t expectedEquationR4[8] = {0x5E, 0x43};
+        assert(std::equal(equationR4.getVarEntries()[0].varname, equationR4.getVarEntries()[0].varname + 8, expectedEquationR4));
+
+        TIVarFile equationU = TIVarFile::createNew("Equation", "u");
+        const uint8_t expectedEquationU[8] = {0x5E, 0x80};
+        assert(std::equal(equationU.getVarEntries()[0].varname, equationU.getVarEntries()[0].varname + 8, expectedEquationU));
+    }
+
+    {
+        TIVarFile stringDefaultVar = TIVarFile::createNew("String");
+        const auto& stringDefault = stringDefaultVar.getVarEntries()[0];
+        const uint8_t expectedStringDefault[8] = {0xAA, 0x00};
+        assert(std::equal(stringDefault.varname, stringDefault.varname + 8, expectedStringDefault));
+
+        TIVarFile string0 = TIVarFile::createNew("String", "str0");
+        const uint8_t expectedString0[8] = {0xAA, 0x09};
+        assert(std::equal(string0.getVarEntries()[0].varname, string0.getVarEntries()[0].varname + 8, expectedString0));
+    }
+
+    {
+        TIVarFile picDefaultVar = TIVarFile::createNew("Picture");
+        const auto& picDefault = picDefaultVar.getVarEntries()[0];
+        const uint8_t expectedPicDefault[8] = {0x60, 0x00};
+        assert(std::equal(picDefault.varname, picDefault.varname + 8, expectedPicDefault));
+
+        TIVarFile pic0 = TIVarFile::createNew("Picture", "pic0");
+        const uint8_t expectedPic0[8] = {0x60, 0x09};
+        assert(std::equal(pic0.getVarEntries()[0].varname, pic0.getVarEntries()[0].varname + 8, expectedPic0));
+    }
+
+    {
+        TIVarFile imageDefaultVar = TIVarFile::createNew("Image");
+        const auto& imageDefault = imageDefaultVar.getVarEntries()[0];
+        const uint8_t expectedImageDefault[8] = {0x3C, 0x00};
+        assert(std::equal(imageDefault.varname, imageDefault.varname + 8, expectedImageDefault));
+
+        TIVarFile image0 = TIVarFile::createNew("Image", "image0");
+        const uint8_t expectedImage0[8] = {0x3C, 0x09};
+        assert(std::equal(image0.getVarEntries()[0].varname, image0.getVarEntries()[0].varname + 8, expectedImage0));
+    }
+
+    {
+        TIVarFile gdbDefaultVar = TIVarFile::createNew("GraphDataBase");
+        const auto& gdbDefault = gdbDefaultVar.getVarEntries()[0];
+        const uint8_t expectedGdbDefault[8] = {0x61, 0x00};
+        assert(std::equal(gdbDefault.varname, gdbDefault.varname + 8, expectedGdbDefault));
+
+        TIVarFile gdb0 = TIVarFile::createNew("GraphDataBase", "gdb0");
+        const uint8_t expectedGdb0[8] = {0x61, 0x09};
+        assert(std::equal(gdb0.getVarEntries()[0].varname, gdb0.getVarEntries()[0].varname + 8, expectedGdb0));
+    }
+
 #if defined(TH_GDB_SUPPORT) || defined(__cpp_lib_variant)
 /*
     {

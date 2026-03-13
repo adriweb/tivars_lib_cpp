@@ -17,6 +17,7 @@
 #include <regex>
 #include <sstream>
 #include <cstring>
+#include <cctype>
 
 #include "TIVarTypes.h"
 
@@ -24,11 +25,234 @@ namespace tivars
 {
     namespace
     {
+        std::string uppercase_ascii(std::string s)
+        {
+            for (char& c : s)
+            {
+                c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+            }
+            return s;
+        }
+
         std::string varNameToString(const uint8_t* varname, size_t size)
         {
             const void* nulPos = memchr(varname, '\0', size);
             const size_t len = nulPos ? static_cast<const uint8_t*>(nulPos) - varname : size;
             return std::string(reinterpret_cast<const char*>(varname), len);
+        }
+
+        std::string normalize_theta_chars(std::string name)
+        {
+            return std::regex_replace(name, std::regex("(\u03b8|\u0398|\u03F4|\u1DBF)"), "[");
+        }
+
+        std::string make_indexed_var_name(uint8_t prefix, uint8_t index)
+        {
+            return std::string{static_cast<char>(prefix), static_cast<char>(index)};
+        }
+
+        int parse_ti_digit(char c)
+        {
+            if (c >= '1' && c <= '9')
+            {
+                return c - '1';
+            }
+            if (c == '0')
+            {
+                return 9;
+            }
+            return -1;
+        }
+
+        bool is_name_char(char c)
+        {
+            const unsigned char uc = static_cast<unsigned char>(c);
+            return std::isdigit(uc) || (uc >= 'A' && uc <= 'Z') || c == '[';
+        }
+
+        bool is_alpha_or_theta(char c)
+        {
+            return (c >= 'A' && c <= 'Z') || c == '[';
+        }
+
+        std::string default_var_name_for_type(const TIVarType& type)
+        {
+            const auto& typeName = type.getName();
+            if (typeName == "RealList" || typeName == "ComplexList")
+            {
+                return make_indexed_var_name(0x5D, 0x00);
+            }
+            if (typeName == "Matrix")
+            {
+                return make_indexed_var_name(0x5C, 0x00);
+            }
+            if (typeName == "Equation" || typeName == "SmartEquation")
+            {
+                return make_indexed_var_name(0x5E, 0x10);
+            }
+            if (typeName == "String")
+            {
+                return make_indexed_var_name(0xAA, 0x00);
+            }
+            if (typeName == "Picture")
+            {
+                return make_indexed_var_name(0x60, 0x00);
+            }
+            if (typeName == "Image")
+            {
+                return make_indexed_var_name(0x3C, 0x00);
+            }
+            if (typeName == "GraphDataBase")
+            {
+                return make_indexed_var_name(0x61, 0x00);
+            }
+
+            return "FILE" + (type.getExts().empty() ? "" : type.getExts()[0]);
+        }
+
+        bool normalize_list_name(std::string& name)
+        {
+            if (!name.empty() && static_cast<uint8_t>(name[0]) == 0x5D)
+            {
+                if (name.size() == 1)
+                {
+                    name.push_back('\0');
+                    return true;
+                }
+                if ((name.size() == 2 && static_cast<uint8_t>(name[1]) <= 0x05) || (name.size() == 2 && static_cast<uint8_t>(name[1]) == 0x40))
+                {
+                    return true;
+                }
+                return false;
+            }
+            const std::string upperName = uppercase_ascii(name);
+            if (upperName == "IDLIST")
+            {
+                name = make_indexed_var_name(0x5D, 0x40);
+                return true;
+            }
+            if (upperName.size() == 2 && upperName[0] == 'L' && upperName[1] >= '1' && upperName[1] <= '6')
+            {
+                name = make_indexed_var_name(0x5D, static_cast<uint8_t>(upperName[1] - '1'));
+                return true;
+            }
+            if (upperName.empty() || upperName.size() > 5 || std::isdigit(static_cast<unsigned char>(upperName[0])))
+            {
+                return false;
+            }
+            for (char c : upperName)
+            {
+                if (!is_name_char(c))
+                {
+                    return false;
+                }
+            }
+            name = upperName;
+            return true;
+        }
+
+        bool normalize_matrix_name(std::string& name)
+        {
+            if (!name.empty() && static_cast<uint8_t>(name[0]) == 0x5C)
+            {
+                if (name.size() == 1)
+                {
+                    name.push_back('\0');
+                    return true;
+                }
+                return name.size() == 2 && static_cast<uint8_t>(name[1]) <= 0x09;
+            }
+            std::string upperName = uppercase_ascii(name);
+            if (upperName.size() == 3 && upperName.front() == '[' && upperName.back() == ']')
+            {
+                upperName = upperName.substr(1, 1);
+            }
+            if (upperName.size() != 1 || upperName[0] < 'A' || upperName[0] > 'J')
+            {
+                return false;
+            }
+            name = make_indexed_var_name(0x5C, static_cast<uint8_t>(upperName[0] - 'A'));
+            return true;
+        }
+
+        bool normalize_equation_name(std::string& name)
+        {
+            if (!name.empty() && static_cast<uint8_t>(name[0]) == 0x5E)
+            {
+                if (name.size() != 2)
+                {
+                    return false;
+                }
+                const uint8_t idx = static_cast<uint8_t>(name[1]);
+                return (idx >= 0x10 && idx <= 0x2B) || (idx >= 0x40 && idx <= 0x45) || (idx >= 0x80 && idx <= 0x82);
+            }
+            std::string upperName = uppercase_ascii(name);
+            if (upperName == "U" || upperName == "|U")
+            {
+                name = make_indexed_var_name(0x5E, 0x80);
+                return true;
+            }
+            if (upperName == "V" || upperName == "|V")
+            {
+                name = make_indexed_var_name(0x5E, 0x81);
+                return true;
+            }
+            if (upperName == "W" || upperName == "|W")
+            {
+                name = make_indexed_var_name(0x5E, 0x82);
+                return true;
+            }
+            if (upperName.size() >= 2 && upperName.front() == '{' && upperName.back() == '}')
+            {
+                upperName = upperName.substr(1, upperName.size() - 2);
+            }
+            if (upperName.size() == 2 && upperName[0] == 'Y')
+            {
+                const int idx = parse_ti_digit(upperName[1]);
+                if (idx >= 0)
+                {
+                    name = make_indexed_var_name(0x5E, static_cast<uint8_t>(0x10 + idx));
+                    return true;
+                }
+            }
+            if (upperName.size() == 3 && (upperName[0] == 'X' || upperName[0] == 'Y') && upperName[2] == 'T' && upperName[1] >= '1' && upperName[1] <= '6')
+            {
+                const uint8_t base = upperName[0] == 'X' ? 0x20 : 0x21;
+                const uint8_t idx = static_cast<uint8_t>((upperName[1] - '1') * 2);
+                name = make_indexed_var_name(0x5E, static_cast<uint8_t>(base + idx));
+                return true;
+            }
+            if (upperName.size() == 2 && upperName[0] == 'R' && upperName[1] >= '1' && upperName[1] <= '6')
+            {
+                name = make_indexed_var_name(0x5E, static_cast<uint8_t>(0x40 + (upperName[1] - '1')));
+                return true;
+            }
+            return false;
+        }
+
+        bool normalize_decimal_slot_name(std::string& name, const std::string& prefix, uint8_t leadingByte)
+        {
+            if (!name.empty() && static_cast<uint8_t>(name[0]) == leadingByte)
+            {
+                if (name.size() == 1)
+                {
+                    name.push_back('\0');
+                    return true;
+                }
+                return name.size() == 2 && static_cast<uint8_t>(name[1]) <= 0x09;
+            }
+            const std::string upperName = uppercase_ascii(name);
+            if (upperName.rfind(prefix, 0) != 0 || upperName.size() != prefix.size() + 1)
+            {
+                return false;
+            }
+            const int idx = parse_ti_digit(upperName.back());
+            if (idx < 0)
+            {
+                return false;
+            }
+            name = make_indexed_var_name(leadingByte, static_cast<uint8_t>(idx));
+            return true;
         }
     }
 
@@ -258,31 +482,72 @@ namespace tivars
         std::string newName(name);
         if (newName.empty())
         {
-            newName = "FILE" + (_type.getExts().empty() ? "" : _type.getExts()[0]);
+            newName = default_var_name_for_type(_type);
         }
 
         // Here we handle various theta chars. Note thata in TI-ASCII, theta is at 0x5B which is "[" in ASCII.
-        newName = std::regex_replace(newName, std::regex("(\u03b8|\u0398|\u03F4|\u1DBF)"), "[");
+        newName = normalize_theta_chars(newName);
 
         const auto& typeName = _type.getName();
         const auto& typeId = _type.getId();
 
         if (typeName == "Real" || typeName == "Complex" || typeName == "Program" || typeName == "ProtectedProgram")
         {
-            for (auto & c: newName) c = (char) toupper(c);
+            newName = uppercase_ascii(newName);
         }
 
-        if (((typeName == "Real" || typeName == "Complex" || (typeId >= 0x1B && typeId <= 0x21)) && !regex_match(newName, std::regex(R"(^[[A-Z]$)"))) // exact types
-          || ((typeName == "RealList" || typeName == "ComplexList") && !regex_match(newName, std::regex(R"(^\x5D([\x00-\x05])?|([[0-9A-F]{0,5})$)")))
-          || ((typeName == "Program" || typeName == "ProtectedProgram") && !regex_match(newName, std::regex(R"(^[[A-Z][[A-Z0-9]{0,7}$)")))
-          || (typeName == "Equation" && !regex_match(newName, std::regex(R"(^\x5E[\x00-\xFF]?$)")))
-          || (typeName == "Matrix" && !regex_match(newName, std::regex(R"(^\x5C[\x00-\x09]?$)")))
-          || (typeName == "String" && !regex_match(newName, std::regex(R"(^\xAA[\x00-\x09]?$)")))
-          || (typeName == "Pic" && !regex_match(newName, std::regex(R"(^\x60[\x00-\x09]?$)")))
-          || (typeName == "Image" && !regex_match(newName, std::regex(R"(^\x3C[\x00-\x09]?$)")))
-          || (typeName == "GraphDataBase" && !regex_match(newName, std::regex(R"(^\x61[\x00-\x09]?$)"))))
+        bool isValid = true;
+        if (typeName == "Real" || typeName == "Complex" || (typeId >= 0x1B && typeId <= 0x21))
         {
-            newName = "";
+            isValid = newName.size() == 1 && is_alpha_or_theta(newName[0]);
+        }
+        else if (typeName == "RealList" || typeName == "ComplexList")
+        {
+            isValid = normalize_list_name(newName);
+        }
+        else if (typeName == "Program" || typeName == "ProtectedProgram")
+        {
+            isValid = !newName.empty() && newName.size() <= sizeof(varname) && is_alpha_or_theta(newName[0]);
+            if (isValid)
+            {
+                for (char c : newName)
+                {
+                    if (!is_name_char(c))
+                    {
+                        isValid = false;
+                        break;
+                    }
+                }
+            }
+        }
+        else if (typeName == "Equation" || typeName == "SmartEquation")
+        {
+            isValid = normalize_equation_name(newName);
+        }
+        else if (typeName == "Matrix")
+        {
+            isValid = normalize_matrix_name(newName);
+        }
+        else if (typeName == "String")
+        {
+            isValid = normalize_decimal_slot_name(newName, "STR", 0xAA);
+        }
+        else if (typeName == "Picture")
+        {
+            isValid = normalize_decimal_slot_name(newName, "PIC", 0x60);
+        }
+        else if (typeName == "Image")
+        {
+            isValid = normalize_decimal_slot_name(newName, "IMAGE", 0x3C);
+        }
+        else if (typeName == "GraphDataBase")
+        {
+            isValid = normalize_decimal_slot_name(newName, "GDB", 0x61);
+        }
+
+        if (!isValid)
+        {
+            newName.clear();
         }
 
         if (newName.length() > sizeof(varname) || newName.empty())
