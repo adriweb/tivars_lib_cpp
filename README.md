@@ -23,7 +23,7 @@ newPrgm.setContentFromString("ClrHome:Disp \"Hello World!\"");        // Set the
 newPrgm.saveVarToFile("path/to/output/directory/", "myNewPrgrm");     // The extension is added automatically
 ```
 
-Several optional parameters for the functions are available. For instance, French is a supported input/output language for the program vartype, which is choosable with a boolean in an options array to pass.
+Several optional parameters for the functions are available. For instance, French input/output for tokenized content can be selected with an options map such as `{ {"lang", TH_Tokenized::LANG_FR} }`, and pretty-printing can enable reindentation with `{ {"reindent", true} }`.
 
 _Note: The code throws exceptions for you to catch in case of trouble._
 
@@ -59,6 +59,9 @@ You can find code that use this project as a JS lib here: https://github.com/TI-
 | Graph DataBase (GDB)      | **✓** (JSON) | **✓** (JSON) |
 | Complex                   |    **✓**     |    **✓**     |
 | Complex List              |    **✓**     |    **✓**     |
+| Window Settings           | **✓** (JSON) | **✓** (JSON) |
+| Recall Window             | **✓** (JSON) | **✓** (JSON) |
+| Table Range               | **✓** (JSON) | **✓** (JSON) |
 | Application Variable      |    **✓**     |    **✓**     |
 | Python AppVar             |    **✓**     |    **✓**     |
 | Exact Complex Fraction    |    **✓**     |              |
@@ -69,7 +72,7 @@ You can find code that use this project as a JS lib here: https://github.com/TI-
 | Exact Real Pi             |    **✓**     |              |
 | Exact Real Pi Fraction    |    **✓**     |              |
 
-Note that some of the special varnames restrictions (for strings, matrices, list...) aren't implemented yet.
+Special vartype naming rules are implemented for constrained names such as strings, lists, matrices, equations, pictures, images, GDBs, and settings vars.
 
 To this date, there are no plans to support other types (except maybe some fancy things with the image/picture vartypes...).  
 Pull Requests are welcome, though :)
