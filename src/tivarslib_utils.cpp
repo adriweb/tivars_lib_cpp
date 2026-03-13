@@ -12,11 +12,6 @@
 namespace tivars
 {
 
-bool has_option(const options_t& m, const std::string& element)
-{
-    return m.find(element) != m.end();
-}
-
 unsigned char hexdec(const std::string& str)
 {
     return (unsigned char) stoul(str, nullptr, 16);

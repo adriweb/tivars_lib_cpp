@@ -563,7 +563,7 @@ namespace tivars::TypeHandlers
             gdb.global84CSettings.extSettings2 = *((ExtSettings2*)(&data[tmpOff++]));
         }
 
-        const bool compactJSON = has_option(options, "compact") && options.at("compact") == 1;
+        const bool compactJSON = options.contains("compact") && options.at("compact") == 1;
         return json(gdb).dump(compactJSON ? -1 : 4);
     }
 
