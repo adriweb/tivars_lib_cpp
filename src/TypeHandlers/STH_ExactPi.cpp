@@ -8,22 +8,68 @@
 #include "TypeHandlers.h"
 #include "../tivarslib_utils.h"
 
+#include <algorithm>
+#include <cctype>
 #include <stdexcept>
+
+namespace
+{
+    void replaceAll(std::string& str, const std::string& from, const std::string& to)
+    {
+        if (from.empty())
+        {
+            return;
+        }
+
+        for (size_t pos = 0; (pos = str.find(from, pos)) != std::string::npos; pos += to.size())
+        {
+            str.replace(pos, from.size(), to);
+        }
+    }
+
+    std::string normalizePiCoefficient(std::string str)
+    {
+        static const std::string piSymbol = "π";
+
+        str.erase(std::remove_if(str.begin(), str.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }), str.end());
+        replaceAll(str, "*", "");
+        replaceAll(str, "pi", piSymbol);
+
+        if (str == "0" || str == "+0" || str == "-0")
+        {
+            return "0";
+        }
+
+        const size_t piPos = str.find(piSymbol);
+        if (piPos == std::string::npos || str.find(piSymbol, piPos + piSymbol.size()) != std::string::npos)
+        {
+            throw std::invalid_argument("Invalid input string. Needs to be a valid Exact Real Pi");
+        }
+
+        str.erase(piPos, piSymbol.size());
+        if (str.empty() || str == "+" || str == "-")
+        {
+            str += '1';
+        }
+
+        return str;
+    }
+}
 
 namespace tivars::TypeHandlers
 {
 
     data_t STH_ExactPi::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
-        (void)options;
-        (void)_ctx;
-
-        throw std::runtime_error("Unimplemented");
-
-        if (str.empty() || !is_numeric(str))
+        const std::string coefficient = normalizePiCoefficient(str);
+        size_t parsedChars = 0;
+        (void)std::stoll(coefficient, &parsedChars);
+        if (parsedChars != coefficient.size())
         {
             throw std::invalid_argument("Invalid input string. Needs to be a valid Exact Real Pi");
         }
+
+        return STH_FP::makeDataFromString(coefficient, options, _ctx);
     }
 
     std::string STH_ExactPi::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
