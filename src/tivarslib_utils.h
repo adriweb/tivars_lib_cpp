@@ -39,6 +39,8 @@ std::string dechex(unsigned char i, bool zeropad = true);
 
 std::string strtoupper(const std::string& str);
 
+void replace_all(std::string& str, const std::string& from, const std::string& to);
+
 std::vector<std::string> explode(const std::string& str, const std::string& delim);
 std::vector<std::string> explode(const std::string& str, char delim);
 

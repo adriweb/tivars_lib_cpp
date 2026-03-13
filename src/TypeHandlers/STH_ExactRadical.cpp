@@ -14,23 +14,9 @@
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
-#include <regex>
 
 namespace
 {
-    void replaceAll(std::string& str, const std::string& from, const std::string& to)
-    {
-        if (from.empty())
-        {
-            return;
-        }
-
-        for (size_t pos = 0; (pos = str.find(from, pos)) != std::string::npos; pos += to.size())
-        {
-            str.replace(pos, from.size(), to);
-        }
-    }
-
     int parseRadicalPartValue(const std::string& str)
     {
         if (str.empty())
@@ -64,11 +50,11 @@ namespace tivars::TypeHandlers
 
         std::string normalized = str;
         normalized.erase(std::remove_if(normalized.begin(), normalized.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }), normalized.end());
-        replaceAll(normalized, "*", "");
-        replaceAll(normalized, "sqrt", "√");
-        replaceAll(normalized, "√(", "√");
-        replaceAll(normalized, "(", "");
-        replaceAll(normalized, ")", "");
+        tivars::replace_all(normalized, "*", "");
+        tivars::replace_all(normalized, "sqrt", "√");
+        tivars::replace_all(normalized, "√(", "√");
+        tivars::replace_all(normalized, "(", "");
+        tivars::replace_all(normalized, ")", "");
 
         if (normalized.empty())
         {
@@ -79,7 +65,7 @@ namespace tivars::TypeHandlers
             throw std::invalid_argument("Radical type only accepts integer components");
         }
 
-        replaceAll(normalized, "-", "+-");
+        tivars::replace_all(normalized, "-", "+-");
         if (!normalized.empty() && normalized.front() == '+')
         {
             normalized.erase(0, 1);
@@ -92,11 +78,11 @@ namespace tivars::TypeHandlers
         if (normalized.find("√") == std::string::npos)
         {
             normalized = "0√1+" + normalized;
-            replaceAll(normalized, "/", "√1/");
+            tivars::replace_all(normalized, "/", "√1/");
         }
         if (normalized.find('+') == std::string::npos)
         {
-            replaceAll(normalized, "/", "+0√1/");
+            tivars::replace_all(normalized, "/", "+0√1/");
         }
 
         const size_t slashPos = normalized.find('/');
@@ -238,9 +224,11 @@ namespace tivars::TypeHandlers
         std::string str = "(" + parts[0] + "*√(" + parts[1] + ")" + parts[2] + "*√(" + parts[3]  + "))/" + parts[4];
 
         // Improve final display
-        str = std::regex_replace(str, std::regex("\\+1\\*"), "+");  str = std::regex_replace(str, std::regex("\\(1\\*"),  "(");
-        str = std::regex_replace(str, std::regex("-1\\*"),   "-");  str = std::regex_replace(str, std::regex("\\(-1\\*"), "(-");
-        str = std::regex_replace(str, std::regex("\\+-"),    "-");
+        tivars::replace_all(str, "+1*", "+");
+        tivars::replace_all(str, "(1*", "(");
+        tivars::replace_all(str, "-1*", "-");
+        tivars::replace_all(str, "(-1*", "(-");
+        tivars::replace_all(str, "+-", "-");
 
         return str;
     }

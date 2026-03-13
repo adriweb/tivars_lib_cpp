@@ -39,6 +39,19 @@ std::string strtoupper(const std::string& str)
     return newStr;
 }
 
+void replace_all(std::string& str, const std::string& from, const std::string& to)
+{
+    if (from.empty())
+    {
+        return;
+    }
+
+    for (size_t pos = 0; (pos = str.find(from, pos)) != std::string::npos; pos += to.size())
+    {
+        str.replace(pos, from.size(), to);
+    }
+}
+
 std::vector<std::string> explode(const std::string& str, const std::string& delim)
 {
     std::vector<std::string> result;

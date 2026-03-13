@@ -8,8 +8,8 @@
 #include "TypeHandlers.h"
 #include "../tivarslib_utils.h"
 
+#include <cctype>
 #include <stdexcept>
-#include <regex>
 
 namespace tivars::TypeHandlers
 {
@@ -18,10 +18,17 @@ namespace tivars::TypeHandlers
         (void)options;
         (void)_ctx;
 
-        const bool formatOk = regex_match(str, std::regex("^([0-9a-fA-F]{2})+$"));
-
         const size_t length = str.size();
         const size_t bytes  = length / 2;
+        bool formatOk = (length % 2) == 0;
+        for (char c : str)
+        {
+            if (!std::isxdigit(static_cast<unsigned char>(c)))
+            {
+                formatOk = false;
+                break;
+            }
+        }
 
         if (length == 0 || !formatOk || bytes > 0xFFFF)
         {

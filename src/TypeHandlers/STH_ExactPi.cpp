@@ -14,26 +14,13 @@
 
 namespace
 {
-    void replaceAll(std::string& str, const std::string& from, const std::string& to)
-    {
-        if (from.empty())
-        {
-            return;
-        }
-
-        for (size_t pos = 0; (pos = str.find(from, pos)) != std::string::npos; pos += to.size())
-        {
-            str.replace(pos, from.size(), to);
-        }
-    }
-
     std::string normalizePiCoefficient(std::string str)
     {
         static const std::string piSymbol = "π";
 
         str.erase(std::remove_if(str.begin(), str.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }), str.end());
-        replaceAll(str, "*", "");
-        replaceAll(str, "pi", piSymbol);
+        tivars::replace_all(str, "*", "");
+        tivars::replace_all(str, "pi", piSymbol);
 
         if (str == "0" || str == "+0" || str == "-0")
         {
