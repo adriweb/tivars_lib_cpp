@@ -12,6 +12,7 @@
 #include <fstream>
 #include <sstream>
 #include <cstdio>
+#include <cmath>
 
 #ifndef _WIN32
     #include <sys/stat.h>
@@ -23,11 +24,13 @@
 #include "src/TIVarFile.h"
 #include "src/TypeHandlers/TypeHandlers.h"
 #include "src/tivarslib_utils.h"
+#include "src/json.hpp"
 
 using namespace std;
 using namespace tivars;
 using namespace tivars::TypeHandlers;
 using TypeHandlers::TH_Tokenized;
+using json = nlohmann::json;
 
 static bool compare_token_posinfo(const TH_Tokenized::token_posinfo& tp1, const TH_Tokenized::token_posinfo& tp2)
 {
@@ -818,6 +821,22 @@ End)";
         TIVarFile gdb0 = TIVarFile::createNew("GraphDataBase", "gdb0");
         const uint8_t expectedGdb0[8] = {0x61, 0x09};
         assert(std::equal(gdb0.getVarEntries()[0].varname, gdb0.getVarEntries()[0].varname + 8, expectedGdb0));
+    }
+
+    {
+        TIVarFile tableRange = TIVarFile::loadFromFile("testData/TableRange.8xt");
+        const json tableRangeJSON = json::parse(tableRange.getReadableContent());
+        assert(tableRangeJSON["TblMin"] == 0);
+        assert(tableRangeJSON["DeltaTbl"] == 1);
+
+        TIVarFile newTableRange = TIVarFile::createNew("TableRange");
+        const uint8_t expectedName[8] = {'T', 'b', 'l', 'S', 'e', 't'};
+        assert(std::equal(newTableRange.getVarEntries()[0].varname, newTableRange.getVarEntries()[0].varname + 8, expectedName));
+        newTableRange.setContentFromString(R"({
+    "TblMin": 0,
+    "DeltaTbl": 1
+})");
+        assert(newTableRange.getRawContent() == tableRange.getRawContent());
     }
 
 #if defined(TH_GDB_SUPPORT) || defined(__cpp_lib_variant)

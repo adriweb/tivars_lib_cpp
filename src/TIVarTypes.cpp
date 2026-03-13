@@ -44,6 +44,15 @@ namespace tivars
     &(TypeHandlers::TH_Generic##which::makeStringFromData),                                         \
     &(TypeHandlers::TH_Generic##which::getMinVersionFromData),                                      \
 }
+#define SettingsHandlerTuple(type) TypeHandlersTuple{                                               \
+    [](const std::string& str, const options_t& options, const TIVarFile* _ctx) -> data_t {         \
+        options_t options_withType = options;                                                       \
+        options_withType["_type"] = type;                                                           \
+        return (TypeHandlers::TH_Settings::makeDataFromString)(str, options_withType, _ctx);        \
+    },                                                                                              \
+    &(TypeHandlers::TH_Settings::makeStringFromData),                                               \
+    &(TypeHandlers::TH_Settings::getMinVersionFromData),                                            \
+}
 
     void TIVarTypes::insertType(const std::string& name, int id, const std::vector<std::string>& exts, const TypeHandlersTuple& handlers)
     {
@@ -88,7 +97,7 @@ namespace tivars
         // insertType("Undef",                0x0E,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("WindowSettings",       0x0F,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw", "8xw", "8xw"});
         insertType("RecallWindow",         0x10,  {"82z", "83z", "8xz", "8xz", "8xz", "8xz", "8xz", "8xz", "8xz"});
-        insertType("TableRange",           0x11,  {"82t", "83t", "8xt", "8xt", "8xt", "8xt", "8xt", "8xt", "8xt"});
+        insertType("TableRange",           0x11,  {"82t", "83t", "8xt", "8xt", "8xt", "8xt", "8xt", "8xt", "8xt"}, SettingsHandlerTuple(0x11));
         insertType("ScreenImage",          0x12,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("Backup",               0x13,  {"82b", "83b", "8xb",   _  , "8xb", "8cb",   _  ,   _  ,   _  });
         insertType("App",                  0x14,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });

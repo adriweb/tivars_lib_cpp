@@ -127,6 +127,12 @@ namespace tivars::TypeHandlers
         static const constexpr char* magic84CAndLaterSectionMarker = "84C";
     };
 
+    class TH_Settings : public DummyHandler
+    {
+        public:
+        th();
+    };
+
     // Program, Protected Program, Y-Variable, String
     class TH_Tokenized : public DummyHandler
     {

@@ -106,6 +106,10 @@ namespace tivars
             {
                 return make_indexed_var_name(0x61, 0x00);
             }
+            if (typeName == "TableRange")
+            {
+                return "TblSet";
+            }
 
             return "FILE" + (type.getExts().empty() ? "" : type.getExts()[0]);
         }
@@ -253,6 +257,20 @@ namespace tivars
             }
             name = make_indexed_var_name(leadingByte, static_cast<uint8_t>(idx));
             return true;
+        }
+
+        bool normalize_fixed_ascii_name(std::string& name, const std::string& expected)
+        {
+            if (name == expected)
+            {
+                return true;
+            }
+            if (uppercase_ascii(name) == uppercase_ascii(expected))
+            {
+                name = expected;
+                return true;
+            }
+            return false;
         }
     }
 
@@ -543,6 +561,10 @@ namespace tivars
         else if (typeName == "GraphDataBase")
         {
             isValid = normalize_decimal_slot_name(newName, "GDB", 0x61);
+        }
+        else if (typeName == "TableRange")
+        {
+            isValid = normalize_fixed_ascii_name(newName, "TblSet");
         }
 
         if (!isValid)
