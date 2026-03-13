@@ -364,6 +364,59 @@ int main(int argc, char** argv)
     }
 
     {
+        TIVarFile groupObject = TIVarFile::createNew("GroupObject", "GROUP");
+        groupObject.setContentFromString(R"({
+    "entries": [
+        {
+            "typeName": "String",
+            "name": "Str1",
+            "readableContent": "Hello Group"
+        },
+        {
+            "typeName": "AppVar",
+            "name": "DATA",
+            "readableContent": "ABCD1234"
+        },
+        {
+            "typeName": "Real",
+            "name": "A",
+            "readableContent": "42"
+        }
+    ]
+})");
+
+        const json groupObjectJSON = json::parse(groupObject.getReadableContent());
+        assert(groupObjectJSON["entries"].size() == 3);
+        assert(groupObjectJSON["entries"][0]["typeName"] == "String");
+        assert(groupObjectJSON["entries"][0]["name"] == "Str1");
+        assert(groupObjectJSON["entries"][0]["readableContent"] == "Hello Group");
+        assert(groupObjectJSON["entries"][1]["typeName"] == "AppVar");
+        assert(groupObjectJSON["entries"][1]["name"] == "DATA");
+        assert(groupObjectJSON["entries"][1]["readableContent"] == "ABCD1234");
+        assert(groupObjectJSON["entries"][2]["typeName"] == "Real");
+        assert(groupObjectJSON["entries"][2]["name"] == "A");
+        assert(groupObjectJSON["entries"][2]["readableContent"] == 42);
+
+        TIVarFile recreatedGroupObject = TIVarFile::createNew("GroupObject", "GROUP");
+        recreatedGroupObject.setContentFromString(groupObject.getReadableContent());
+        assert(recreatedGroupObject.getRawContent() == groupObject.getRawContent());
+
+        const std::string groupObjectPath = groupObject.saveVarToFile("/tmp", "GROUPOBJ");
+        TIVarFile reloadedGroupObject = TIVarFile::loadFromFile(groupObjectPath);
+        assert(reloadedGroupObject.getReadableContent() == groupObject.getReadableContent());
+        assert(remove(groupObjectPath.c_str()) == 0);
+
+        TIVarFile artifi82 = TIVarFile::loadFromFile("testData/ARTIFI82.8cg");
+        const json artifi82JSON = json::parse(artifi82.getReadableContent());
+        assert(artifi82JSON["entries"].size() == 570);
+        assert(artifi82JSON["entries"][0]["typeName"] == "PythonAppVar");
+        assert(artifi82JSON["entries"][0]["name"] == "00");
+        assert(artifi82JSON["entries"][1]["name"] == "01");
+        assert(artifi82JSON["entries"][37].contains("name") == false);
+        assert(artifi82JSON["entries"][569]["nameHex"] == "4380000000000000");
+    }
+
+    {
         TIVarFile testAppVar = TIVarFile::createNew("AppVar", "TEST");
         testAppVar.setContentFromString("ABCD1234C9C8C7C6"); // random but valid hex string
         assert(testAppVar.getReadableContent() == "ABCD1234C9C8C7C6");
