@@ -6,6 +6,8 @@
  */
 
 #include "TypeHandlers.h"
+#include "../json.hpp"
+#include "../TIVarFile.h"
 #include "../tivarslib_utils.h"
 
 #ifndef CEMU_VERSION
@@ -20,6 +22,8 @@
 #include <fstream>
 #include <cstring>
 #include <array>
+
+using json = nlohmann::json;
 
 static size_t strlen_mb(const std::string& s)
 {
@@ -105,6 +109,233 @@ static void split_var_keyword_lines(std::string& str, const std::string& keyword
     }
 }
 
+static std::string bytes_to_hex(const data_t& data)
+{
+    std::string result;
+    for (uint8_t byte : data)
+    {
+        result += tivars::dechex(byte);
+    }
+    return result;
+}
+
+static data_t hex_to_bytes(const std::string& str)
+{
+    if (str.size() % 2 != 0)
+    {
+        throw std::invalid_argument("rawDataHex must contain an even number of hex digits");
+    }
+
+    data_t out;
+    out.reserve(str.size() / 2);
+    for (char c : str)
+    {
+        if (!std::isxdigit(static_cast<unsigned char>(c)))
+        {
+            throw std::invalid_argument("rawDataHex must be valid hexadecimal");
+        }
+    }
+    for (size_t i = 0; i < str.size(); i += 2)
+    {
+        out.push_back(tivars::hexdec(str.substr(i, 2)));
+    }
+    return out;
+}
+
+static uint16_t read_be16(const data_t& data, size_t offset)
+{
+    if (offset + 1 >= data.size())
+    {
+        return 0;
+    }
+    return static_cast<uint16_t>((data[offset] << 8) | data[offset + 1]);
+}
+
+static std::string read_c_string_ascii(const data_t& data, size_t offset)
+{
+    std::string result;
+    for (size_t i = offset; i < data.size() && data[i] != 0; i++)
+    {
+        result.push_back(static_cast<char>(data[i]));
+    }
+    return result;
+}
+
+static json parse_asm_metadata(const data_t& rawBytes)
+{
+    json j = {
+        {"isAssembly", false},
+        {"rawDataHex", bytes_to_hex(rawBytes)},
+    };
+
+    if (rawBytes.size() < 2)
+    {
+        return j;
+    }
+
+    const uint16_t header = read_be16(rawBytes, 0);
+    if (header == 0xBB6D)
+    {
+        j["isAssembly"] = true;
+        j["cpu"] = "Z80";
+
+        if (rawBytes.size() >= 4 && rawBytes[2] == 0xC9)
+        {
+            const uint8_t kind = rawBytes[3];
+            if (kind == 0x01 || kind == 0x03)
+            {
+                j["shell"] = "MirageOS";
+                j["variant"] = "ShellProgram";
+                j["type"] = kind;
+                j["description"] = read_c_string_ascii(rawBytes, kind == 0x03 ? 36 : 34);
+            }
+            else if (kind == 0x02)
+            {
+                j["shell"] = "MirageOS";
+                j["variant"] = "ExternalInterface";
+                if (rawBytes.size() >= 6)
+                {
+                    j["interfaceId"] = rawBytes[4];
+                    j["xCoord"] = rawBytes[5];
+                }
+                j["description"] = read_c_string_ascii(rawBytes, 6);
+            }
+            else if (kind == 0x30)
+            {
+                j["shell"] = "Ion";
+                j["variant"] = "Ion";
+                j["description"] = read_c_string_ascii(rawBytes, 5);
+            }
+            else if (kind == 0x54)
+            {
+                j["shell"] = "TSE";
+                j["variant"] = "TSE";
+                if (rawBytes.size() >= 11 && read_be16(rawBytes, 4) == 0x5445)
+                {
+                    j["programTitle"] = read_c_string_ascii(rawBytes, 8);
+                }
+            }
+        }
+        else if (rawBytes.size() >= 4 && rawBytes[2] == 0xAF && rawBytes[3] == 0x30)
+        {
+            j["shell"] = "Ion";
+            j["variant"] = "IonAndOS";
+            j["description"] = read_c_string_ascii(rawBytes, 5);
+        }
+        return j;
+    }
+
+    if (header == 0xC930)
+    {
+        j["isAssembly"] = true;
+        j["cpu"] = "Z80";
+        j["shell"] = "Ion";
+        j["variant"] = "83Ion";
+        j["description"] = read_c_string_ascii(rawBytes, 3);
+        return j;
+    }
+
+    if ((header & 0x00FF) == 0x18)
+    {
+        j["isAssembly"] = true;
+        j["cpu"] = "Z80";
+        j["shell"] = rawBytes[0] != 0 ? "TI-Explorer" : "ASHELL83";
+        j["jr"] = tivars::dechex(rawBytes[1]) + tivars::dechex(rawBytes.size() > 2 ? rawBytes[2] : 0);
+        if (rawBytes.size() >= 7)
+        {
+            j["tablePointer"] = read_be16(rawBytes, 3);
+            j["descriptionPointer"] = read_be16(rawBytes, 5);
+        }
+        return j;
+    }
+
+    if (header == 0xAF28)
+    {
+        j["isAssembly"] = true;
+        j["cpu"] = "Z80";
+        j["shell"] = "SOS";
+        if (rawBytes.size() >= 7)
+        {
+            j["librariesPointer"] = read_be16(rawBytes, 3);
+            j["descriptionPointer"] = read_be16(rawBytes, 5);
+        }
+        return j;
+    }
+
+    if (header == 0xEF7B)
+    {
+        j["isAssembly"] = true;
+        j["cpu"] = "eZ80";
+        j["shell"] = "Asm84CEPrgm";
+        if (rawBytes.size() >= 3)
+        {
+            if (rawBytes[2] == 0x00)
+            {
+                j["variant"] = "C";
+            }
+            else if (rawBytes[2] == 0x7F)
+            {
+                j["variant"] = "ICE";
+            }
+        }
+        if (rawBytes.size() >= 7 && rawBytes[3] == 0xC3 && (rawBytes[6] == 0x01 || rawBytes[6] == 0x02))
+        {
+            j["shellHeaderType"] = rawBytes[6];
+            if (rawBytes[6] == 0x01 && rawBytes.size() >= 265)
+            {
+                j["iconWidth"] = rawBytes[7];
+                j["iconHeight"] = rawBytes[8];
+                j["description"] = read_c_string_ascii(rawBytes, 265);
+            }
+            else
+            {
+                j["description"] = read_c_string_ascii(rawBytes, 7);
+            }
+        }
+        return j;
+    }
+
+    if (header == 0xD900)
+    {
+        j["isAssembly"] = true;
+        j["cpu"] = "Z80";
+        if (rawBytes.size() >= 6 && std::memcmp(&rawBytes[2], "Duck", 4) == 0)
+        {
+            j["shell"] = "Mallard";
+            if (rawBytes.size() >= 8)
+            {
+                j["startAddress"] = read_be16(rawBytes, 6);
+                j["description"] = read_c_string_ascii(rawBytes, 8);
+            }
+        }
+        else
+        {
+            j["shell"] = "ASH";
+            j["description"] = read_c_string_ascii(rawBytes, 3);
+        }
+        return j;
+    }
+
+    if (header == 0xD500)
+    {
+        j["isAssembly"] = true;
+        j["cpu"] = "Z80";
+        j["shell"] = "Crash";
+        j["description"] = read_c_string_ascii(rawBytes, 3);
+        return j;
+    }
+
+    if (header == 0xEF69)
+    {
+        j["isAssembly"] = true;
+        j["cpu"] = "Z80";
+        j["shell"] = "CSE";
+        return j;
+    }
+
+    return j;
+}
+
 namespace tivars::TypeHandlers
 {
     namespace
@@ -119,6 +350,22 @@ namespace tivars::TypeHandlers
     data_t TH_Tokenized::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)_ctx;
+        const std::string trimmed = tivars::trim(str);
+        if (!trimmed.empty() && trimmed.front() == '{')
+        {
+            const json j = json::parse(trimmed);
+            if (j.contains("rawDataHex"))
+            {
+                data_t payload = hex_to_bytes(j.at("rawDataHex").get<std::string>());
+                data_t data = {
+                    static_cast<uint8_t>(payload.size() & 0xFF),
+                    static_cast<uint8_t>((payload.size() >> 8) & 0xFF)
+                };
+                tivars::vector_append(data, payload);
+                return data;
+            }
+        }
+
         data_t data;
 
         const bool deindent = options.contains("deindent") && options.at("deindent") == 1;
@@ -209,7 +456,6 @@ namespace tivars::TypeHandlers
 
     std::string TH_Tokenized::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
-        (void)_ctx;
         const size_t dataSize = data.size();
 
         const bool fromRawBytes = options.contains("fromRawBytes") && options.at("fromRawBytes") == 1;
@@ -231,6 +477,23 @@ namespace tivars::TypeHandlers
             {
                 std::cerr << "[Warning] Byte count (" << (dataSize - 2) << ") and size field (" << howManyBytes  << ") mismatch!" << std::endl;
             }
+        }
+
+        const data_t rawBytes(data.begin() + static_cast<ptrdiff_t>(fromRawBytes ? 0 : 2), data.end());
+        if (options.contains("metadata") && options.at("metadata") == 1)
+        {
+            json metadata = parse_asm_metadata(rawBytes);
+            if (_ctx != nullptr && !_ctx->getVarEntries().empty())
+            {
+                metadata["typeName"] = _ctx->getVarEntries()[0]._type.getName();
+            }
+            if (!metadata["isAssembly"].get<bool>())
+            {
+                options_t baseOptions = options;
+                baseOptions.erase("metadata");
+                metadata["code"] = makeStringFromData(data, baseOptions, _ctx);
+            }
+            return metadata.dump(4);
         }
 
         if (!fromRawBytes && howManyBytes >= 2 && dataSize >= 4)
