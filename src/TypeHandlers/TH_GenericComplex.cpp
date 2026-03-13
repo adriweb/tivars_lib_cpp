@@ -7,13 +7,139 @@
 
 #include "TypeHandlers.h"
 
-#include <cstdlib>
+#include <algorithm>
+#include <array>
+#include <cctype>
 #include <stdexcept>
-#include <regex>
 #include <unordered_map>
 
 namespace tivars::TypeHandlers
 {
+    namespace
+    {
+        constexpr size_t bytesPerMember = 9;
+
+        using MakeDataFn = decltype(&DummyHandler::makeDataFromString);
+
+        struct MemberParser
+        {
+            uint8_t subtype;
+            MakeDataFn makeDataFromString;
+        };
+
+        const std::array<MemberParser, 5> realMemberParsers = {{
+            {0x0C, &STH_FP::makeDataFromString},
+            {0x1B, &STH_ExactFraction::makeDataFromString},
+            {0x1D, &STH_ExactRadical::makeDataFromString},
+            {0x1E, &STH_ExactPi::makeDataFromString},
+            {0x1F, &STH_ExactFractionPi::makeDataFromString},
+        }};
+
+        const std::unordered_map<uint8_t, MemberParser> imaginaryMemberParsers = {
+            {0x0C, {0x0C, &STH_FP::makeDataFromString}},
+            {0x1B, {0x1B, &STH_ExactFraction::makeDataFromString}},
+            {0x1D, {0x1D, &STH_ExactRadical::makeDataFromString}},
+            {0x1E, {0x1E, &STH_ExactPi::makeDataFromString}},
+            {0x1F, {0x1F, &STH_ExactFractionPi::makeDataFromString}},
+        };
+
+        struct ComplexParts
+        {
+            std::string real;
+            std::string imag;
+        };
+
+        std::string normalizeComplexInput(std::string str)
+        {
+            str.erase(std::remove_if(str.begin(), str.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }), str.end());
+            str.erase(std::remove(str.begin(), str.end(), '*'), str.end());
+            std::replace(str.begin(), str.end(), 'j', 'i');
+            return str;
+        }
+
+        ComplexParts splitComplexString(const std::string& str)
+        {
+            if (str.empty())
+            {
+                throw std::invalid_argument("Invalid input string. Needs to be a valid complex subtype string");
+            }
+
+            if (str.back() != 'i')
+            {
+                return {str, "0"};
+            }
+
+            const std::string imagExpr = str.substr(0, str.size() - 1);
+            int depth = 0;
+            size_t splitPos = std::string::npos;
+            for (size_t i = 0; i < imagExpr.size(); i++)
+            {
+                const char ch = imagExpr[i];
+                if (ch == '(')
+                {
+                    depth++;
+                }
+                else if (ch == ')')
+                {
+                    depth--;
+                    if (depth < 0)
+                    {
+                        throw std::invalid_argument("Invalid input string. Needs to be a valid complex subtype string");
+                    }
+                }
+                else if (i > 0 && depth == 0 && (ch == '+' || ch == '-')
+                      && imagExpr[i - 1] != 'e' && imagExpr[i - 1] != 'E')
+                {
+                    splitPos = i;
+                }
+            }
+            if (depth != 0)
+            {
+                throw std::invalid_argument("Invalid input string. Needs to be a valid complex subtype string");
+            }
+
+            ComplexParts parts;
+            if (splitPos == std::string::npos)
+            {
+                parts.real = "0";
+                parts.imag = imagExpr;
+            }
+            else
+            {
+                parts.real = imagExpr.substr(0, splitPos);
+                parts.imag = imagExpr.substr(splitPos);
+            }
+
+            if (parts.real.empty())
+            {
+                parts.real = "0";
+            }
+            if (parts.imag.empty() || parts.imag == "+" || parts.imag == "-")
+            {
+                parts.imag += '1';
+            }
+
+            return parts;
+        }
+
+        MemberParser parseRealMember(const std::string& coeff, const options_t& options, const TIVarFile* _ctx, data_t& encodedData)
+        {
+            for (const auto& parser : realMemberParsers)
+            {
+                try
+                {
+                    encodedData = parser.makeDataFromString(coeff, options, _ctx);
+                    return parser;
+                }
+                catch (const std::exception&)
+                {
+                }
+            }
+
+            throw std::invalid_argument("Invalid input string. Needs to be a valid real subtype string");
+        }
+    }
+
     static const std::unordered_map<uint8_t, TypeHandlersTuple> type2handlers = {
         { 0x0C, SpecificHandlerTuple(STH_FP) },
         { 0x1B, SpecificHandlerTuple(STH_ExactFraction) },
@@ -21,76 +147,32 @@ namespace tivars::TypeHandlers
         { 0x1E, SpecificHandlerTuple(STH_ExactPi) },
         { 0x1F, SpecificHandlerTuple(STH_ExactFractionPi) },
     };
-    static const std::unordered_map<uint8_t, const char*> type2patterns = {
-        { 0x0C, STH_FP::validPattern              },
-        { 0x1B, STH_ExactFraction::validPattern   },
-        { 0x1D, STH_ExactRadical::validPattern    },
-        { 0x1E, STH_ExactPi::validPattern         },
-        { 0x1F, STH_ExactFractionPi::validPattern },
-    };
 
-    static bool checkValidStringAndGetMatches(const std::string& str, const char* typePattern, std::smatch& matches)
-    {
-        if (str.empty())
-        {
-            return false;
-        }
-        // Handle real only, real+imag, imag only.
-        const bool isValid = regex_match(str, matches, std::regex(std::string("^")   + typePattern + "()$"))
-                          || regex_match(str, matches, std::regex(std::string("^")   + typePattern + typePattern + "i$"))
-                          || regex_match(str, matches, std::regex(std::string("^()") + typePattern + "i$"));
-        return isValid;
-    }
-
-    // For this, we're going to assume that both members are of the same type...
-    // TODO: guess, by parsing, the type instead of reading it from the options
     data_t TH_GenericComplex::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
-        constexpr size_t bytesPerMember = 9;
         const auto& typeIter = options.find("_type");
         if (typeIter == options.end())
         {
             throw std::runtime_error("Needs _type in options for TH_GenericComplex::makeDataFromString");
         }
         const uint8_t type = (uint8_t)typeIter->second;
-        const auto& handlerIter = type2handlers.find(type);
-        if (handlerIter == type2handlers.end())
+        const auto& imagParserIter = imaginaryMemberParsers.find(type);
+        if (imagParserIter == imaginaryMemberParsers.end())
         {
             throw std::runtime_error("Unknown/Invalid type for this TH_GenericComplex: " + std::to_string(type));
         }
-        const auto& handler = std::get<0>(handlerIter->second);
 
-        std::string newStr = str;
-        newStr = std::regex_replace(newStr, std::regex(" "), "");
-        newStr = std::regex_replace(newStr, std::regex("\\+i"), "+1i");
-        newStr = std::regex_replace(newStr, std::regex("-i"), "-1i");
-
-        std::smatch matches;
-        const bool isValid = checkValidStringAndGetMatches(newStr, type2patterns.at(type), matches);
-        if (!isValid || matches.size() != 3)
-        {
-            throw std::invalid_argument("Invalid input string. Needs to be a valid complex subtype string");
-        }
+        const ComplexParts parts = splitComplexString(normalizeComplexInput(str));
 
         data_t data;
-        for (int i=0; i<2; i++)
-        {
-            std::string coeff = matches[i+1];
-            if (coeff.empty())
-            {
-                coeff = "0";
-            }
+        data_t realMemberData;
+        const MemberParser realParser = parseRealMember(parts.real, options, _ctx, realMemberData);
+        realMemberData[0] = static_cast<uint8_t>((realMemberData[0] & 0x80) | (realParser.subtype & 0x1F));
+        data.insert(data.end(), realMemberData.begin(), realMemberData.end());
 
-            const data_t& member_data = handler(coeff, options, _ctx);
-            data.insert(data.end(), member_data.begin(), member_data.end());
-
-            uint8_t flags = 0;
-            flags |= (atof(coeff.c_str()) < 0) ? (1 << 7) : 0;
-            flags |= (1 << 2); // Because it's a complex number
-            flags |= (1 << 3); // Because it's a complex number
-
-            data[i * bytesPerMember] = flags;
-        }
+        data_t imagMemberData = imagParserIter->second.makeDataFromString(parts.imag, options, _ctx);
+        imagMemberData[0] = static_cast<uint8_t>((imagMemberData[0] & 0x80) | (imagParserIter->second.subtype & 0x1F));
+        data.insert(data.end(), imagMemberData.begin(), imagMemberData.end());
 
         return data;
     }
@@ -147,10 +229,10 @@ namespace tivars::TypeHandlers
 
     uint8_t TH_GenericComplex::getMinVersionFromData(const data_t& data)
     {
-        const uint8_t internalType = (uint8_t)(data[0] & 0x3F);
-        if (internalType == 0x0C) { // Complex
+        const uint8_t maxInternalType = std::max<uint8_t>(static_cast<uint8_t>(data[0] & 0x1F), static_cast<uint8_t>(data[bytesPerMember] & 0x1F));
+        if (maxInternalType == 0x0C) { // Complex
             return 0x00;
-        } else if (internalType == 0x1B) { // Fraction
+        } else if (maxInternalType == 0x1B) { // Fraction
             return 0x0B;
         } else {
             return 0x10;

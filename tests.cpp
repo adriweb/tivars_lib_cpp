@@ -756,20 +756,20 @@ End)";
         TIVarFile testExact_RealRadical = TIVarFile::loadFromFile("testData/Exact_RealRadical.8xn");
         cout << "Before: " << testExact_RealRadical.getReadableContent() << endl;
         assert(testExact_RealRadical.getReadableContent() == "(41*√(789)+14*√(654))/259");
-        //TIVarFile newExact_RealRadical = TIVarFile::createNew("ExactRealRadical", "A", "83PCE");
-        //newExact_RealRadical.setContentFromString("-42.1337");
-        //assert(testExact_RealRadical.getRawContent() == newExact_RealRadical.getRawContent());
-        //newExact_RealRadical.saveVarToFile("testData", "Exact_RealRadical_new");
+        TIVarFile newExact_RealRadical = TIVarFile::createNew("ExactRealRadical", "A", "83PCE");
+        newExact_RealRadical.setContentFromString("(41*√(789)+14*√(654))/259");
+        assert(testExact_RealRadical.getRawContent() == newExact_RealRadical.getRawContent());
+        assert(newExact_RealRadical.getVarEntries()[0].version == 0x10);
     }
 
     {
         TIVarFile testExactComplexFrac = TIVarFile::loadFromFile("testData/Exact_ComplexFrac.8xc");
         cout << "Before: " << testExactComplexFrac.getReadableContent() << endl;
         assert(testExactComplexFrac.getReadableContent() == "1/5-2/5i");
-        //TIVarFile newExactComplexFrac = TIVarFile::createNew("ExactComplexFrac", "A", "83PCE");
-        //newExactComplexFrac.setContentFromString("-42.1337");
-        //assert(testExactComplexFrac.getRawContent() == newExactComplexFrac.getRawContent());
-        //newExactComplexFrac.saveVarToFile("testData", "Exact_ComplexFrac_new");
+        TIVarFile newExactComplexFrac = TIVarFile::createNew("ExactComplexFrac", "A", "83PCE");
+        newExactComplexFrac.setContentFromString("1/5-2/5i");
+        assert(testExactComplexFrac.getRawContent() == newExactComplexFrac.getRawContent());
+        assert(newExactComplexFrac.getVarEntries()[0].version == 0x0B);
     }
 
 
@@ -777,20 +777,20 @@ End)";
         TIVarFile testExactComplexPi = TIVarFile::loadFromFile("testData/Exact_ComplexPi.8xc");
         cout << "Before: " << testExactComplexPi.getReadableContent() << endl;
         assert(testExactComplexPi.getReadableContent() == "1/5-3πi");
-        //TIVarFile newExactComplexPi = TIVarFile::createNew("ExactComplexPi", "A", "83PCE");
-        //newExactComplexPi.setContentFromString("-42.1337");
-        //assert(testExactComplexPi.getRawContent() == newExactComplexPi.getRawContent());
-        //newExactComplexPi.saveVarToFile("testData", "Exact_ComplexPi_new");
+        TIVarFile newExactComplexPi = TIVarFile::createNew("ExactComplexPi", "A", "83PCE");
+        newExactComplexPi.setContentFromString("1/5-3πi");
+        assert(testExactComplexPi.getRawContent() == newExactComplexPi.getRawContent());
+        assert(newExactComplexPi.getVarEntries()[0].version == 0x10);
     }
 
     {
         TIVarFile testExactComplexPiFrac = TIVarFile::loadFromFile("testData/Exact_ComplexPiFrac.8xc");
         cout << "Before: " << testExactComplexPiFrac.getReadableContent() << endl;
         assert(testExactComplexPiFrac.getReadableContent() == "2π/7i");
-        //TIVarFile newExactComplexPiFrac = TIVarFile::createNew("ExactComplexPiFrac", "A", "83PCE");
-        //newExactComplexPiFrac.setContentFromString("-42.1337");
-        //assert(testExactComplexPiFrac.getRawContent() == newExactComplexPiFrac.getRawContent());
-        //newExactComplexPiFrac.saveVarToFile("testData", "Exact_ComplexPiFrac_new");
+        TIVarFile newExactComplexPiFrac = TIVarFile::createNew("ExactComplexPiFrac", "A", "83PCE");
+        newExactComplexPiFrac.setContentFromString("2π/7i");
+        assert(testExactComplexPiFrac.getRawContent() == newExactComplexPiFrac.getRawContent());
+        assert(newExactComplexPiFrac.getVarEntries()[0].version == 0x10);
     }
 
     {
@@ -798,30 +798,30 @@ End)";
         cout << "Before: " << testExactComplexRadical.getReadableContent() << endl;
 
         assert(testExactComplexRadical.getReadableContent() == "(√(6)+√(2))/4+(√(6)-√(2))/4i");
-        //TIVarFile newExactComplexRadical = TIVarFile::createNew("ExactComplexRadical", "A", "83PCE");
-        //newExactComplexRadical.setContentFromString("-42.1337");
-        //assert(testExactComplexRadical.getRawContent() == newExactComplexRadical.getRawContent());
-        //newExactComplexRadical.saveVarToFile("testData", "Exact_ComplexRadical_new");
+        TIVarFile newExactComplexRadical = TIVarFile::createNew("ExactComplexRadical", "A", "83PCE");
+        newExactComplexRadical.setContentFromString("(√(6)+√(2))/4+(√(6)-√(2))/4i");
+        assert(testExactComplexRadical.getRawContent() == newExactComplexRadical.getRawContent());
+        assert(newExactComplexRadical.getVarEntries()[0].version == 0x10);
     }
 
     {
         TIVarFile testExactRealPi = TIVarFile::loadFromFile("testData/Exact_RealPi.8xn");
         cout << "Before: " << testExactRealPi.getReadableContent() << endl;
         assert(testExactRealPi.getReadableContent() == "30π");
-        //TIVarFile newExactRealPi = TIVarFile::createNew("ExactRealPi", "A", "83PCE");
-        //newExactRealPi.setContentFromString("-42.1337");
-        //assert(testExactRealPi.getRawContent() == newExactRealPi.getRawContent());
-        //newExactRealPi.saveVarToFile("testData", "Exact_RealPi_new");
+        TIVarFile newExactRealPi = TIVarFile::createNew("ExactRealPi", "A", "83PCE");
+        newExactRealPi.setContentFromString("30π");
+        assert(testExactRealPi.getRawContent() == newExactRealPi.getRawContent());
+        assert(newExactRealPi.getVarEntries()[0].version == 0x10);
     }
 
     {
         TIVarFile testExactRealPiFrac = TIVarFile::loadFromFile("testData/Exact_RealPiFrac.8xn");
         cout << "Before: " << testExactRealPiFrac.getReadableContent() << endl;
         assert(testExactRealPiFrac.getReadableContent() == "2π/7");
-        //TIVarFile newExactRealPiFrac = TIVarFile::createNew("ExactRealPiFrac", "A", "83PCE");
-        //newExactRealPiFrac.setContentFromString("-42.1337");
-        //assert(testExactRealPiFrac.getRawContent() == newExactRealPiFrac.getRawContent());
-        //newExactRealPiFrac.saveVarToFile("testData", "Exact_RealPiFrac_new");
+        TIVarFile newExactRealPiFrac = TIVarFile::createNew("ExactRealPiFrac", "A", "83PCE");
+        newExactRealPiFrac.setContentFromString("2π/7");
+        assert(testExactRealPiFrac.getRawContent() == newExactRealPiFrac.getRawContent());
+        assert(newExactRealPiFrac.getVarEntries()[0].version == 0x10);
     }
 
     {

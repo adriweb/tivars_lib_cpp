@@ -8,22 +8,61 @@
 #include "TypeHandlers.h"
 #include "../tivarslib_utils.h"
 
+#include <algorithm>
+#include <cctype>
+#include <iomanip>
+#include <limits>
+#include <sstream>
 #include <stdexcept>
+
+namespace
+{
+    std::string normalizeExactFractionInput(std::string str)
+    {
+        str.erase(std::remove_if(str.begin(), str.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }), str.end());
+
+        if (str.empty())
+        {
+            throw std::invalid_argument("Invalid input string. Needs to be a valid Exact Real Fraction");
+        }
+
+        return str;
+    }
+
+    std::string fractionToDecimalString(const std::string& str)
+    {
+        const size_t slashPos = str.find('/');
+        if (slashPos == std::string::npos)
+        {
+            return str;
+        }
+        if (str.find('/', slashPos + 1) != std::string::npos)
+        {
+            throw std::invalid_argument("Invalid fraction string");
+        }
+
+        const long double numerator = std::stold(str.substr(0, slashPos));
+        const long double denominator = std::stold(str.substr(slashPos + 1));
+        if (denominator == 0.0L)
+        {
+            throw std::invalid_argument("Fraction denominator must be nonzero");
+        }
+
+        std::ostringstream stream;
+        stream << std::setprecision(std::numeric_limits<long double>::digits10 + 1)
+               << std::defaultfloat
+               << (numerator / denominator);
+        return stream.str();
+    }
+}
 
 namespace tivars::TypeHandlers
 {
 
     data_t STH_ExactFraction::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
-        (void)options;
-        (void)_ctx;
-
-        throw std::runtime_error("Unimplemented");
-
-        if (str.empty() || !is_numeric(str))
-        {
-            throw std::invalid_argument("Invalid input string. Needs to be a valid Exact Real Pi Fraction");
-        }
+        const std::string normalized = normalizeExactFractionInput(str);
+        return STH_FP::makeDataFromString(fractionToDecimalString(normalized), options, _ctx);
     }
 
     std::string STH_ExactFraction::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
