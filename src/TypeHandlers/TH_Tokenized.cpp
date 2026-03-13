@@ -135,8 +135,8 @@ namespace tivars::TypeHandlers
         (void)_ctx;
         data_t data;
 
-        const bool deindent = has_option(options, "deindent") && options.at("deindent") == 1;
-        const bool detect_strings = !has_option(options, "detect_strings") || options.at("detect_strings") != 0;
+        const bool deindent = options.contains("deindent") && options.at("deindent") == 1;
+        const bool detect_strings = !options.contains("detect_strings") || options.at("detect_strings") != 0;
 
         std::string str_new;
         if (deindent)
@@ -226,7 +226,7 @@ namespace tivars::TypeHandlers
         (void)_ctx;
         const size_t dataSize = data.size();
 
-        const bool fromRawBytes = has_option(options, "fromRawBytes") && options.at("fromRawBytes") == 1;
+        const bool fromRawBytes = options.contains("fromRawBytes") && options.at("fromRawBytes") == 1;
         if (fromRawBytes && dataSize == 0)
         {
             return "";
@@ -236,7 +236,7 @@ namespace tivars::TypeHandlers
             throw std::invalid_argument("Invalid data array. Needs to contain at least 2 bytes (size fields)");
         }
 
-        const uint8_t langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
+        const uint8_t langIdx = (options.contains("lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
 
         const size_t howManyBytes = fromRawBytes ? (int)data.size() : ((data[0] & 0xFF) + ((data[1] & 0xFF) << 8));
         if (!fromRawBytes)
@@ -287,17 +287,17 @@ namespace tivars::TypeHandlers
             std::cerr << "[Warning] " << errCount << " token(s) could not be detokenized (' [???] ' was used)!" << std::endl;
         }
 
-        if (has_option(options, "prettify") && options.at("prettify") == 1)
+        if (options.contains("prettify") && options.at("prettify") == 1)
         {
             str = prettify_token_string(str);
         }
 
-        if (has_option(options, "reindent") && options.at("reindent") == 1)
+        if (options.contains("reindent") && options.at("reindent") == 1)
         {
             options_t indent_options{};
-            if (has_option(options, "indent_char"))
+            if (options.contains("indent_char"))
                 indent_options["indent_char"] = options.at("indent_char");
-            if (has_option(options, "indent_n"))
+            if (options.contains("indent_n"))
                 indent_options["indent_n"] = options.at("indent_n");
             str = reindentCodeString(str, indent_options);
         }
@@ -362,7 +362,7 @@ namespace tivars::TypeHandlers
     std::string TH_Tokenized::reindentCodeString(const std::string& str_orig, const options_t& options)
     {
         uint8_t lang;
-        if (has_option(options, "lang"))
+        if (options.contains("lang"))
         {
             lang = options.at("lang");
         } else if (str_orig.size() > 1 && str_orig[0] == '.' && (str_orig[1] == '.' || isalpha(str_orig[1]))) {
@@ -374,13 +374,13 @@ namespace tivars::TypeHandlers
         }
 
         char indent_char = INDENT_CHAR_SPACE;
-        if (has_option(options, "indent_char") && options.at("indent_char") == INDENT_CHAR_TAB)
+        if (options.contains("indent_char") && options.at("indent_char") == INDENT_CHAR_TAB)
         {
             indent_char = INDENT_CHAR_TAB;
         }
 
         size_t indent_n = indent_char == INDENT_CHAR_SPACE ? 3 : 1;
-        if (has_option(options, "indent_n"))
+        if (options.contains("indent_n"))
         {
             const size_t wanted_indent_n = options.at("indent_n");
             if (wanted_indent_n != indent_n)
@@ -476,8 +476,8 @@ namespace tivars::TypeHandlers
             *incr = is2ByteTok ? 2 : 1;
         }
 
-        const uint8_t langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
-        const bool fromPrettified = has_option(options, "prettify") && options.at("prettify") == 1;
+        const uint8_t langIdx = (options.contains("lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
+        const bool fromPrettified = options.contains("prettify") && options.at("prettify") == 1;
 
         if (is2ByteTok)
         {
@@ -545,8 +545,8 @@ namespace tivars::TypeHandlers
 
         token_posinfo posinfo = { 0, 0, 0 };
 
-        const uint8_t langIdx = (has_option(options, "lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
-        const bool fromPrettified = has_option(options, "prettify") && options.at("prettify") == 1;
+        const uint8_t langIdx = (options.contains("lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
+        const bool fromPrettified = options.contains("prettify") && options.at("prettify") == 1;
 
         // Find line number
         uint16_t lastNewLineOffset = 0;
