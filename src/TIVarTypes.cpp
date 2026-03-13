@@ -108,7 +108,7 @@ namespace tivars
         insertType("RecallWindow",         0x10,  {"82z", "83z", "8xz", "8xz", "8xz", "8xz", "8xz", "8xz", "8xz"}, SettingsHandlerTuple(0x10));
         insertType("TableRange",           0x11,  {"82t", "83t", "8xt", "8xt", "8xt", "8xt", "8xt", "8xt", "8xt"}, SettingsHandlerTuple(0x11));
         insertType("ScreenImage",          0x12,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
-        insertType("Backup",               0x13,  {"82b", "83b", "8xb",   _  , "8xb", "8cb",   _  ,   _  ,   _  });
+        insertType("Backup",               0x13,  {"82b", "83b", "8xb",   _  , "8xb", "8cb",   _  ,   _  ,   _  }, SpecificHandlerTuple(TH_Backup) );
         insertType("App",                  0x14,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("AppVar",               0x15,  {  _  ,   _  , "8xv", "8xv", "8xv", "8xv", "8xv", "8xv", "8xv"},  GenericHandlerTuple(AppVar, 0x15) );
         insertType("PythonAppVar",         0x15,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xv", "8xv", "8xv"}, SpecificHandlerTuple(STH_PythonAppVar) );

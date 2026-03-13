@@ -24,6 +24,20 @@ namespace tivars
 {
     namespace
     {
+        constexpr uint8_t backupTypeId = 0x13;
+
+        bool is_backup_entry_layout(uint8_t typeId, uint16_t metaLength)
+        {
+            return typeId == backupTypeId
+                && (metaLength == TypeHandlers::TH_Backup::onFileMetaLength3
+                 || metaLength == TypeHandlers::TH_Backup::onFileMetaLength4);
+        }
+
+        bool is_backup_entry(const TIVarFile::var_entry_t& entry)
+        {
+            return entry.typeID == backupTypeId && entry._type.getName() == "Backup";
+        }
+
         std::string uppercase_ascii(std::string s)
         {
             for (char& c : s)
@@ -340,7 +354,9 @@ namespace tivars
 
         this->entries.resize(1);
         auto& entry = this->entries[0];
-        entry.meta_length  = (this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength;
+        entry.meta_length  = (type.getName() == "Backup")
+                           ? TypeHandlers::TH_Backup::onFileMetaLength3
+                           : ((this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength);
         entry.data_length  = 0; // will have to be overwritten later
         entry.typeID       = (uint8_t) type.getId();
         entry._type = type;
@@ -397,6 +413,32 @@ namespace tivars
             entry.meta_length = this->get_two_bytes_swapped();
             entry.data_length = this->get_two_bytes_swapped();
             entry.typeID      = this->get_raw_byte();
+            if (is_backup_entry_layout(entry.typeID, entry.meta_length))
+            {
+                const uint16_t data2Length = this->get_two_bytes_swapped();
+                const uint16_t data3Length = this->get_two_bytes_swapped();
+                const uint16_t addressOfData2 = this->get_two_bytes_swapped();
+                const bool hasData4 = entry.meta_length == TypeHandlers::TH_Backup::onFileMetaLength4;
+                const uint16_t data4Length = hasData4 ? this->get_two_bytes_swapped() : 0;
+                entry.data_length2 = this->get_two_bytes_swapped();
+                const data_t data1 = this->get_raw_bytes(entry.data_length2);
+                const data_t data2 = this->get_raw_bytes(data2Length);
+                const data_t data3 = this->get_raw_bytes(data3Length);
+                const data_t data4 = hasData4 ? this->get_raw_bytes(data4Length) : data_t{};
+
+                entry.data = TypeHandlers::TH_Backup::buildInternal({
+                    .hasData4 = hasData4,
+                    .addressOfData2 = addressOfData2,
+                    .data1 = data1,
+                    .data2 = data2,
+                    .data3 = data3,
+                    .data4 = data4,
+                });
+                entry.determineFullType();
+                this->entries.push_back(entry);
+                continue;
+            }
+
             const std::string varNameFromFile = this->get_string_bytes(sizeof(var_entry_t::varname));
             if (entry.meta_length == varEntryNewLength)
             {
@@ -449,6 +491,34 @@ namespace tivars
         uint16_t sum = 0;
         for (const auto& entry : this->entries)
         {
+            if (is_backup_entry(entry))
+            {
+                const auto backup = TypeHandlers::TH_Backup::parseInternal(entry.data);
+                const auto add_le16_bytes = [&sum](uint16_t value)
+                {
+                    sum += static_cast<uint8_t>(value & 0xFF);
+                    sum += static_cast<uint8_t>((value >> 8) & 0xFF);
+                };
+
+                const uint16_t data1Length = static_cast<uint16_t>(backup.data1.size());
+                add_le16_bytes(entry.meta_length);
+                add_le16_bytes(data1Length);
+                sum += entry.typeID;
+                add_le16_bytes(static_cast<uint16_t>(backup.data2.size()));
+                add_le16_bytes(static_cast<uint16_t>(backup.data3.size()));
+                add_le16_bytes(backup.addressOfData2);
+                if (backup.hasData4)
+                {
+                    add_le16_bytes(static_cast<uint16_t>(backup.data4.size()));
+                }
+                add_le16_bytes(data1Length);
+                sum += std::accumulate(backup.data1.begin(), backup.data1.end(), 0);
+                sum += std::accumulate(backup.data2.begin(), backup.data2.end(), 0);
+                sum += std::accumulate(backup.data3.begin(), backup.data3.end(), 0);
+                sum += std::accumulate(backup.data4.begin(), backup.data4.end(), 0);
+                continue;
+            }
+
             sum += entry.meta_length;
             sum += entry.typeID;
             sum += 2 * ((entry.data_length & 0xFF) + ((entry.data_length >> 8) & 0xFF)); // 2* because of the two same length fields
@@ -482,10 +552,28 @@ namespace tivars
         this->header.entries_len = 0;
         for (auto& entry : this->entries)
         {
-            entry.data_length2 = entry.data_length = (uint16_t) entry.data.size();
-            this->header.entries_len += sizeof(var_entry_t::data_length) + sizeof(var_entry_t::data_length2) + entry.meta_length + entry.data_length;
             entry.determineFullType();
-            entry.version = (this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? std::get<2>(entry._type.getHandlers())(entry.data) : 0;
+            if (is_backup_entry(entry))
+            {
+                const auto backup = TypeHandlers::TH_Backup::parseInternal(entry.data);
+                entry.meta_length = backup.hasData4 ? TypeHandlers::TH_Backup::onFileMetaLength4 : TypeHandlers::TH_Backup::onFileMetaLength3;
+                entry.data_length = entry.data_length2 = static_cast<uint16_t>(backup.data1.size());
+                this->header.entries_len += sizeof(var_entry_t::meta_length)
+                                         + entry.meta_length
+                                         + sizeof(var_entry_t::data_length2)
+                                         + backup.data1.size()
+                                         + backup.data2.size()
+                                         + backup.data3.size()
+                                         + backup.data4.size();
+                entry.version = 0;
+                entry.archivedFlag = 0;
+            }
+            else
+            {
+                entry.data_length2 = entry.data_length = (uint16_t) entry.data.size();
+                this->header.entries_len += sizeof(var_entry_t::data_length) + sizeof(var_entry_t::data_length2) + entry.meta_length + entry.data_length;
+                entry.version = (this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? std::get<2>(entry._type.getHandlers())(entry.data) : 0;
+            }
         }
         this->computedChecksum = this->computeChecksumFromInstanceData();
     }
@@ -736,6 +824,43 @@ namespace tivars
         // Var entries
         for (const auto& entry : this->entries)
         {
+            if (is_backup_entry(entry))
+            {
+                const auto backup = TypeHandlers::TH_Backup::parseInternal(entry.data);
+                const uint16_t metaLength = backup.hasData4 ? TypeHandlers::TH_Backup::onFileMetaLength4 : TypeHandlers::TH_Backup::onFileMetaLength3;
+                const uint16_t data1Length = static_cast<uint16_t>(backup.data1.size());
+                const uint16_t data2Length = static_cast<uint16_t>(backup.data2.size());
+                const uint16_t data3Length = static_cast<uint16_t>(backup.data3.size());
+                const uint16_t data4Length = static_cast<uint16_t>(backup.data4.size());
+
+                bin_data.push_back((uint8_t) (metaLength & 0xFF));
+                bin_data.push_back((uint8_t) ((metaLength >> 8) & 0xFF));
+                bin_data.push_back((uint8_t) (data1Length & 0xFF));
+                bin_data.push_back((uint8_t) ((data1Length >> 8) & 0xFF));
+                bin_data.push_back(entry.typeID);
+                bin_data.push_back((uint8_t) (data2Length & 0xFF));
+                bin_data.push_back((uint8_t) ((data2Length >> 8) & 0xFF));
+                bin_data.push_back((uint8_t) (data3Length & 0xFF));
+                bin_data.push_back((uint8_t) ((data3Length >> 8) & 0xFF));
+                bin_data.push_back((uint8_t) (backup.addressOfData2 & 0xFF));
+                bin_data.push_back((uint8_t) ((backup.addressOfData2 >> 8) & 0xFF));
+                if (backup.hasData4)
+                {
+                    bin_data.push_back((uint8_t) (data4Length & 0xFF));
+                    bin_data.push_back((uint8_t) ((data4Length >> 8) & 0xFF));
+                }
+                bin_data.push_back((uint8_t) (data1Length & 0xFF));
+                bin_data.push_back((uint8_t) ((data1Length >> 8) & 0xFF));
+                bin_data.insert(bin_data.end(), backup.data1.begin(), backup.data1.end());
+                bin_data.insert(bin_data.end(), backup.data2.begin(), backup.data2.end());
+                bin_data.insert(bin_data.end(), backup.data3.begin(), backup.data3.end());
+                if (backup.hasData4)
+                {
+                    bin_data.insert(bin_data.end(), backup.data4.begin(), backup.data4.end());
+                }
+                continue;
+            }
+
             bin_data.push_back((uint8_t) (entry.meta_length & 0xFF)); bin_data.push_back((uint8_t) ((entry.meta_length >> 8) & 0xFF));
             bin_data.push_back((uint8_t) (entry.data_length & 0xFF)); bin_data.push_back((uint8_t) ((entry.data_length >> 8) & 0xFF));
             bin_data.push_back(entry.typeID);
