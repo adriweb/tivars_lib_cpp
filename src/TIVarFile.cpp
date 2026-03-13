@@ -110,6 +110,10 @@ namespace tivars
             {
                 return "TblSet";
             }
+            if (typeName == "RecallWindow")
+            {
+                return "RclWindw";
+            }
 
             return "FILE" + (type.getExts().empty() ? "" : type.getExts()[0]);
         }
@@ -565,6 +569,10 @@ namespace tivars
         else if (typeName == "TableRange")
         {
             isValid = normalize_fixed_ascii_name(newName, "TblSet");
+        }
+        else if (typeName == "RecallWindow")
+        {
+            isValid = normalize_fixed_ascii_name(newName, "RclWindw");
         }
 
         if (!isValid)

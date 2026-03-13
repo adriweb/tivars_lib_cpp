@@ -65,6 +65,13 @@ int main(int argc, char** argv)
     }
 
     {
+        const data_t undefinedReal = TH_GenericReal::makeDataFromString("1", {{"_type", 0x0E}});
+        assert(undefinedReal[0] == 0x0E);
+        assert(TH_GenericReal::makeStringFromData(undefinedReal) == "1");
+        assert(TH_GenericReal::getMinVersionFromData(undefinedReal) == 0x00);
+    }
+
+    {
         TIVarFile toksPrgm = TIVarFile::loadFromFile("testData/ALLTOKS.8Xp");
         cout << toksPrgm.getReadableContent() << "\n" << endl;
     }
@@ -837,6 +844,22 @@ End)";
     "DeltaTbl": 1
 })");
         assert(newTableRange.getRawContent() == tableRange.getRawContent());
+    }
+
+    {
+        TIVarFile recallWindow = TIVarFile::loadFromFile("testData/RecallWindow.8xz");
+        const json recallWindowJSON = json::parse(recallWindow.getReadableContent());
+        assert(recallWindowJSON["Xmin"] == -10.0);
+        assert(recallWindowJSON["Xmax"] == 10.0);
+        assert(recallWindowJSON["Xres"] == 1);
+        assert(recallWindowJSON["Thetamax"] == "6.283185307");
+        assert(recallWindowJSON["Thetastep"] == "0.13089969389957");
+
+        TIVarFile newRecallWindow = TIVarFile::createNew("RecallWindow");
+        const uint8_t expectedName[8] = {'R', 'c', 'l', 'W', 'i', 'n', 'd', 'w'};
+        assert(std::equal(newRecallWindow.getVarEntries()[0].varname, newRecallWindow.getVarEntries()[0].varname + 8, expectedName));
+        newRecallWindow.setContentFromString(recallWindow.getReadableContent());
+        assert(newRecallWindow.getRawContent() == recallWindow.getRawContent());
     }
 
 #if defined(TH_GDB_SUPPORT) || defined(__cpp_lib_variant)

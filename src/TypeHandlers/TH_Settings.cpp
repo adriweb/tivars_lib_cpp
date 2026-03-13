@@ -16,6 +16,20 @@ namespace tivars::TypeHandlers
 {
     namespace
     {
+        struct settings_field_t
+        {
+            const char* name;
+            bool integer;
+            uint8_t type;
+        };
+
+        const settings_field_t recall_window_fields[] = {
+            {"Xmin", false, 0x00}, {"Xmax", false, 0x00}, {"Xscl", false, 0x00}, {"Ymin", false, 0x00}, {"Ymax", false, 0x00}, {"Yscl", false, 0x00},
+            {"Thetamin", false, 0x00}, {"Thetamax", false, 0x00}, {"Thetastep", false, 0x00}, {"Tmin", false, 0x00}, {"Tmax", false, 0x00}, {"Tstep", false, 0x00},
+            {"PlotStart", true, 0x00}, {"nMax", true, 0x00}, {"unMin0", false, 0x0E}, {"vnMin0", false, 0x0E}, {"nMin", true, 0x00}, {"unMin1", false, 0x0E},
+            {"vnMin1", false, 0x0E}, {"wnMin0", false, 0x0E}, {"PlotStep", true, 0x00}, {"Xres", true, 0x00}, {"wnMin1", false, 0x0E},
+        };
+
         std::string json_number_to_string(const json& value)
         {
             if (value.is_string())
@@ -37,6 +51,21 @@ namespace tivars::TypeHandlers
 
             throw std::invalid_argument("Expected a JSON string or number for a settings value");
         }
+
+        json real_string_to_json_value(const std::string& value, bool integer)
+        {
+            if (integer)
+            {
+                return static_cast<int>(std::stod(value));
+            }
+
+            if (value.find_first_of("eE") == std::string::npos && value.length() <= 6)
+            {
+                return std::stod(value);
+            }
+
+            return value;
+        }
     }
 
     data_t TH_Settings::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
@@ -50,6 +79,23 @@ namespace tivars::TypeHandlers
         }
 
         const uint8_t type = static_cast<uint8_t>(typeIter->second);
+        if (type == 0x10)
+        {
+            const json settings = json::parse(str);
+            if (!settings.is_object())
+            {
+                throw std::invalid_argument("RecallWindow JSON must be an object");
+            }
+
+            data_t data = {0xCF, 0x00};
+            for (const auto& field : recall_window_fields)
+            {
+                const data_t fieldData = TH_GenericReal::makeDataFromString(json_number_to_string(settings.at(field.name)), {{"_type", field.type}});
+                data.insert(data.end(), fieldData.begin(), fieldData.end());
+            }
+            return data;
+        }
+
         if (type != 0x11)
         {
             throw std::runtime_error("Unsupported settings type for TH_Settings::makeDataFromString: " + std::to_string(type));
@@ -77,6 +123,23 @@ namespace tivars::TypeHandlers
     {
         (void)options;
         (void)_ctx;
+
+        if (data.size() == 209)
+        {
+            if (data[0] != 0xCF || data[1] != 0x00)
+            {
+                throw std::invalid_argument("Invalid RecallWindow data header");
+            }
+
+            json settings;
+            size_t offset = 2;
+            for (const auto& field : recall_window_fields)
+            {
+                settings[field.name] = real_string_to_json_value(TH_GenericReal::makeStringFromData(data_t(data.begin() + offset, data.begin() + offset + 9)), field.integer);
+                offset += 9;
+            }
+            return settings.dump(4);
+        }
 
         if (data.size() != 20)
         {

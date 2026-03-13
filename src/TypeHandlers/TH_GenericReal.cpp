@@ -14,6 +14,7 @@ namespace tivars::TypeHandlers
 {
     static const std::unordered_map<uint8_t, TypeHandlersTuple> type2handlers = {
         { 0x00, SpecificHandlerTuple(STH_FP) },
+        { 0x0E, SpecificHandlerTuple(STH_FP) },
         { 0x18, SpecificHandlerTuple(STH_ExactFraction) },
         { 0x1C, SpecificHandlerTuple(STH_ExactRadical) },
         { 0x20, SpecificHandlerTuple(STH_ExactPi) },
@@ -34,7 +35,9 @@ namespace tivars::TypeHandlers
         {
             throw std::runtime_error("Unknown/Invalid type for this TH_GenericReal: " + std::to_string(type));
         }
-        return std::get<0>(handlerIter->second)(str, options, _ctx);
+        data_t data = std::get<0>(handlerIter->second)(str, options, _ctx);
+        data[0] = static_cast<uint8_t>((data[0] & 0xC0) | (type & 0x3F));
+        return data;
     }
 
     std::string TH_GenericReal::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
@@ -43,7 +46,7 @@ namespace tivars::TypeHandlers
         {
             throw std::invalid_argument("Invalid data array. Needs to contain " + std::to_string(dataByteCount) + " bytes");
         }
-        const uint8_t type = (uint8_t)(data[0] & 0x7F);
+        const uint8_t type = static_cast<uint8_t>(data[0] & 0x3F);
         const auto& handlerIter = type2handlers.find(type);
         if (handlerIter == type2handlers.end())
         {
@@ -55,6 +58,6 @@ namespace tivars::TypeHandlers
     uint8_t TH_GenericReal::getMinVersionFromData(const data_t& data)
     {
         const uint8_t internalType = (uint8_t)(data[0] & 0x3F);
-        return (internalType == 0) ? 0x00 : 0x06;
+        return (internalType == 0x00 || internalType == 0x0E) ? 0x00 : 0x06;
     }
 }
