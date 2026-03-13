@@ -51,8 +51,8 @@ namespace tivars::TypeHandlers
 
         std::string normalizeComplexInput(std::string str)
         {
-            str.erase(std::remove_if(str.begin(), str.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }), str.end());
-            str.erase(std::remove(str.begin(), str.end(), '*'), str.end());
+            std::erase_if(str, [](unsigned char ch) { return std::isspace(ch) != 0; });
+            std::erase(str, '*');
             std::replace(str.begin(), str.end(), 'j', 'i');
             return str;
         }

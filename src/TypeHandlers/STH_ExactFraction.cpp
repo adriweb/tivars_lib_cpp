@@ -19,7 +19,7 @@ namespace
 {
     std::string normalizeExactFractionInput(std::string str)
     {
-        str.erase(std::remove_if(str.begin(), str.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }), str.end());
+        std::erase_if(str, [](unsigned char ch) { return std::isspace(ch) != 0; });
 
         if (str.empty())
         {
