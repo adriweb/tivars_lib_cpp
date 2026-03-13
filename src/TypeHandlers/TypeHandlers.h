@@ -131,6 +131,21 @@ namespace tivars::TypeHandlers
     {
         public:
         th();
+        static const constexpr uint8_t typeReal = 0x00;
+        static const constexpr uint8_t typeUndefinedReal = 0x0E;
+        static const constexpr uint8_t typeWindowSettings = 0x0F;
+        static const constexpr uint8_t typeRecallWindow = 0x10;
+        static const constexpr uint8_t typeTableRange = 0x11;
+        static const constexpr size_t realDataByteCount = TH_GenericReal::dataByteCount;
+        static const constexpr size_t windowSettingsDataByteCount = 210;
+        static const constexpr size_t recallWindowDataByteCount = 209;
+        static const constexpr size_t tableRangeDataByteCount = 20;
+        static const constexpr size_t windowSettingsHeaderByteCount = 3;
+        static const constexpr size_t recallWindowHeaderByteCount = 2;
+        static const constexpr size_t tableRangeHeaderByteCount = 2;
+        static const constexpr uint8_t windowSettingsHeader[] = {0xD0, 0x00, 0x00};
+        static const constexpr uint8_t recallWindowHeader[] = {0xCF, 0x00};
+        static const constexpr uint8_t tableRangeHeader[] = {0x12, 0x00};
     };
 
     // Program, Protected Program, Y-Variable, String
