@@ -53,7 +53,6 @@ namespace tivars::TypeHandlers
     public:
         th();
         static const constexpr size_t dataByteCount = 9;
-        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
     };
 
     class STH_ExactRadical : public TH_GenericReal
@@ -61,7 +60,6 @@ namespace tivars::TypeHandlers
     public:
         th();
         static const constexpr size_t dataByteCount = 9;
-        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
     };
 
     class STH_ExactPi : public TH_GenericReal
@@ -69,7 +67,6 @@ namespace tivars::TypeHandlers
     public:
         th();
         static const constexpr size_t dataByteCount = 9;
-        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
     };
 
     class STH_ExactFractionPi : public TH_GenericReal
@@ -77,7 +74,6 @@ namespace tivars::TypeHandlers
     public:
         th();
         static const constexpr size_t dataByteCount = 9;
-        static const constexpr char* validPattern = "===UNIMPLEMENTED==="; // TODO
     };
 
     class TH_GenericComplex : public DummyHandler

@@ -423,8 +423,7 @@ namespace tivars
             // Now that we have the data, we can retrieve the (full) type...
             entry.determineFullType();
 
-            // ... and now that we have the full type, we can safely set the name.
-            // TODO: when setVarName knows about all the possible names from types: entry.setVarName(varNameFromFile);
+            // We preserve the raw on-file varname bytes on load instead of re-normalizing through setVarName().
             std::copy(varNameFromFile.begin(), varNameFromFile.end(), entry.varname);
 
             this->entries.push_back(entry);
