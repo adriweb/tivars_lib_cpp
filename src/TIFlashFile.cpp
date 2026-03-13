@@ -1,0 +1,705 @@
+/*
+ * Part of tivars_lib_cpp
+ * (C) 2015-2026 Adrien "Adriweb" Bertrand
+ * https://github.com/adriweb/tivars_lib_cpp
+ * License: MIT
+ */
+
+#include "TIFlashFile.h"
+
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <stdexcept>
+
+#include "TIModels.h"
+#include "json.hpp"
+#include "tivarslib_utils.h"
+
+using json = nlohmann::json;
+
+namespace tivars
+{
+    const constexpr char TIFlashFile::magicStr[];
+
+    namespace
+    {
+        uint32_t read_le32(const data_t& data, size_t offset)
+        {
+            return static_cast<uint32_t>(data[offset])
+                 | (static_cast<uint32_t>(data[offset + 1]) << 8)
+                 | (static_cast<uint32_t>(data[offset + 2]) << 16)
+                 | (static_cast<uint32_t>(data[offset + 3]) << 24);
+        }
+    }
+
+    TIFlashFile::TIFlashFile(const std::string& filePath) : filePath(filePath), fromFile(true)
+    {
+        std::ifstream file(filePath, std::ios::binary);
+        if (!file)
+        {
+            throw std::runtime_error("Can't open the input file");
+        }
+
+        const data_t bytes((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        if (bytes.size() < headerByteCountWithoutChecksum)
+        {
+            throw std::runtime_error("This file is not a valid TI flash file");
+        }
+
+        size_t offset = 0;
+        while (offset < bytes.size())
+        {
+            size_t nextOffset = offset;
+            headers.push_back(parseHeader(bytes, offset, &nextOffset));
+            if (nextOffset <= offset)
+            {
+                throw std::runtime_error("Internal error while parsing flash headers");
+            }
+            offset = nextOffset;
+        }
+
+        if (headers.empty())
+        {
+            throw std::runtime_error("No flash headers found in file");
+        }
+    }
+
+    TIFlashFile::TIFlashFile(const TIVarType& type, const std::string& name, const TIModel& model, bool rawBinaryData)
+    {
+        addHeader(type, name, model, rawBinaryData);
+    }
+
+    TIFlashFile TIFlashFile::loadFromFile(const std::string& filePath)
+    {
+        if (filePath.empty())
+        {
+            throw std::invalid_argument("Empty file path given");
+        }
+        return TIFlashFile(filePath);
+    }
+
+    TIFlashFile TIFlashFile::createNew(const TIVarType& type, const std::string& name, const TIModel& model, bool rawBinaryData)
+    {
+        return TIFlashFile(type, name, model, rawBinaryData);
+    }
+
+    TIFlashFile TIFlashFile::createNew(const TIVarType& type, const std::string& name, bool rawBinaryData)
+    {
+        return createNew(type, name, TIModel{"84+CE"}, rawBinaryData);
+    }
+
+    TIFlashFile TIFlashFile::createNew(const TIVarType& type, bool rawBinaryData)
+    {
+        return createNew(type, "", rawBinaryData);
+    }
+
+    void TIFlashFile::addHeader(const TIVarType& type, const std::string& name, const TIModel& model, bool rawBinaryData)
+    {
+        if (!model.supportsType(type))
+        {
+            throw std::runtime_error("This calculator model (" + model.getName() + ") does not support the type " + type.getName());
+        }
+
+        flash_header_t header{};
+        header.type = type;
+        header.model = model;
+        header.name = name.empty() ? "UNNAMED" : name;
+        header.binaryFlag = rawBinaryData ? rawBinaryDataFlag : intelDataFlag;
+        header.objectType = defaultObjectTypeFor(type);
+        header.productId = static_cast<uint8_t>(model.getProductId());
+        header.devices = {{defaultDeviceType, static_cast<uint8_t>(type.getId())}};
+        header.calcData = rawBinaryData ? data_t{} : parseHex("00000001FF");
+        headers.push_back(header);
+    }
+
+    std::string TIFlashFile::getReadableContent(size_t headerIdx) const
+    {
+        if (headerIdx >= headers.size())
+        {
+            throw std::out_of_range("Invalid flash header index");
+        }
+
+        const flash_header_t& header = headers[headerIdx];
+        json j;
+        j["typeName"] = header.type.getName();
+        j["typeId"] = header.devices.empty() ? -1 : header.devices.front().second;
+        j["magic"] = header.magic;
+        j["revision"] = header.revision;
+        j["binaryFlag"] = header.binaryFlag;
+        j["objectType"] = header.objectType;
+        j["date"] = {header.date.day, header.date.month, header.date.year};
+        j["name"] = header.name;
+        j["productId"] = header.productId;
+        j["calcDataSize"] = header.calcData.size();
+        j["hasChecksum"] = header.hasChecksum;
+
+        j["devices"] = json::array();
+        for (const auto& device : header.devices)
+        {
+            j["devices"].push_back({
+                {"deviceType", device.first},
+                {"typeId", device.second},
+            });
+        }
+
+        if (header.binaryFlag == rawBinaryDataFlag)
+        {
+            j["calcDataHex"] = toHex(header.calcData);
+            if (header.type.getName() == "FlashLicense")
+            {
+                j["license"] = std::string(header.calcData.begin(), header.calcData.end());
+            }
+        }
+        else
+        {
+            j["blocks"] = json::array();
+            for (const auto& block : parseIntelBlocks(header.calcData))
+            {
+                j["blocks"].push_back({
+                    {"address", toHex({static_cast<uint8_t>((block.address >> 8) & 0xFF), static_cast<uint8_t>(block.address & 0xFF)})},
+                    {"blockType", dechex(block.blockType)},
+                    {"dataHex", toHex(block.data)},
+                });
+            }
+        }
+
+        return j.dump(4);
+    }
+
+    void TIFlashFile::setContentFromString(const std::string& str, size_t headerIdx)
+    {
+        if (headerIdx >= headers.size())
+        {
+            throw std::out_of_range("Invalid flash header index");
+        }
+
+        flash_header_t& header = headers[headerIdx];
+        const json j = json::parse(str);
+        if (!j.is_object())
+        {
+            throw std::invalid_argument("Flash header JSON must be an object");
+        }
+
+        if (j.contains("typeName"))
+        {
+            header.type = TIVarType{j.at("typeName").get<std::string>()};
+        }
+        if (j.contains("magic"))
+        {
+            header.magic = j.at("magic").get<std::string>();
+        }
+        if (j.contains("revision"))
+        {
+            header.revision = j.at("revision").get<std::string>();
+        }
+        if (j.contains("binaryFlag"))
+        {
+            header.binaryFlag = static_cast<uint8_t>(j.at("binaryFlag").get<int>());
+        }
+        if (j.contains("objectType"))
+        {
+            header.objectType = static_cast<uint8_t>(j.at("objectType").get<int>());
+        }
+        if (j.contains("date"))
+        {
+            const json& date = j.at("date");
+            if (!date.is_array() || date.size() != 3)
+            {
+                throw std::invalid_argument("Flash header date must be a [day, month, year] array");
+            }
+            header.date.day = static_cast<uint8_t>(date[0].get<int>());
+            header.date.month = static_cast<uint8_t>(date[1].get<int>());
+            header.date.year = static_cast<uint16_t>(date[2].get<int>());
+        }
+        if (j.contains("name"))
+        {
+            header.name = j.at("name").get<std::string>();
+        }
+        if (j.contains("devices"))
+        {
+            header.devices.clear();
+            for (const json& device : j.at("devices"))
+            {
+                header.devices.emplace_back(
+                    static_cast<uint8_t>(device.at("deviceType").get<int>()),
+                    static_cast<uint8_t>(device.at("typeId").get<int>())
+                );
+            }
+        }
+        if (j.contains("productId"))
+        {
+            header.productId = static_cast<uint8_t>(j.at("productId").get<int>());
+            header.model = modelFromProductId(header.productId);
+        }
+        if (j.contains("hasChecksum"))
+        {
+            header.hasChecksum = j.at("hasChecksum").get<bool>();
+        }
+
+        if (j.contains("blocks"))
+        {
+            std::vector<flash_block_t> blocks;
+            for (const json& item : j.at("blocks"))
+            {
+                const data_t addressBytes = parseHex(item.at("address").get<std::string>());
+                if (addressBytes.size() != 2)
+                {
+                    throw std::invalid_argument("Flash block address must be a two-byte hex string");
+                }
+                flash_block_t block{};
+                block.address = static_cast<uint16_t>((addressBytes[0] << 8) | addressBytes[1]);
+                block.blockType = static_cast<uint8_t>(hexdec(item.at("blockType").get<std::string>()));
+                block.data = parseHex(item.at("dataHex").get<std::string>());
+                blocks.push_back(block);
+            }
+            header.calcData = makeIntelData(blocks);
+        }
+        else if (j.contains("calcDataHex"))
+        {
+            header.calcData = parseHex(j.at("calcDataHex").get<std::string>());
+        }
+        else if (header.type.getName() == "FlashLicense" && j.contains("license"))
+        {
+            const std::string license = j.at("license").get<std::string>();
+            header.calcData.assign(license.begin(), license.end());
+        }
+
+        if (!header.devices.empty())
+        {
+            header.type = TIVarType{header.devices.front().second};
+        }
+    }
+
+    data_t TIFlashFile::make_bin_data() const
+    {
+        data_t bytes;
+        for (const auto& header : headers)
+        {
+            vector_append(bytes, makeHeaderBytes(header));
+        }
+        return bytes;
+    }
+
+    std::string TIFlashFile::saveToFile(const std::string& path) const
+    {
+        if (path.empty())
+        {
+            throw std::invalid_argument("Empty file path given");
+        }
+
+        std::ofstream file(path, std::ios::binary | std::ios::trunc);
+        if (!file)
+        {
+            throw std::runtime_error("Can't open the output file");
+        }
+
+        const data_t bytes = make_bin_data();
+        file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+        if (!file)
+        {
+            throw std::runtime_error("Error while writing flash file");
+        }
+        return path;
+    }
+
+    TIFlashFile::flash_header_t TIFlashFile::parseHeader(const data_t& bytes, size_t offset, size_t* nextOffset)
+    {
+        const size_t headerLength = nextHeaderLength(bytes, offset);
+        if (nextOffset)
+        {
+            *nextOffset = offset + headerLength;
+        }
+
+        size_t pos = offset;
+        flash_header_t header{};
+        header.magic.assign(bytes.begin() + pos, bytes.begin() + pos + magicByteCount);
+        pos += magicByteCount;
+
+        header.revision = parseBCDRevision(data_t(bytes.begin() + pos, bytes.begin() + pos + revisionByteCount));
+        pos += revisionByteCount;
+
+        header.binaryFlag = bytes[pos++];
+        header.objectType = bytes[pos++];
+        header.date = parseBCDDate(data_t(bytes.begin() + pos, bytes.begin() + pos + dateByteCount));
+        pos += dateByteCount;
+
+        const uint8_t nameLength = bytes[pos++];
+        header.name.assign(bytes.begin() + pos, bytes.begin() + pos + nameByteCount);
+        const size_t nulPos = header.name.find('\0');
+        if (nulPos != std::string::npos)
+        {
+            header.name.erase(nulPos);
+        }
+        if (nameLength < header.name.size())
+        {
+            header.name.resize(nameLength);
+        }
+        pos += nameByteCount;
+
+        data_t devicesRaw(bytes.begin() + pos, bytes.begin() + pos + deviceFieldByteCount);
+        while (!devicesRaw.empty() && devicesRaw.back() == 0x00)
+        {
+            devicesRaw.pop_back();
+        }
+        if (devicesRaw.size() % 2 != 0)
+        {
+            throw std::runtime_error("Invalid flash device field length");
+        }
+        for (size_t i = 0; i < devicesRaw.size(); i += 2)
+        {
+            header.devices.emplace_back(devicesRaw[i], devicesRaw[i + 1]);
+        }
+        pos += deviceFieldByteCount;
+
+        header.productId = bytes[pos++];
+        const uint32_t dataSize = read_le32(bytes, pos);
+        pos += dataSizeByteCount;
+
+        if (pos + dataSize > offset + headerLength)
+        {
+            throw std::runtime_error("Invalid flash header data length");
+        }
+        header.calcData.assign(bytes.begin() + pos, bytes.begin() + pos + dataSize);
+        pos += dataSize;
+
+        header.hasChecksum = (headerLength == headerByteCountWithoutChecksum + dataSize + checksumByteCount);
+        if (header.hasChecksum)
+        {
+            const uint16_t fileChecksum = static_cast<uint16_t>(bytes[pos] | (bytes[pos + 1] << 8));
+            const uint16_t computedChecksum = computeChecksum(header.calcData);
+            if (fileChecksum != computedChecksum)
+            {
+                throw std::runtime_error("Invalid flash header checksum");
+            }
+        }
+
+        if (!header.devices.empty())
+        {
+            header.type = TIVarType{header.devices.front().second};
+        }
+        header.model = modelFromProductId(header.productId);
+        return header;
+    }
+
+    size_t TIFlashFile::nextHeaderLength(const data_t& bytes, size_t offset)
+    {
+        if (offset + headerByteCountWithoutChecksum > bytes.size())
+        {
+            throw std::runtime_error("Unexpected end of flash file");
+        }
+
+        const uint32_t dataSize = read_le32(bytes, offset + headerByteCountWithoutChecksum - dataSizeByteCount);
+        const size_t headerLengthWithoutChecksum = headerByteCountWithoutChecksum + dataSize;
+        if (offset + headerLengthWithoutChecksum > bytes.size())
+        {
+            throw std::runtime_error("Unexpected end of flash file");
+        }
+
+        if (offset + headerLengthWithoutChecksum == bytes.size())
+        {
+            return headerLengthWithoutChecksum;
+        }
+
+        if (offset + headerLengthWithoutChecksum + magicByteCount <= bytes.size()
+         && std::equal(magicStr, magicStr + magicByteCount, bytes.begin() + static_cast<long>(offset + headerLengthWithoutChecksum)))
+        {
+            return headerLengthWithoutChecksum;
+        }
+
+        return headerLengthWithoutChecksum + checksumByteCount;
+    }
+
+    data_t TIFlashFile::makeHeaderBytes(const flash_header_t& header)
+    {
+        data_t bytes;
+        const std::string nullPad(1, '\0');
+        const std::string magic = str_pad(header.magic, magicByteCount, nullPad).substr(0, magicByteCount);
+        bytes.insert(bytes.end(), magic.begin(), magic.end());
+
+        const data_t revisionBytes = makeBCDRevision(header.revision);
+        vector_append(bytes, revisionBytes);
+
+        bytes.push_back(header.binaryFlag);
+        bytes.push_back(header.objectType);
+
+        vector_append(bytes, makeBCDDate(header.date));
+
+        const std::string trimmedName = header.name.substr(0, nameByteCount);
+        bytes.push_back(static_cast<uint8_t>(trimmedName.size()));
+        const std::string paddedName = str_pad(trimmedName, nameByteCount, nullPad);
+        bytes.insert(bytes.end(), paddedName.begin(), paddedName.end());
+
+        data_t devicesField;
+        for (const auto& device : header.devices)
+        {
+            devicesField.push_back(device.first);
+            devicesField.push_back(device.second);
+        }
+        devicesField.resize(deviceFieldByteCount, 0x00);
+        vector_append(bytes, devicesField);
+
+        bytes.push_back(header.productId);
+
+        const uint32_t dataSize = static_cast<uint32_t>(header.calcData.size());
+        bytes.push_back(static_cast<uint8_t>(dataSize & 0xFF));
+        bytes.push_back(static_cast<uint8_t>((dataSize >> 8) & 0xFF));
+        bytes.push_back(static_cast<uint8_t>((dataSize >> 16) & 0xFF));
+        bytes.push_back(static_cast<uint8_t>((dataSize >> 24) & 0xFF));
+
+        vector_append(bytes, header.calcData);
+
+        if (header.hasChecksum)
+        {
+            const uint16_t checksum = computeChecksum(header.calcData);
+            bytes.push_back(static_cast<uint8_t>(checksum & 0xFF));
+            bytes.push_back(static_cast<uint8_t>((checksum >> 8) & 0xFF));
+        }
+
+        return bytes;
+    }
+
+    uint16_t TIFlashFile::computeChecksum(const data_t& data)
+    {
+        uint32_t sum = 0;
+        for (uint8_t byte : data)
+        {
+            sum += byte;
+        }
+        return static_cast<uint16_t>(sum & 0xFFFF);
+    }
+
+    std::vector<TIFlashFile::flash_block_t> TIFlashFile::parseIntelBlocks(const data_t& data)
+    {
+        std::vector<flash_block_t> blocks;
+        size_t start = 0;
+        while (start < data.size())
+        {
+            size_t end = start;
+            while (end < data.size() && !(data[end] == '\r' && end + 1 < data.size() && data[end + 1] == '\n'))
+            {
+                end++;
+            }
+
+            if (end > start)
+            {
+                const std::string record(data.begin() + static_cast<long>(start), data.begin() + static_cast<long>(end));
+                blocks.push_back(recordToBlock(record));
+            }
+
+            start = (end + 1 < data.size()) ? end + 2 : data.size();
+        }
+        return blocks;
+    }
+
+    data_t TIFlashFile::makeIntelData(const std::vector<flash_block_t>& blocks)
+    {
+        data_t data;
+        for (size_t i = 0; i < blocks.size(); i++)
+        {
+            const std::string record = blockToRecord(blocks[i]);
+            data.insert(data.end(), record.begin(), record.end());
+            if (i + 1 < blocks.size())
+            {
+                data.push_back('\r');
+                data.push_back('\n');
+            }
+        }
+        return data;
+    }
+
+    std::string TIFlashFile::blockToRecord(const flash_block_t& block)
+    {
+        std::ostringstream out;
+        out << ':';
+        out << std::uppercase << std::hex << std::setfill('0')
+            << std::setw(2) << static_cast<int>(block.data.size())
+            << std::setw(4) << static_cast<int>(block.address)
+            << std::setw(2) << static_cast<int>(block.blockType);
+        for (uint8_t byte : block.data)
+        {
+            out << std::setw(2) << static_cast<int>(byte);
+        }
+
+        uint32_t checksumBase = static_cast<uint32_t>(block.data.size())
+                              + ((block.address >> 8) & 0xFF)
+                              + (block.address & 0xFF)
+                              + block.blockType;
+        for (uint8_t byte : block.data)
+        {
+            checksumBase += byte;
+        }
+        out << std::setw(2) << static_cast<int>((-static_cast<int>(checksumBase)) & 0xFF);
+        return out.str();
+    }
+
+    TIFlashFile::flash_block_t TIFlashFile::recordToBlock(const std::string& record)
+    {
+        if (record.size() < 11 || record.front() != ':')
+        {
+            throw std::invalid_argument("Invalid Intel flash record");
+        }
+
+        const int size = hexdec(record.substr(1, 2));
+        const int expectedHexLen = 1 + 2 + 4 + 2 + size * 2 + 2;
+        if (static_cast<int>(record.size()) != expectedHexLen)
+        {
+            throw std::invalid_argument("Unexpected Intel flash record length");
+        }
+
+        flash_block_t block{};
+        block.address = static_cast<uint16_t>(std::stoul(record.substr(3, 4), nullptr, 16));
+        block.blockType = static_cast<uint8_t>(hexdec(record.substr(7, 2)));
+        block.data = parseHex(record.substr(9, size * 2));
+
+        const uint8_t fileChecksum = static_cast<uint8_t>(hexdec(record.substr(record.size() - 2, 2)));
+        uint32_t checksumBase = static_cast<uint32_t>(block.data.size())
+                              + ((block.address >> 8) & 0xFF)
+                              + (block.address & 0xFF)
+                              + block.blockType;
+        for (uint8_t byte : block.data)
+        {
+            checksumBase += byte;
+        }
+        const uint8_t computedChecksum = static_cast<uint8_t>((-static_cast<int>(checksumBase)) & 0xFF);
+        if (fileChecksum != computedChecksum)
+        {
+            throw std::invalid_argument("Invalid Intel flash record checksum");
+        }
+
+        return block;
+    }
+
+    std::string TIFlashFile::extensionFor(const flash_header_t& header)
+    {
+        const std::vector<std::string>& exts = header.type.getExts();
+        const int orderId = header.model.getOrderId();
+        if (orderId >= 0 && orderId < static_cast<int>(exts.size()) && !exts[orderId].empty())
+        {
+            return exts[orderId];
+        }
+        for (const std::string& ext : exts)
+        {
+            if (!ext.empty())
+            {
+                return ext;
+            }
+        }
+        return "";
+    }
+
+    uint8_t TIFlashFile::defaultObjectTypeFor(const TIVarType& type)
+    {
+        return (type.getName() == "FlashApp") ? 0x88 : 0x00;
+    }
+
+    data_t TIFlashFile::parseHex(const std::string& hex)
+    {
+        if (hex.size() % 2 != 0)
+        {
+            throw std::invalid_argument("Hex strings must have an even number of digits");
+        }
+
+        data_t data;
+        data.reserve(hex.size() / 2);
+        for (size_t i = 0; i < hex.size(); i += 2)
+        {
+            data.push_back(static_cast<uint8_t>(hexdec(hex.substr(i, 2))));
+        }
+        return data;
+    }
+
+    std::string TIFlashFile::toHex(const data_t& data)
+    {
+        std::ostringstream out;
+        out << std::uppercase << std::hex << std::setfill('0');
+        for (uint8_t byte : data)
+        {
+            out << std::setw(2) << static_cast<int>(byte);
+        }
+        return out.str();
+    }
+
+    uint8_t TIFlashFile::encodeBCDByte(uint8_t value)
+    {
+        if (value > 99)
+        {
+            throw std::invalid_argument("BCD byte out of range");
+        }
+        return static_cast<uint8_t>(((value / 10) << 4) | (value % 10));
+    }
+
+    uint8_t TIFlashFile::decodeBCDByte(uint8_t value)
+    {
+        return static_cast<uint8_t>(((value >> 4) & 0x0F) * 10 + (value & 0x0F));
+    }
+
+    TIFlashFile::flash_date_t TIFlashFile::parseBCDDate(const data_t& dateBytes)
+    {
+        if (dateBytes.size() != dateByteCount)
+        {
+            throw std::invalid_argument("Invalid flash BCD date length");
+        }
+
+        flash_date_t date{};
+        date.day = decodeBCDByte(dateBytes[0]);
+        date.month = decodeBCDByte(dateBytes[1]);
+        date.year = static_cast<uint16_t>(decodeBCDByte(dateBytes[2]) * 100 + decodeBCDByte(dateBytes[3]));
+        return date;
+    }
+
+    data_t TIFlashFile::makeBCDDate(const flash_date_t& date)
+    {
+        if (date.year > 9999)
+        {
+            throw std::invalid_argument("Flash header year out of range");
+        }
+
+        return {
+            encodeBCDByte(date.day),
+            encodeBCDByte(date.month),
+            encodeBCDByte(static_cast<uint8_t>(date.year / 100)),
+            encodeBCDByte(static_cast<uint8_t>(date.year % 100)),
+        };
+    }
+
+    std::string TIFlashFile::parseBCDRevision(const data_t& revisionBytes)
+    {
+        if (revisionBytes.size() != revisionByteCount)
+        {
+            throw std::invalid_argument("Invalid flash BCD revision length");
+        }
+
+        return std::to_string(decodeBCDByte(revisionBytes[0])) + "." + std::to_string(decodeBCDByte(revisionBytes[1]));
+    }
+
+    data_t TIFlashFile::makeBCDRevision(const std::string& revision)
+    {
+        const size_t dotPos = revision.find('.');
+        if (dotPos == std::string::npos)
+        {
+            throw std::invalid_argument("Flash header revision must be in x.y format");
+        }
+
+        const int major = std::stoi(revision.substr(0, dotPos));
+        const int minor = std::stoi(revision.substr(dotPos + 1));
+        if (major < 0 || major > 99 || minor < 0 || minor > 99)
+        {
+            throw std::invalid_argument("Flash header revision components must fit in BCD");
+        }
+
+        return {
+            encodeBCDByte(static_cast<uint8_t>(major)),
+            encodeBCDByte(static_cast<uint8_t>(minor)),
+        };
+    }
+
+    TIModel TIFlashFile::modelFromProductId(uint8_t productId)
+    {
+        if (TIModels::isValidPID(productId))
+        {
+            return TIModels::fromPID(productId);
+        }
+        return TIModel{"84+CE"};
+    }
+}
