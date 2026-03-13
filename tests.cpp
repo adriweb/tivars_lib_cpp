@@ -22,6 +22,7 @@
 #include "src/TIVarTypes.h"
 #include "src/BinaryFile.h"
 #include "src/TIVarFile.h"
+#include "src/TIFlashFile.h"
 #include "src/TypeHandlers/TypeHandlers.h"
 #include "src/tivarslib_utils.h"
 #include "src/json.hpp"
@@ -53,6 +54,77 @@ int main(int argc, char** argv)
     /* Tests */
 
     assert(TIVarType{"ExactRealPi"}.getId() == 32);
+
+    {
+        TIFlashFile flashOs = TIFlashFile::loadFromFile("testData/TI-84_Plus_CE-Python-OS-5.8.0.0022.8eu");
+        assert(flashOs.hasMultipleHeaders() == false);
+        const json flashOsJSON = json::parse(flashOs.getReadableContent());
+        assert(flashOsJSON["typeName"] == "OperatingSystem");
+        assert(flashOsJSON["name"] == "basecode");
+        assert(flashOsJSON["revision"] == "5.8");
+        assert(flashOsJSON["binaryFlag"] == 0);
+        assert(flashOsJSON["objectType"] == 0);
+        assert(flashOsJSON["date"][0] == 26);
+        assert(flashOsJSON["date"][1] == 4);
+        assert(flashOsJSON["date"][2] == 2022);
+        assert(flashOsJSON["devices"][0]["deviceType"] == 0x73);
+        assert(flashOsJSON["devices"][0]["typeId"] == 0x23);
+        assert(flashOsJSON["productId"] == 0x13);
+        assert(flashOsJSON["calcDataSize"] == 644962);
+
+        TIFlashFile flashApp = TIFlashFile::loadFromFile("testData/smartpad.8xk");
+        const json flashAppJSON = json::parse(flashApp.getReadableContent());
+        assert(flashAppJSON["typeName"] == "FlashApp");
+        assert(flashAppJSON["name"] == "SmartPad");
+        assert(flashAppJSON["revision"] == "1.1");
+        assert(flashAppJSON["binaryFlag"] == 1);
+        assert(flashAppJSON["objectType"] == 0x88);
+        assert(flashAppJSON["blocks"].size() == 78);
+        assert(flashAppJSON["blocks"][0]["address"] == "0000");
+        assert(flashAppJSON["blocks"][0]["blockType"] == "02");
+        assert(flashAppJSON["blocks"][0]["dataHex"] == "0000");
+
+        TIFlashFile recreatedFlashApp = TIFlashFile::createNew(TIVarType{"FlashApp"}, "SmartPad", TIModel{"84+"});
+        recreatedFlashApp.setContentFromString(flashApp.getReadableContent());
+        assert(recreatedFlashApp.makeBinData() == flashApp.makeBinData());
+
+        TIFlashFile multiFlash = TIFlashFile::createNew(TIVarType{"FlashApp"}, "APP", TIModel{"84+"});
+        multiFlash.setContentFromString(R"({
+    "typeName": "FlashApp",
+    "revision": "1.1",
+    "binaryFlag": 1,
+    "objectType": 136,
+    "date": [1, 12, 2006],
+    "name": "APP",
+    "devices": [{"deviceType": 115, "typeId": 36}],
+    "productId": 10,
+    "hasChecksum": true,
+    "blocks": [
+        {"address": "0000", "blockType": "02", "dataHex": "0000"},
+        {"address": "4000", "blockType": "00", "dataHex": "01020304"},
+        {"address": "0000", "blockType": "01", "dataHex": ""}
+    ]
+})");
+        multiFlash.addHeader(TIVarType{"OperatingSystem"}, "BASE", TIModel{"84+CE"}, true);
+        multiFlash.setContentFromString(R"({
+    "typeName": "OperatingSystem",
+    "revision": "1.0",
+    "binaryFlag": 0,
+    "objectType": 0,
+    "date": [2, 3, 2024],
+    "name": "BASE",
+    "devices": [{"deviceType": 115, "typeId": 35}],
+    "productId": 19,
+    "hasChecksum": true,
+    "calcDataHex": "01020304A0"
+})", 1);
+        const std::string multiFlashPath = multiFlash.saveToFile("/tmp/tivars_lib_cpp_multi_flash.8ek");
+        TIFlashFile reloadedMultiFlash = TIFlashFile::loadFromFile(multiFlashPath);
+        assert(reloadedMultiFlash.hasMultipleHeaders() == true);
+        assert(reloadedMultiFlash.getHeaders().size() == 2);
+        assert(reloadedMultiFlash.makeBinData() == multiFlash.makeBinData());
+        assert(remove(multiFlashPath.c_str()) == 0);
+    }
 
     {
         TIVarFile testReal = TIVarFile::createNew("Real", "A");
