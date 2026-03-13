@@ -22,6 +22,15 @@
 
 namespace tivars
 {
+    namespace
+    {
+        std::string varNameToString(const uint8_t* varname, size_t size)
+        {
+            const void* nulPos = memchr(varname, '\0', size);
+            const size_t len = nulPos ? static_cast<const uint8_t*>(nulPos) - varname : size;
+            return std::string(reinterpret_cast<const char*>(varname), len);
+        }
+    }
 
     /*** Constructors ***/
 
@@ -459,7 +468,7 @@ namespace tivars
         } else {
             if (name.empty())
             {
-                name = std::string(this->hasMultipleEntries() ? "GROUP" : (char*)(this->entries[0].varname));
+                name = this->hasMultipleEntries() ? "GROUP" : varNameToString(this->entries[0].varname, sizeof(var_entry_t::varname));
             }
             std::string fileName;
             if (this->hasMultipleEntries())

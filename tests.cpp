@@ -89,6 +89,14 @@ int main(int argc, char** argv)
     }
 
     {
+        TIVarFile eightCharPrgm = TIVarFile::createNew("Program", "ABCDEFGH");
+        eightCharPrgm.setContentFromString("piecewise(");
+        const std::string savePath = eightCharPrgm.saveVarToFile("/tmp", "");
+        assert(savePath == "/tmp/ABCDEFGH.8xp");
+        assert(remove(savePath.c_str()) == 0);
+    }
+
+    {
         // See https://wikiti.brandonw.net/index.php?title=83Plus:OS:Variable_Versions
         TIVarFile testPrgmStr1 = TIVarFile::createNew("Program", "asdf");
         const auto& ver = testPrgmStr1.getVarEntries()[0].version;
