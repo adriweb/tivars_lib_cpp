@@ -87,7 +87,7 @@ namespace tivars
         insertType("String",               0x04,  {"82s", "83s", "8xs", "8xs", "8xs", "8xs", "8xs", "8xs", "8xs"}, SpecificHandlerTuple(TH_Tokenized) );
         insertType("Program",              0x05,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp"}, SpecificHandlerTuple(TH_Tokenized) );
         insertType("ProtectedProgram",     0x06,  {"82p", "83p", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp", "8xp"}, SpecificHandlerTuple(TH_Tokenized) );
-        insertType("Picture",              0x07,  {"82i", "83i", "8xi", "8xi", "8xi", "8ci", "8ci", "8ci", "8ci"});
+        insertType("Picture",              0x07,  {"82i", "83i", "8xi", "8xi", "8xi", "8ci", "8ci", "8ci", "8ci"}, SpecificHandlerTuple(TH_Picture) );
         insertType("GraphDataBase",        0x08,  {"82d", "83d", "8xd", "8xd", "8xd", "8xd", "8xd", "8xd", "8xd"}, SpecificHandlerTuple(TH_GDB) );
         // insertType("Unknown",              0x09,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         // insertType("UnknownEqu",           0x0A,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
@@ -107,7 +107,7 @@ namespace tivars
         insertType("GroupObject",          0x17,  {"82g", "83g", "8xg", "8xg", "8xg", "8xg", "8cg", "8cg", "8cg"}, SpecificHandlerTuple(TH_Group) );
         insertType("RealFraction",         0x18,  {  _  ,   _  ,   _  ,   _  , "8xn", "8xn", "8xn", "8xn", "8xn"},  GenericHandlerTuple(Real, 0x18) );
         insertType("MixedFraction",        0x19,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
-        insertType("Image",                0x1A,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8ca", "8ca", "8ca"});
+        insertType("Image",                0x1A,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8ca", "8ca", "8ca"}, SpecificHandlerTuple(TH_Picture) );
 
         /* Exact values (TI-83 Premium CE [Edition Python] and TI-82 Advanced Edition Python) */
         /* See https://docs.google.com/document/d/1P_OUbnZMZFg8zuOPJHAx34EnwxcQZ8HER9hPeOQ_dtI and especially this lib's implementation */
