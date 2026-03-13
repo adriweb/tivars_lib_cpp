@@ -254,6 +254,34 @@ int main(int argc, char** argv)
     }
 
     {
+        TIVarFile asmProgram = TIVarFile::createNew("Program", "ASMHDR");
+        asmProgram.setContentFromString(R"({
+    "rawDataHex": "BB6DC90100000000000000000000000000000000000000000000000000000000000048656C6C6F00"
+})");
+        const json asmMetadata = json::parse(asmProgram.getReadableContent({{"metadata", 1}}));
+        assert(asmMetadata["isAssembly"] == true);
+        assert(asmMetadata["shell"] == "MirageOS");
+        assert(asmMetadata["description"] == "Hello");
+        assert(asmMetadata["typeName"] == "Program");
+
+        TIVarFile metadataProgram = TIVarFile::createNew("Program", "JSONASM");
+        metadataProgram.setContentFromString(R"({
+    "rawDataHex": "BB6DC901000000000000000000000000000000000000000000000000000000000000486900"
+})");
+        const json metadataProgramJSON = json::parse(metadataProgram.getReadableContent({{"metadata", 1}}));
+        assert(metadataProgramJSON["isAssembly"] == true);
+        assert(metadataProgramJSON["shell"] == "MirageOS");
+    }
+
+    {
+        TIVarFile basicProgram = TIVarFile::createNew("Program", "META");
+        basicProgram.setContentFromString("Disp 42");
+        const json basicMetadata = json::parse(basicProgram.getReadableContent({{"metadata", 1}}));
+        assert(basicMetadata["isAssembly"] == false);
+        assert(basicMetadata["code"] == "Disp 42");
+    }
+
+    {
         TH_Tokenized::token_posinfo actual{}, expected{};
         const data_t data = { 0x12,0x00,0x41,0x40,0x42,0x3f,0xde,0x2a,0x41,0x29,0xbb,0xb0,0xbb,0xbe,0xbb,0xb3,0x29,0x42,0x2a,0x3f };
         actual = TH_Tokenized::getPosInfoAtOffset(data, 2);
