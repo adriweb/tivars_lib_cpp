@@ -93,6 +93,22 @@ int main(int argc, char** argv)
         eightCharPrgm.setContentFromString("piecewise(");
         const std::string savePath = eightCharPrgm.saveVarToFile("/tmp", "");
         assert(savePath == "/tmp/ABCDEFGH.8xp");
+
+        TIVarFile reloadedEightCharPrgm = TIVarFile::loadFromFile(savePath);
+        const std::string resavedPath = reloadedEightCharPrgm.saveVarToFile("/tmp", "");
+        assert(resavedPath == savePath);
+        assert(remove(savePath.c_str()) == 0);
+    }
+
+    {
+        TIVarFile archivedPrgm = TIVarFile::createNew("Program", "ARCHIVE");
+        archivedPrgm.setContentFromString("Disp 42");
+        archivedPrgm.setArchived(true);
+        const std::string savePath = archivedPrgm.saveVarToFile("/tmp", "ARCHIVE");
+
+        TIVarFile reloadedArchivedPrgm = TIVarFile::loadFromFile(savePath);
+        assert(reloadedArchivedPrgm.getReadableContent() == "Disp 42");
+        assert(reloadedArchivedPrgm.getVarEntries()[0].archivedFlag == 0x80);
         assert(remove(savePath.c_str()) == 0);
     }
 
@@ -548,6 +564,38 @@ End)";
         cout << testStandardMatrix.getReadableContent() << "\n";
         testStandardMatrix.saveVarToFile("testData", "Matrix_new");
     }
+
+#ifndef __EMSCRIPTEN__
+    {
+        try
+        {
+            TIVarFile::createNew("Program", "1BADNAME");
+            assert(false);
+        }
+        catch (const invalid_argument&)
+        {
+        }
+
+        try
+        {
+            TIVarFile badMatrix = TIVarFile::createNew("Matrix", "\x5C\x00");
+            badMatrix.setContentFromString("[[1,2][3]]");
+            assert(false);
+        }
+        catch (const invalid_argument&)
+        {
+        }
+
+        try
+        {
+            TH_Tokenized::getPosInfoAtOffsetFromHexStr("123", 0);
+            assert(false);
+        }
+        catch (const invalid_argument&)
+        {
+        }
+    }
+#endif
 
     {
         TIVarFile testComplex = TIVarFile::loadFromFile("testData/Complex.8xc"); // -5 + 2i
