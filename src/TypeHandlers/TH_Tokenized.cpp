@@ -88,33 +88,19 @@ static std::string prettify_token_string(std::string str)
     return str;
 }
 
-static void split_delvar_lines(std::string& str)
+static void split_var_keyword_lines(std::string& str, const std::string& keyword)
 {
     size_t pos = 0;
-    while ((pos = str.find("DelVar ", pos)) != std::string::npos)
+    while ((pos = str.find(keyword, pos)) != std::string::npos)
     {
         if (pos > 0 && !std::isspace(static_cast<unsigned char>(str[pos - 1])))
         {
             str.insert(pos, "\n");
-            pos += strlen("\nDelVar ");
+            pos += 1 + keyword.size();
         }
         else
         {
-            pos += strlen("DelVar ");
-        }
-    }
-
-    pos = 0;
-    while ((pos = str.find("EffVar ", pos)) != std::string::npos)
-    {
-        if (pos > 0 && !std::isspace(static_cast<unsigned char>(str[pos - 1])))
-        {
-            str.insert(pos, "\n");
-            pos += strlen("\nEffVar ");
-        }
-        else
-        {
-            pos += strlen("EffVar ");
+            pos += keyword.size();
         }
     }
 }
@@ -391,7 +377,8 @@ namespace tivars::TypeHandlers
 
         std::string str(str_orig);
 
-        split_delvar_lines(str);
+        split_var_keyword_lines(str, "DelVar ");
+        split_var_keyword_lines(str, "EffVar ");
 
         std::vector<std::string> lines_tmp = explode(str, '\n');
 
