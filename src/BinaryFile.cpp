@@ -12,7 +12,6 @@
 
 namespace tivars
 {
-
     /**
      * @param null filePath
      * @throws \Exception
@@ -23,11 +22,12 @@ namespace tivars
         {
             if (file_exists(filePath))
             {
-                this->file = fopen(filePath.c_str(), "rb+");
+                this->file = fopen(filePath.c_str(), "rb");
                 if (!this->file)
                 {
                     throw std::runtime_error("Can't open the input file");
                 }
+
                 this->filePath = filePath;
                 fseek(this->file, 0L, SEEK_END);
                 this->fileSize = (size_t) ftell(this->file);

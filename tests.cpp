@@ -11,6 +11,11 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cstdio>
+
+#ifndef _WIN32
+    #include <sys/stat.h>
+#endif
 
 #include "src/TIModels.h"
 #include "src/TIVarTypes.h"
@@ -60,6 +65,22 @@ int main(int argc, char** argv)
         TIVarFile toksPrgm = TIVarFile::loadFromFile("testData/ALLTOKS.8Xp");
         cout << toksPrgm.getReadableContent() << "\n" << endl;
     }
+
+#ifndef _WIN32
+    {
+        const std::string path = "/tmp/tivars_lib_cpp_readonly_test.8xp";
+        TIVarFile readonlyPrgm = TIVarFile::createNew("Program", "READONLY");
+        readonlyPrgm.setContentFromString("Disp 42");
+        readonlyPrgm.saveVarToFile(path);
+        assert(chmod(path.c_str(), 0444) == 0);
+
+        TIVarFile readonlyLoaded = TIVarFile::loadFromFile(path);
+        assert(readonlyLoaded.getReadableContent() == "Disp 42");
+
+        assert(chmod(path.c_str(), 0644) == 0);
+        assert(remove(path.c_str()) == 0);
+    }
+#endif
 
     {
         TIVarFile testPrgmStr1 = TIVarFile::createNew("Program", "asdf");
