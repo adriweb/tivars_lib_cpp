@@ -945,6 +945,54 @@ End)";
     }
 
     {
+        TIVarFile monoPicture = TIVarFile::loadFromFile("testData/BartSimpson.8xi");
+        const json monoPictureJSON = json::parse(monoPicture.getReadableContent());
+        assert(monoPictureJSON["kind"] == "MonoPicture");
+        assert(monoPictureJSON["typeName"] == "Picture");
+        assert(monoPictureJSON["width"] == 96);
+        assert(monoPictureJSON["height"] == 63);
+        assert(monoPictureJSON["hasColor"] == false);
+        assert(monoPictureJSON["dataLength"] == 758);
+        assert(monoPictureJSON["storage"]["encoding"] == "L1");
+        assert(monoPictureJSON["storage"]["pixelsPerByte"] == 8);
+
+        TIVarFile colorPicture = TIVarFile::loadFromFile("testData/Pic1.8ci");
+        const json colorPictureJSON = json::parse(colorPicture.getReadableContent());
+        assert(colorPictureJSON["kind"] == "ColorPicture");
+        assert(colorPictureJSON["typeName"] == "Picture");
+        assert(colorPictureJSON["width"] == 266);
+        assert(colorPictureJSON["height"] == 165);
+        assert(colorPictureJSON["hasColor"] == true);
+        assert(colorPictureJSON["dataLength"] == 21947);
+        assert(colorPictureJSON["storage"]["encoding"] == "RGBPalette");
+        assert(colorPictureJSON["storage"]["paletteSize"] == 15);
+        assert(colorPicture.getVarEntries()[0].version == 0x0A);
+
+        TIVarFile image = TIVarFile::loadFromFile("testData/Image1.8ca");
+        const json imageJSON = json::parse(image.getReadableContent());
+        assert(imageJSON["kind"] == "Image");
+        assert(imageJSON["typeName"] == "Image");
+        assert(imageJSON["width"] == 133);
+        assert(imageJSON["height"] == 83);
+        assert(imageJSON["hasColor"] == true);
+        assert(imageJSON["dataLength"] == 22247);
+        assert(imageJSON["storage"]["encoding"] == "RGB565");
+        assert(imageJSON["storage"]["imageMagic"] == "81");
+        assert(imageJSON["storage"]["rowPaddingBytes"] == 2);
+
+        bool pictureWriteFailed = false;
+        try
+        {
+            monoPicture.setContentFromString("{}");
+        }
+        catch (const std::runtime_error&)
+        {
+            pictureWriteFailed = true;
+        }
+        assert(pictureWriteFailed);
+    }
+
+    {
         TIVarFile gdbDefaultVar = TIVarFile::createNew("GraphDataBase");
         const auto& gdbDefault = gdbDefaultVar.getVarEntries()[0];
         const uint8_t expectedGdbDefault[8] = {0x61, 0x00};

@@ -140,9 +140,9 @@ namespace tivars::TypeHandlers
                 case 0x07: // Picture
                 {
                     const size_t remaining = data.size() - offset;
-                    return remaining >= TH_Group::pictureDataByteCountColor
-                         ? TH_Group::pictureDataByteCountColor
-                         : TH_Group::pictureDataByteCountMono;
+                    return remaining >= TH_Picture::colorPictureDataByteCount
+                         ? TH_Picture::colorPictureDataByteCount
+                         : TH_Picture::monoPictureDataByteCount;
                 }
 
                 case 0x0F: // WindowSettings
@@ -155,7 +155,7 @@ namespace tivars::TypeHandlers
                     return TH_Settings::tableRangeDataByteCount;
 
                 case 0x1A: // Image
-                    return TH_Group::imageDataByteCount;
+                    return TH_Picture::imageDataByteCount;
 
                 default:
                     throw std::runtime_error("Unsupported GroupObject entry type " + std::to_string(typeId));

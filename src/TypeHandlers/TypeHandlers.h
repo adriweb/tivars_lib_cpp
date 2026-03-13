@@ -112,9 +112,23 @@ namespace tivars::TypeHandlers
         static const constexpr uint8_t archivedFlagValue = 0x80;
         static const constexpr size_t minimumDataByteCount = 2;
         static const constexpr size_t fixedNameByteCount = 3;
-        static const constexpr size_t pictureDataByteCountMono = 758;
-        static const constexpr size_t pictureDataByteCountColor = 21947;
+    };
+
+    class TH_Picture : public DummyHandler
+    {
+    public:
+        th();
+        static const constexpr size_t minimumDataByteCount = 2;
+        static const constexpr size_t monoPictureDataByteCount = 758;
+        static const constexpr size_t colorPictureDataByteCount = 21947;
         static const constexpr size_t imageDataByteCount = 22247;
+        static const constexpr size_t monoPictureWidth = 96;
+        static const constexpr size_t monoPictureHeight = 63;
+        static const constexpr size_t colorPictureWidth = 266;
+        static const constexpr size_t colorPictureHeight = 165;
+        static const constexpr size_t imageWidth = 133;
+        static const constexpr size_t imageHeight = 83;
+        static const constexpr uint8_t imageMagic = 0x81;
     };
 
     class STH_DataAppVar : public TH_GenericAppVar
