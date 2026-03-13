@@ -30,6 +30,28 @@ static size_t strlen_mb(const std::string& s)
     return len;
 }
 
+static void ltrim_program_whitespace(std::string& s)
+{
+    size_t pos = 0;
+    while (pos < s.size())
+    {
+        const uint8_t c = static_cast<uint8_t>(s[pos]);
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v' || c == 0xA0)
+        {
+            pos++;
+            continue;
+        }
+        if (pos + 1 < s.size() && c == 0xC2 && static_cast<uint8_t>(s[pos + 1]) == 0xA0)
+        {
+            pos += 2;
+            continue;
+        }
+        break;
+    }
+
+    s.erase(0, pos);
+}
+
 namespace tivars::TypeHandlers
 {
     namespace
@@ -335,7 +357,7 @@ namespace tivars::TypeHandlers
         // Take care of NBSP stuff
         for (auto& line : lines_tmp)
         {
-            line = std::regex_replace(line, std::regex("^[\u00A0\uC2A0]*\\s*[\u00A0\uC2A0]*"), "");
+            ltrim_program_whitespace(line);
         }
 
         std::vector<std::pair<uint16_t, std::string>> lines(lines_tmp.size()); // indent, text

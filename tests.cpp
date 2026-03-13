@@ -332,6 +332,15 @@ End)";
     }
 
     {
+        string test = "u(𝒏-2):³√(9";
+        const std::string reindented = TH_Tokenized::reindentCodeString(test);
+        cout << "Indented code:" << endl << reindented << endl;
+        const std::string expected = R"(u(𝒏-2)
+³√(9)";
+        assert(reindented == expected);
+    }
+
+    {
         string test = "   Disp 42\nInput A,\"?\":  For(I,1,10)\n Then\n \xA0 Disp I:For(J,1,10)\nThen\n Disp J\nEnd\nEnd";
         const std::string reindented = TH_Tokenized::reindentCodeString(test);
         cout << "Indented code:" << endl << reindented << endl;
