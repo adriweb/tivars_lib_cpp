@@ -14,7 +14,6 @@
 
 #include <stdexcept>
 #include <numeric>
-#include <regex>
 #include <sstream>
 #include <cstring>
 #include <cctype>
@@ -43,7 +42,17 @@ namespace tivars
 
         std::string normalize_theta_chars(std::string name)
         {
-            return std::regex_replace(name, std::regex("(\u03b8|\u0398|\u03F4|\u1DBF)"), "[");
+            const std::string theta[] = {"θ", "Θ", "ϴ", "ᶿ"};
+            for (const auto& token : theta)
+            {
+                size_t pos = 0;
+                while ((pos = name.find(token, pos)) != std::string::npos)
+                {
+                    name.replace(pos, token.size(), "[");
+                    pos += 1;
+                }
+            }
+            return name;
         }
 
         std::string make_indexed_var_name(uint8_t prefix, uint8_t index)

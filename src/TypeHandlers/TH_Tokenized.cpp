@@ -17,7 +17,6 @@
 #include <unordered_map>
 #include <iostream>
 #include <sstream>
-#include <regex>
 #include <fstream>
 #include <cstring>
 #include <array>
@@ -69,6 +68,57 @@ static std::string get_first_command(const std::string& line)
     return tivars::trim(trimmedLine.substr(0, endPos));
 }
 
+static std::string prettify_token_string(std::string str)
+{
+    for (char c = 'a'; c <= 'f'; c++)
+    {
+        tivars::replace_all(str, std::string("[|") + c + "]", std::string(1, c));
+    }
+
+    for (char c : std::string("prszt"))
+    {
+        tivars::replace_all(str, std::string("[") + c + "]", std::string(1, c));
+    }
+
+    for (char c : std::string("uvw"))
+    {
+        tivars::replace_all(str, std::string("|") + c, std::string(1, c));
+    }
+
+    return str;
+}
+
+static void split_delvar_lines(std::string& str)
+{
+    size_t pos = 0;
+    while ((pos = str.find("DelVar ", pos)) != std::string::npos)
+    {
+        if (pos > 0 && !std::isspace(static_cast<unsigned char>(str[pos - 1])))
+        {
+            str.insert(pos, "\n");
+            pos += strlen("\nDelVar ");
+        }
+        else
+        {
+            pos += strlen("DelVar ");
+        }
+    }
+
+    pos = 0;
+    while ((pos = str.find("EffVar ", pos)) != std::string::npos)
+    {
+        if (pos > 0 && !std::isspace(static_cast<unsigned char>(str[pos - 1])))
+        {
+            str.insert(pos, "\n");
+            pos += strlen("\nEffVar ");
+        }
+        else
+        {
+            pos += strlen("EffVar ");
+        }
+    }
+}
+
 namespace tivars::TypeHandlers
 {
     namespace
@@ -78,9 +128,6 @@ namespace tivars::TypeHandlers
         uint8_t lengthOfLongestTokenName;
         std::vector<uint8_t> firstByteOfTwoByteTokens;
         constexpr uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
-        const std::regex toPrettifyRX1(R"(\[\|([a-f])\])");
-        const std::regex toPrettifyRX2(R"(\[([prszt])\])");
-        const std::regex toPrettifyRX3(R"(\|([uvw]))");
     }
 
     data_t TH_Tokenized::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
@@ -242,9 +289,7 @@ namespace tivars::TypeHandlers
 
         if (has_option(options, "prettify") && options.at("prettify") == 1)
         {
-            str = std::regex_replace(str, toPrettifyRX1, "$1");
-            str = std::regex_replace(str, toPrettifyRX2, "$1");
-            str = std::regex_replace(str, toPrettifyRX3, "$1");
+            str = prettify_token_string(str);
         }
 
         if (has_option(options, "reindent") && options.at("reindent") == 1)
@@ -346,7 +391,7 @@ namespace tivars::TypeHandlers
 
         std::string str(str_orig);
 
-        str = std::regex_replace(str, std::regex("([^\\s])(Del|Eff)Var "), "$1\n$2Var ");
+        split_delvar_lines(str);
 
         std::vector<std::string> lines_tmp = explode(str, '\n');
 
@@ -453,9 +498,7 @@ namespace tivars::TypeHandlers
         }
         if (fromPrettified)
         {
-            tokStr = std::regex_replace(tokStr, toPrettifyRX1, "$1");
-            tokStr = std::regex_replace(tokStr, toPrettifyRX2, "$1");
-            tokStr = std::regex_replace(tokStr, toPrettifyRX3, "$1");
+            tokStr = prettify_token_string(tokStr);
         }
 
         return tokStr;
@@ -477,9 +520,7 @@ namespace tivars::TypeHandlers
             tokStr = " [???] ";
         }
 
-        tokStr = std::regex_replace(tokStr, toPrettifyRX1, "$1");
-        tokStr = std::regex_replace(tokStr, toPrettifyRX2, "$1");
-        tokStr = std::regex_replace(tokStr, toPrettifyRX3, "$1");
+        tokStr = prettify_token_string(tokStr);
 
         return tokStr;
     }
@@ -547,9 +588,7 @@ namespace tivars::TypeHandlers
             }
             if (fromPrettified)
             {
-                tokStr = std::regex_replace(tokStr, toPrettifyRX1, "$1");
-                tokStr = std::regex_replace(tokStr, toPrettifyRX2, "$1");
-                tokStr = std::regex_replace(tokStr, toPrettifyRX3, "$1");
+                tokStr = prettify_token_string(tokStr);
             }
 
             const size_t tokStrLen = strlen_mb(tokStr);
