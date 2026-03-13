@@ -104,7 +104,7 @@ namespace tivars
         insertType("AppVar",               0x15,  {  _  ,   _  , "8xv", "8xv", "8xv", "8xv", "8xv", "8xv", "8xv"},  GenericHandlerTuple(AppVar, 0x15) );
         insertType("PythonAppVar",         0x15,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xv", "8xv", "8xv"}, SpecificHandlerTuple(STH_PythonAppVar) );
         insertType("TemporaryItem",        0x16,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
-        insertType("GroupObject",          0x17,  {"82g", "83g", "8xg", "8xg", "8xg", "8xg", "8cg", "8cg", "8cg"});
+        insertType("GroupObject",          0x17,  {"82g", "83g", "8xg", "8xg", "8xg", "8xg", "8cg", "8cg", "8cg"}, SpecificHandlerTuple(TH_Group) );
         insertType("RealFraction",         0x18,  {  _  ,   _  ,   _  ,   _  , "8xn", "8xn", "8xn", "8xn", "8xn"},  GenericHandlerTuple(Real, 0x18) );
         insertType("MixedFraction",        0x19,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("Image",                0x1A,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8ca", "8ca", "8ca"});
