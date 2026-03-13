@@ -110,6 +110,10 @@ namespace tivars
             {
                 return "TblSet";
             }
+            if (typeName == "WindowSettings")
+            {
+                return "Window";
+            }
             if (typeName == "RecallWindow")
             {
                 return "RclWindw";
@@ -569,6 +573,10 @@ namespace tivars
         else if (typeName == "TableRange")
         {
             isValid = normalize_fixed_ascii_name(newName, "TblSet");
+        }
+        else if (typeName == "WindowSettings")
+        {
+            isValid = normalize_fixed_ascii_name(newName, "Window");
         }
         else if (typeName == "RecallWindow")
         {

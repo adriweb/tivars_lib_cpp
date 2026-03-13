@@ -95,7 +95,7 @@ namespace tivars
         insertType("Complex",              0x0C,  {  _  , "83c", "8xc", "8xc", "8xc", "8xc", "8xc", "8xc", "8xc"},  GenericHandlerTuple(Complex, 0x0C) );
         insertType("ComplexList",          0x0D,  {  _  , "83l", "8xl", "8xl", "8xl", "8xl", "8xl", "8xl", "8xl"},  GenericHandlerTuple(List,    0x0C) );
         // insertType("Undef",                0x0E,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
-        insertType("WindowSettings",       0x0F,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw", "8xw", "8xw"});
+        insertType("WindowSettings",       0x0F,  {"82w", "83w", "8xw", "8xw", "8xw", "8xw", "8xw", "8xw", "8xw"}, SettingsHandlerTuple(0x0F));
         insertType("RecallWindow",         0x10,  {"82z", "83z", "8xz", "8xz", "8xz", "8xz", "8xz", "8xz", "8xz"}, SettingsHandlerTuple(0x10));
         insertType("TableRange",           0x11,  {"82t", "83t", "8xt", "8xt", "8xt", "8xt", "8xt", "8xt", "8xt"}, SettingsHandlerTuple(0x11));
         insertType("ScreenImage",          0x12,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });

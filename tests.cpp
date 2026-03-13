@@ -847,6 +847,22 @@ End)";
     }
 
     {
+        TIVarFile windowSettings = TIVarFile::loadFromFile("testData/Window.8xw");
+        const json windowSettingsJSON = json::parse(windowSettings.getReadableContent());
+        assert(windowSettingsJSON["Xmin"] == -10.0);
+        assert(windowSettingsJSON["Ymin"] == -20.0);
+        assert(windowSettingsJSON["Xres"] == 2);
+        assert(windowSettingsJSON["Thetamax"] == "6.283185307");
+        assert(windowSettingsJSON["Thetastep"] == "0.13089969389957");
+
+        TIVarFile newWindowSettings = TIVarFile::createNew("WindowSettings");
+        const uint8_t expectedName[8] = {'W', 'i', 'n', 'd', 'o', 'w'};
+        assert(std::equal(newWindowSettings.getVarEntries()[0].varname, newWindowSettings.getVarEntries()[0].varname + 8, expectedName));
+        newWindowSettings.setContentFromString(windowSettings.getReadableContent());
+        assert(newWindowSettings.getRawContent() == windowSettings.getRawContent());
+    }
+
+    {
         TIVarFile recallWindow = TIVarFile::loadFromFile("testData/RecallWindow.8xz");
         const json recallWindowJSON = json::parse(recallWindow.getReadableContent());
         assert(recallWindowJSON["Xmin"] == -10.0);
