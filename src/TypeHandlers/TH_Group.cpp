@@ -81,12 +81,12 @@ namespace tivars::TypeHandlers
         TIVarType detect_full_type(uint8_t typeId, const data_t& entryData)
         {
             TIVarType type{typeId};
-            if (type.getName() == "AppVar" && entryData.size() >= 6)
+            if (type.getName() == "AppVar")
             {
-                if (memcmp(&entryData[2], STH_PythonAppVar::ID_CODE, 4) == 0
-                 || memcmp(&entryData[2], STH_PythonAppVar::ID_SCRIPT, 4) == 0)
+                const std::string detectedTypeName = detectStructuredAppVarTypeName(entryData);
+                if (detectedTypeName != "AppVar")
                 {
-                    return TIVarType{"PythonAppVar"};
+                    return TIVarType{detectedTypeName};
                 }
             }
             return type;

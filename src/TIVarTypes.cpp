@@ -53,6 +53,15 @@ namespace tivars
     &(TypeHandlers::TH_Settings::makeStringFromData),                                               \
     &(TypeHandlers::TH_Settings::getMinVersionFromData),                                            \
 }
+#define StructuredAppVarHandlerTuple(subtype) TypeHandlersTuple{                                    \
+    [](const std::string& str, const options_t& options, const TIVarFile* _ctx) -> data_t {         \
+        options_t options_withSubtype = options;                                                    \
+        options_withSubtype["_appvarSubtype"] = subtype;                                            \
+        return (TypeHandlers::TH_StructuredAppVar::makeDataFromString)(str, options_withSubtype, _ctx); \
+    },                                                                                              \
+    &(TypeHandlers::TH_StructuredAppVar::makeStringFromData),                                       \
+    &(TypeHandlers::TH_StructuredAppVar::getMinVersionFromData),                                    \
+}
 
     void TIVarTypes::insertType(const std::string& name, int id, const std::vector<std::string>& exts, const TypeHandlersTuple& handlers)
     {
@@ -103,6 +112,12 @@ namespace tivars
         insertType("App",                  0x14,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("AppVar",               0x15,  {  _  ,   _  , "8xv", "8xv", "8xv", "8xv", "8xv", "8xv", "8xv"},  GenericHandlerTuple(AppVar, 0x15) );
         insertType("PythonAppVar",         0x15,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xv", "8xv", "8xv"}, SpecificHandlerTuple(STH_PythonAppVar) );
+        insertType("PythonModuleAppVar",   0x15,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xv", "8xv", "8xv"}, StructuredAppVarHandlerTuple(APPVAR_SUBTYPE_PYTHON_MODULE) );
+        insertType("PythonImageAppVar",    0x15,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  , "8xv", "8xv", "8xv"}, StructuredAppVarHandlerTuple(APPVAR_SUBTYPE_PYTHON_IMAGE) );
+        insertType("StudyCardsAppVar",     0x15,  {  _  ,   _  , "8xv", "8xv", "8xv",   _  ,   _  ,   _  ,   _  }, StructuredAppVarHandlerTuple(APPVAR_SUBTYPE_STUDY_CARDS) );
+        insertType("StudyCardsSetgsAppVar",0x15,  {  _  ,   _  , "8xv", "8xv", "8xv",   _  ,   _  ,   _  ,   _  }, StructuredAppVarHandlerTuple(APPVAR_SUBTYPE_STUDY_CARDS_SETTINGS) );
+        insertType("CellSheetAppVar",      0x15,  {  _  ,   _  , "8xv", "8xv", "8xv", "8xv", "8xv", "8xv", "8xv"}, StructuredAppVarHandlerTuple(APPVAR_SUBTYPE_CELSHEET) );
+        insertType("CellSheetStateAppVar", 0x15,  {  _  ,   _  , "8xv", "8xv", "8xv", "8xv", "8xv", "8xv", "8xv"}, StructuredAppVarHandlerTuple(APPVAR_SUBTYPE_CELSHEET_STATE) );
         insertType("TemporaryItem",        0x16,  {  _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  ,   _  });
         insertType("GroupObject",          0x17,  {"82g", "83g", "8xg", "8xg", "8xg", "8xg", "8cg", "8cg", "8cg"}, SpecificHandlerTuple(TH_Group) );
         insertType("RealFraction",         0x18,  {  _  ,   _  ,   _  ,   _  , "8xn", "8xn", "8xn", "8xn", "8xn"},  GenericHandlerTuple(Real, 0x18) );

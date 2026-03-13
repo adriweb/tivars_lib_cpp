@@ -101,6 +101,24 @@ namespace tivars::TypeHandlers
         th();
     };
 
+    enum StructuredAppVarSubtype : uint8_t
+    {
+        APPVAR_SUBTYPE_PYTHON_MODULE = 0,
+        APPVAR_SUBTYPE_PYTHON_IMAGE,
+        APPVAR_SUBTYPE_STUDY_CARDS,
+        APPVAR_SUBTYPE_STUDY_CARDS_SETTINGS,
+        APPVAR_SUBTYPE_CELSHEET,
+        APPVAR_SUBTYPE_CELSHEET_STATE,
+    };
+
+    std::string detectStructuredAppVarTypeName(const data_t& data);
+
+    class TH_StructuredAppVar : public TH_GenericAppVar
+    {
+    public:
+        th();
+    };
+
     class TH_Group : public DummyHandler
     {
     public:

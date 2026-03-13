@@ -837,6 +837,126 @@ End)";
     }
 
     {
+        TIVarFile pythonModule = TIVarFile::createNew("PythonModuleAppVar", "PYMOD", "83PCE");
+        pythonModule.setContentFromString(R"({
+    "typeName": "PythonModuleAppVar",
+    "version": 2,
+    "menuDefinitions": "#MENULABEL Demo\n#MENUITEM sin|sin(\n",
+    "menuDefinitionsNullTerminated": true,
+    "compiledDataHex": "4D500300"
+})");
+        const json pythonModuleJSON = json::parse(pythonModule.getReadableContent());
+        assert(pythonModuleJSON["typeName"] == "PythonModuleAppVar");
+        assert(pythonModuleJSON["subtype"] == "PythonModule");
+        assert(pythonModuleJSON["version"] == 2);
+        assert(pythonModuleJSON["menuDefinitions"] == "#MENULABEL Demo\n#MENUITEM sin|sin(\n");
+        assert(pythonModuleJSON["compiledDataHex"] == "4D500300");
+
+        const std::string modulePath = pythonModule.saveVarToFile("/tmp", "PYMOD");
+        TIVarFile reloadedModule = TIVarFile::loadFromFile(modulePath);
+        assert(reloadedModule.getVarEntries()[0]._type.getName() == "PythonModuleAppVar");
+        assert(reloadedModule.getRawContent() == pythonModule.getRawContent());
+        assert(remove(modulePath.c_str()) == 0);
+    }
+
+    {
+        TIVarFile pythonImage = TIVarFile::createNew("PythonImageAppVar", "PYIMG", "83PCE");
+        pythonImage.setContentFromString(R"({
+    "typeName": "PythonImageAppVar",
+    "width": 16,
+    "height": 8,
+    "palette": {
+        "hasAlpha": true,
+        "transparentIndex": 1,
+        "entries": [31, 63488, 2016]
+    },
+    "imageDataHex": "01020304"
+})");
+        const json pythonImageJSON = json::parse(pythonImage.getReadableContent());
+        assert(pythonImageJSON["typeName"] == "PythonImageAppVar");
+        assert(pythonImageJSON["width"] == 16);
+        assert(pythonImageJSON["height"] == 8);
+        assert(pythonImageJSON["palette"]["entryCount"] == 3);
+        assert(pythonImageJSON["palette"]["hasAlpha"] == true);
+        assert(pythonImageJSON["palette"]["entries"][1] == 63488);
+        assert(pythonImageJSON["imageDataLength"] == 4);
+        assert(pythonImageJSON["imageDataHex"] == "01020304");
+
+        const std::string imagePath = pythonImage.saveVarToFile("/tmp", "PYIMG");
+        TIVarFile reloadedImage = TIVarFile::loadFromFile(imagePath);
+        assert(reloadedImage.getVarEntries()[0]._type.getName() == "PythonImageAppVar");
+        assert(reloadedImage.getRawContent() == pythonImage.getRawContent());
+        assert(remove(imagePath.c_str()) == 0);
+
+        TIVarFile realPythonImage = TIVarFile::loadFromFile("testData/TESTIM8C.8xv");
+        assert(realPythonImage.getVarEntries()[0]._type.getName() == "PythonImageAppVar");
+        const json realPythonImageJSON = json::parse(realPythonImage.getReadableContent());
+        assert(realPythonImageJSON["width"] == 154);
+        assert(realPythonImageJSON["height"] == 42);
+        assert(realPythonImageJSON["palette"]["marker"] == 1);
+        assert(realPythonImageJSON["palette"]["entryCount"] == realPythonImageJSON["palette"]["entries"].size());
+        assert(realPythonImageJSON["imageDataLength"] > 0);
+
+        TIVarFile rebuiltRealImage = TIVarFile::createNew("PythonImageAppVar", "TESTIM8C", "83PCE");
+        rebuiltRealImage.setContentFromString(realPythonImage.getReadableContent());
+        assert(rebuiltRealImage.getRawContent() == realPythonImage.getRawContent());
+    }
+
+    {
+        TIVarFile genericStructuredAppVar = TIVarFile::createNew("AppVar", "SCSET", "83PCE");
+        genericStructuredAppVar.setContentFromString(R"({
+    "typeName": "StudyCardsSetgsAppVar",
+    "keepKnownCards": true,
+    "reintroduceCards": false,
+    "shuffleCards": true,
+    "ignoreLevels": true,
+    "animateFlip": false,
+    "boxMode5": true,
+    "currentAppVar": "CARDS"
+})");
+        assert(genericStructuredAppVar.getVarEntries()[0]._type.getName() == "StudyCardsSetgsAppVar");
+        const json studyCardsSettingsJSON = json::parse(genericStructuredAppVar.getReadableContent());
+        assert(studyCardsSettingsJSON["typeName"] == "StudyCardsSetgsAppVar");
+        assert(studyCardsSettingsJSON["keepKnownCards"] == true);
+        assert(studyCardsSettingsJSON["shuffleCards"] == true);
+        assert(studyCardsSettingsJSON["ignoreLevels"] == true);
+        assert(studyCardsSettingsJSON["currentAppVar"] == "CARDS");
+    }
+
+    {
+        TIVarFile cellSheet = TIVarFile::createNew("CellSheetAppVar", "SHEET", "83PCE");
+        cellSheet.setContentFromString(R"({
+    "typeName": "CellSheetAppVar",
+    "name": "CELLS",
+    "displayHelp": false,
+    "displayEquationPreview": true,
+    "number": 7,
+    "payloadHex": "AABBCCDD"
+})");
+        const json cellSheetJSON = json::parse(cellSheet.getReadableContent());
+        assert(cellSheetJSON["typeName"] == "CellSheetAppVar");
+        assert(cellSheetJSON["name"] == "CELLS");
+        assert(cellSheetJSON["displayHelp"] == false);
+        assert(cellSheetJSON["displayEquationPreview"] == true);
+        assert(cellSheetJSON["number"] == 7);
+        assert(cellSheetJSON["payloadHex"] == "AABBCCDD");
+    }
+
+    {
+        TIVarFile studyCards = TIVarFile::createNew("StudyCardsAppVar", "STUDY", "84+");
+        studyCards.setContentFromString(R"({
+    "typeName": "StudyCardsAppVar",
+    "rawDataHex": "F347BFA7010000001400160018001A00010203004100420043004400"
+})");
+        const json studyCardsJSON = json::parse(studyCards.getReadableContent());
+        assert(studyCardsJSON["typeName"] == "StudyCardsAppVar");
+        assert(studyCardsJSON["version"] == 1);
+        assert(studyCardsJSON["cardCount"] == 0);
+        assert(studyCardsJSON["titles"][0] == "A");
+        assert(studyCardsJSON["titles"][3] == "D");
+    }
+
+    {
         TIVarFile testPython = TIVarFile::createNew("PythonAppVar", "TEST123", "83PCE");
         testPython.setContentFromString("from math import *\nprint(math)\n\n# plop");
         testPython.saveVarToFile("testData", "Pythontest_new");

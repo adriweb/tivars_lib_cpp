@@ -484,6 +484,7 @@ namespace tivars
         {
             entry.data_length2 = entry.data_length = (uint16_t) entry.data.size();
             this->header.entries_len += sizeof(var_entry_t::data_length) + sizeof(var_entry_t::data_length2) + entry.meta_length + entry.data_length;
+            entry.determineFullType();
             entry.version = (this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? std::get<2>(entry._type.getHandlers())(entry.data) : 0;
         }
         this->computedChecksum = this->computeChecksumFromInstanceData();
@@ -604,13 +605,10 @@ namespace tivars
         _type = TIVarType{typeID};
         if (_type.getName() == "AppVar")
         {
-            if (data.size() >= 6)
+            const std::string detectedTypeName = TypeHandlers::detectStructuredAppVarTypeName(data);
+            if (detectedTypeName != "AppVar")
             {
-                if (memcmp(&data[2], TypeHandlers::STH_PythonAppVar::ID_CODE, 4) == 0
-                 || memcmp(&data[2], TypeHandlers::STH_PythonAppVar::ID_SCRIPT, 4) == 0)
-                {
-                    _type = TIVarType{"PythonAppVar"};
-                }
+                _type = TIVarType{detectedTypeName};
             }
         }
     }
