@@ -971,6 +971,30 @@ End)";
     }
 
     {
+        TIVarFile backupVar = TIVarFile::createNew("Backup", "BACKUP", "84+");
+        backupVar.setContentFromString(R"({
+    "typeName": "Backup",
+    "addressOfData2": 4660,
+    "data1Hex": "01020304",
+    "data2Hex": "A0B0",
+    "data3Hex": "C1D2E3"
+})");
+        const json backupJSON = json::parse(backupVar.getReadableContent());
+        assert(backupJSON["typeName"] == "Backup");
+        assert(backupJSON["segmentCount"] == 3);
+        assert(backupJSON["addressOfData2"] == 4660);
+        assert(backupJSON["data1Hex"] == "01020304");
+        assert(backupJSON["data2Hex"] == "A0B0");
+        assert(backupJSON["data3Hex"] == "C1D2E3");
+
+        const std::string backupPath = backupVar.saveVarToFile("/tmp", "BACKUP");
+        TIVarFile reloadedBackup = TIVarFile::loadFromFile(backupPath);
+        assert(reloadedBackup.getVarEntries()[0]._type.getName() == "Backup");
+        assert(reloadedBackup.getReadableContent() == backupVar.getReadableContent());
+        assert(remove(backupPath.c_str()) == 0);
+    }
+
+    {
         TIVarFile testTheta = TIVarFile::createNew("Program", "θΘϴᶿ");
         uint8_t testThetaVarName[8] = {0x5B, 0x5B, 0x5B, 0x5B};
         const auto& firstVarEntry = testTheta.getVarEntries()[0];

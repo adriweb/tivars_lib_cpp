@@ -119,6 +119,30 @@ namespace tivars::TypeHandlers
         th();
     };
 
+    class TH_Backup : public DummyHandler
+    {
+    public:
+        struct backup_contents_t
+        {
+            bool hasData4 = false;
+            uint16_t addressOfData2 = 0;
+            data_t data1;
+            data_t data2;
+            data_t data3;
+            data_t data4;
+        };
+
+        th();
+        static backup_contents_t parseInternal(const data_t& data);
+        static data_t buildInternal(const backup_contents_t& contents);
+        static const constexpr uint16_t onFileMetaLength3 = 0x09;
+        static const constexpr uint16_t onFileMetaLength4 = 0x0B;
+        static const constexpr uint8_t internalSegmentCount3 = 3;
+        static const constexpr uint8_t internalSegmentCount4 = 4;
+        static const constexpr size_t internalHeaderByteCount3 = 9;
+        static const constexpr size_t internalHeaderByteCount4 = 11;
+    };
+
     class TH_Group : public DummyHandler
     {
     public:
