@@ -52,6 +52,23 @@ static void ltrim_program_whitespace(std::string& s)
     s.erase(0, pos);
 }
 
+static std::string get_first_command(const std::string& line)
+{
+    const std::string trimmedLine = tivars::trim(line);
+    if (trimmedLine.empty())
+    {
+        return "";
+    }
+
+    size_t endPos = trimmedLine.find(' ');
+    if (endPos == std::string::npos)
+    {
+        endPos = trimmedLine.find('(');
+    }
+
+    return tivars::trim(trimmedLine.substr(0, endPos));
+}
+
 namespace tivars::TypeHandlers
 {
     namespace
@@ -374,21 +391,7 @@ namespace tivars::TypeHandlers
         for (auto& line : lines)
         {
             oldFirstCommand = firstCommand;
-
-            std::string trimmedLine = trim(line.second);
-            if (!trimmedLine.empty()) {
-                char* trimmedLine_c = (char*) trimmedLine.c_str();
-                firstCommand = strtok(trimmedLine_c, " ");
-                firstCommand = trim(firstCommand);
-                trimmedLine = std::string(trimmedLine_c);
-                if (firstCommand == trimmedLine)
-                {
-                    firstCommand = strtok((char*)trimmedLine.c_str(), "(");
-                    firstCommand = trim(firstCommand);
-                }
-            } else {
-                firstCommand = "";
-            }
+            firstCommand = get_first_command(line.second);
 
             line.first = nextIndent;
 

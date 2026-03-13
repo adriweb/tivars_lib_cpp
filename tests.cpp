@@ -361,6 +361,17 @@ End)";
     }
 
     {
+        string test = "If A:Then\nDisp 1\nEnd";
+        const std::string reindented = TH_Tokenized::reindentCodeString(test);
+        cout << "Indented code:" << endl << reindented << endl;
+        const std::string expected = R"(If A
+Then
+   Disp 1
+End)";
+        assert(reindented == expected);
+    }
+
+    {
         string test = "u(𝒏-2):³√(9";
         const std::string reindented = TH_Tokenized::reindentCodeString(test);
         cout << "Indented code:" << endl << reindented << endl;
