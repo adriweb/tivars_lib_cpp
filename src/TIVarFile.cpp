@@ -42,15 +42,9 @@ namespace tivars
 
         std::string normalize_theta_chars(std::string name)
         {
-            const std::string theta[] = {"θ", "Θ", "ϴ", "ᶿ"};
-            for (const auto& token : theta)
+            for (const auto& token : {"θ", "Θ", "ϴ", "ᶿ"})
             {
-                size_t pos = 0;
-                while ((pos = name.find(token, pos)) != std::string::npos)
-                {
-                    name.replace(pos, token.size(), "[");
-                    pos += 1;
-                }
+                replace_all(name, token, "[");
             }
             return name;
         }
