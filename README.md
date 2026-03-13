@@ -62,17 +62,24 @@ You can find code that use this project as a JS lib here: https://github.com/TI-
 | Window Settings           | **✓** (JSON) | **✓** (JSON) |
 | Recall Window             | **✓** (JSON) | **✓** (JSON) |
 | Table Range               | **✓** (JSON) | **✓** (JSON) |
+| Picture                   | **✓** (JSON metadata) |              |
+| Image                     | **✓** (JSON metadata) |              |
 | Application Variable      |    **✓**     |    **✓**     |
 | Python AppVar             |    **✓**     |    **✓**     |
-| Exact Complex Fraction    |    **✓**     |              |
-| Exact Real Radical        |    **✓**     |              |
-| Exact Complex Radical     |    **✓**     |              |
-| Exact Complex Pi          |    **✓**     |              |
-| Exact Complex Pi Fraction |    **✓**     |              |
-| Exact Real Pi             |    **✓**     |              |
-| Exact Real Pi Fraction    |    **✓**     |              |
+| Group Object              | **✓** (JSON) | **✓** (JSON) |
+| Exact Complex Fraction    |    **✓**     |    **✓**     |
+| Exact Real Radical        |    **✓**     |    **✓**     |
+| Exact Complex Radical     |    **✓**     |    **✓**     |
+| Exact Complex Pi          |    **✓**     |    **✓**     |
+| Exact Complex Pi Fraction |    **✓**     |    **✓**     |
+| Exact Real Pi             |    **✓**     |    **✓**     |
+| Exact Real Pi Fraction    |    **✓**     |    **✓**     |
+| Operating System / Flash App / Certificate | **✓** (JSON metadata) |              |
 
 Special vartype naming rules are implemented for constrained names such as strings, lists, matrices, equations, pictures, images, GDBs, and settings vars.
+
+Picture/image support is currently read-only and exposes metadata as JSON; raw pixel import/export is not implemented.
+Flash file support is currently read-only and exposes header/object metadata as JSON.
 
 To this date, there are no plans to support other types (except maybe some fancy things with the image/picture vartypes...).  
 Pull Requests are welcome, though :)
