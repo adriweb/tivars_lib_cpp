@@ -71,6 +71,18 @@ int main(int argc, char** argv)
         assert(flashOsJSON["devices"][0]["typeId"] == 0x23);
         assert(flashOsJSON["productId"] == 0x13);
         assert(flashOsJSON["calcDataSize"] == 644962);
+        assert(flashOsJSON.contains("fields"));
+        assert(flashOsJSON["fields"].is_array());
+        assert(flashOsJSON["fields"].size() >= 2);
+        assert(flashOsJSON["fields"][0]["idHex"] == "800");
+        assert(flashOsJSON["fields"][0]["name"] == "Master");
+        assert(flashOsJSON["fields"][0].contains("fields"));
+        assert(flashOsJSON["fields"][0]["fields"][1]["idHex"] == "802");
+        assert(flashOsJSON["fields"][0]["fields"][1]["name"] == "Revision");
+        assert(flashOsJSON["fields"][0]["fields"][1]["rawDataHex"] == "05");
+        assert(flashOsJSON["fields"][1]["idHex"] == "023");
+        assert(flashOsJSON["fields"][1]["name"] == "CE signature");
+        assert(!flashOsJSON.contains("fieldsError"));
 
         TIFlashFile flashApp = TIFlashFile::loadFromFile("testData/smartpad.8xk");
         const json flashAppJSON = json::parse(flashApp.getReadableContent());
