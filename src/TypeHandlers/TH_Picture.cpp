@@ -10,6 +10,7 @@
 #include "../json.hpp"
 #include "../tivarslib_utils.h"
 
+#include <cctype>
 #include <stdexcept>
 
 using json = nlohmann::json;
@@ -26,14 +27,51 @@ namespace tivars::TypeHandlers
             }
             return static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8);
         }
+
+        data_t parse_hex_string(const std::string& str, const char* fieldName)
+        {
+            if (str.size() % 2 != 0)
+            {
+                throw std::invalid_argument(std::string(fieldName) + " must contain an even number of hex digits");
+            }
+
+            for (char c : str)
+            {
+                if (!std::isxdigit(static_cast<unsigned char>(c)))
+                {
+                    throw std::invalid_argument(std::string(fieldName) + " must be valid hexadecimal");
+                }
+            }
+
+            data_t data;
+            data.reserve(str.size() / 2);
+            for (size_t i = 0; i < str.size(); i += 2)
+            {
+                data.push_back(hexdec(str.substr(i, 2)));
+            }
+            return data;
+        }
     }
 
     data_t TH_Picture::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
-        (void)str;
         (void)options;
-        (void)_ctx;
-        throw std::runtime_error("Picture/Image string -> data is not supported in tivars_lib_cpp without an image library");
+
+        const json j = json::parse(str);
+        if (!j.is_object() || !j.contains("rawDataHex"))
+        {
+            throw std::runtime_error("Picture/Image string -> data requires a JSON object with rawDataHex");
+        }
+
+        data_t data = parse_hex_string(j.at("rawDataHex").get<std::string>(), "rawDataHex");
+        const json parsed = json::parse(makeStringFromData(data, {}, _ctx));
+
+        if (j.contains("typeName") && j.at("typeName").get<std::string>() != parsed.at("typeName").get<std::string>())
+        {
+            throw std::invalid_argument("rawDataHex does not match the requested picture/image type");
+        }
+
+        return data;
     }
 
     std::string TH_Picture::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
