@@ -1602,6 +1602,7 @@ End)";
 
     {
         TIVarFile recallWindow = TIVarFile::loadFromFile("testData/RecallWindow.8xz");
+        assert(entry_name_to_string(recallWindow.getVarEntries()[0]._type, recallWindow.getVarEntries()[0].varname) == "RclWindw");
         const json recallWindowJSON = json::parse(recallWindow.getReadableContent());
         assert(recallWindowJSON["Xmin"] == -10.0);
         assert(recallWindowJSON["Xmax"] == 10.0);
