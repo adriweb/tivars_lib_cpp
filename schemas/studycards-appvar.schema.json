@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StudyCardsAppVar",
+  "type": "object",
+  "definitions": {
+    "hexString": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]*$"
+    }
+  },
+  "properties": {
+    "typeName": {
+      "const": "StudyCardsAppVar"
+    },
+    "subtype": {
+      "const": "StudyCards"
+    },
+    "magic": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "flags": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "usesLevels": {
+      "type": "boolean",
+      "readOnly": true
+    },
+    "selfCheck": {
+      "type": "boolean",
+      "readOnly": true
+    },
+    "titleOffsets": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "readOnly": true
+    },
+    "levelCount": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "correctReward": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "incorrectPenalty": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "skipPenalty": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "cardCount": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "cardOffsets": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "readOnly": true
+    },
+    "titles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "readOnly": true
+    },
+    "rawDataHex": {
+      "$ref": "#/definitions/hexString"
+    }
+  },
+  "required": ["rawDataHex"],
+  "additionalProperties": false
+}

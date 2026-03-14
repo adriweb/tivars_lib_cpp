@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GroupObject",
+  "type": "object",
+  "definitions": {
+    "hexString": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]*$"
+    },
+    "entry": {
+      "type": "object",
+      "properties": {
+        "typeName": {
+          "type": "string"
+        },
+        "typeId": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "groupTypeByte": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nameHex": {
+          "$ref": "#/definitions/hexString"
+        },
+        "rawDataHex": {
+          "$ref": "#/definitions/hexString"
+        },
+        "readableContent": {}
+      },
+      "anyOf": [
+        { "required": ["typeName"] },
+        { "required": ["typeId"] },
+        { "required": ["groupTypeByte"] }
+      ],
+      "allOf": [
+        {
+          "anyOf": [
+            { "required": ["rawDataHex"] },
+            { "required": ["readableContent"] }
+          ]
+        }
+      ],
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/entry"
+      }
+    }
+  },
+  "required": ["entries"],
+  "additionalProperties": false
+}

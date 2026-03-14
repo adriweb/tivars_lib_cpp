@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PythonModuleAppVar",
+  "type": "object",
+  "definitions": {
+    "hexString": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]*$"
+    }
+  },
+  "properties": {
+    "typeName": {
+      "const": "PythonModuleAppVar"
+    },
+    "subtype": {
+      "const": "PythonModule"
+    },
+    "magic": {
+      "const": "PYMP"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "menuDefinitions": {
+      "type": "string"
+    },
+    "menuDefinitionsHex": {
+      "$ref": "#/definitions/hexString"
+    },
+    "menuDefinitionsLength": {
+      "type": "integer",
+      "minimum": 0,
+      "readOnly": true
+    },
+    "menuDefinitionsNullTerminated": {
+      "type": "boolean"
+    },
+    "compiledDataHex": {
+      "$ref": "#/definitions/hexString"
+    },
+    "rawDataHex": {
+      "$ref": "#/definitions/hexString"
+    }
+  },
+  "additionalProperties": false
+}

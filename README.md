@@ -90,5 +90,6 @@ Special vartype naming rules are implemented for constrained names such as strin
 Picture/image support exposes metadata as JSON and supports `rawDataHex` import/export for exact roundtrips; raw pixel decoding/encoding is still not implemented.
 Flash file support exposes header/object metadata as JSON and supports JSON -> file reconstruction, including multi-header files.
 Structured AppVar support includes generic subtype detection from raw data / JSON for Python modules, Python images, StudyCards, StudyCards settings, CellSheet, CellSheet state, CabriJr, and Notefolio payloads.
+JSON schemas for the JSON-compatible formats are available in `schemas/`.
 
 Big thanks to @LogicalJoe for his research in https://github.com/TI-Toolkit/tivars_hexfiend_templates/

@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TableRange",
+  "type": "object",
+  "properties": {
+    "TblMin": {
+      "type": ["integer", "number", "string"]
+    },
+    "DeltaTbl": {
+      "type": ["integer", "number", "string"]
+    }
+  },
+  "required": ["TblMin", "DeltaTbl"],
+  "additionalProperties": false
+}

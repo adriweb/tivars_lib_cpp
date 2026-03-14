@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CellSheetStateAppVar",
+  "type": "object",
+  "definitions": {
+    "hexString": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]*$"
+    }
+  },
+  "properties": {
+    "typeName": {
+      "const": "CellSheetStateAppVar"
+    },
+    "subtype": {
+      "const": "CellSheetState"
+    },
+    "magic": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 8
+    },
+    "flags": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "displayHelp": {
+      "type": "boolean"
+    },
+    "displayEquationPreview": {
+      "type": "boolean"
+    },
+    "number": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "payloadHex": {
+      "$ref": "#/definitions/hexString"
+    },
+    "rawDataHex": {
+      "$ref": "#/definitions/hexString"
+    }
+  },
+  "additionalProperties": false
+}

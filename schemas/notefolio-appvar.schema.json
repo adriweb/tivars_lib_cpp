@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NotefolioAppVar",
+  "type": "object",
+  "definitions": {
+    "hexString": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]*$"
+    }
+  },
+  "properties": {
+    "typeName": {
+      "const": "NotefolioAppVar"
+    },
+    "subtype": {
+      "const": "Notefolio"
+    },
+    "magic": {
+      "type": "string"
+    },
+    "reservedHex": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{8}$"
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 8
+    },
+    "storedTextLength": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "headerUnknownHex": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{12}$"
+    },
+    "text": {
+      "type": "string"
+    },
+    "textNullTerminated": {
+      "type": "boolean"
+    },
+    "textDataHex": {
+      "$ref": "#/definitions/hexString"
+    },
+    "trailingDataHex": {
+      "$ref": "#/definitions/hexString"
+    },
+    "rawDataHex": {
+      "$ref": "#/definitions/hexString"
+    }
+  },
+  "additionalProperties": false
+}
