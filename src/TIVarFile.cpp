@@ -145,7 +145,18 @@ namespace tivars
                 {
                     return true;
                 }
-                return false;
+                if (name.size() > 6 || std::isdigit(static_cast<unsigned char>(name[1])))
+                {
+                    return false;
+                }
+                for (size_t i = 1; i < name.size(); i++)
+                {
+                    if (!is_name_char(name[i]))
+                    {
+                        return false;
+                    }
+                }
+                return true;
             }
             const std::string upperName = uppercase_ascii(name);
             if (upperName == "IDLIST")
@@ -169,7 +180,7 @@ namespace tivars
                     return false;
                 }
             }
-            name = upperName;
+            name = std::string(1, static_cast<char>(0x5D)) + upperName;
             return true;
         }
 
