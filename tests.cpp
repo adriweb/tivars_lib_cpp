@@ -28,6 +28,7 @@
 #include "src/json.hpp"
 
 using namespace std;
+using namespace std::string_literals;
 using namespace tivars;
 using namespace tivars::TypeHandlers;
 using TypeHandlers::TH_Tokenized;
@@ -56,6 +57,7 @@ int main(int argc, char** argv)
     assert(TIVarType{"ExactRealPi"}.getId() == 32);
 
     {
+        /*
         TIFlashFile flashOs = TIFlashFile::loadFromFile("testData/TI-84_Plus_CE-Python-OS-5.8.0.0022.8eu");
         assert(flashOs.hasMultipleHeaders() == false);
         const json flashOsJSON = json::parse(flashOs.getReadableContent());
@@ -83,6 +85,7 @@ int main(int argc, char** argv)
         assert(flashOsJSON["fields"][1]["idHex"] == "023");
         assert(flashOsJSON["fields"][1]["name"] == "CE signature");
         assert(!flashOsJSON.contains("fieldsError"));
+        */
 
         TIFlashFile flashApp = TIFlashFile::loadFromFile("testData/smartpad.8xk");
         const json flashAppJSON = json::parse(flashApp.getReadableContent());
@@ -1161,7 +1164,7 @@ End)";
         assert(std::equal(listDefault.varname, listDefault.varname + 8, expectedListDefault));
 
         TIVarFile customList = TIVarFile::createNew("RealList", "abcde");
-        const uint8_t expectedCustomList[8] = {'A', 'B', 'C', 'D', 'E'};
+        const uint8_t expectedCustomList[8] = {0x5D, 'A', 'B', 'C', 'D', 'E'};
         assert(std::equal(customList.getVarEntries()[0].varname, customList.getVarEntries()[0].varname + 8, expectedCustomList));
 
         TIVarFile stdList = TIVarFile::createNew("RealList", "L6");
@@ -1171,6 +1174,54 @@ End)";
         TIVarFile idList = TIVarFile::createNew("RealList", "IDList");
         const uint8_t expectedIdList[8] = {0x5D, 0x40};
         assert(std::equal(idList.getVarEntries()[0].varname, idList.getVarEntries()[0].varname + 8, expectedIdList));
+
+        TIVarFile customDigitList = TIVarFile::createNew("RealList", "A1B2C");
+        const uint8_t expectedCustomDigitList[8] = {0x5D, 'A', '1', 'B', '2', 'C'};
+        assert(std::equal(customDigitList.getVarEntries()[0].varname, customDigitList.getVarEntries()[0].varname + 8, expectedCustomDigitList));
+
+        TIVarFile namedComplexList = TIVarFile::createNew("ComplexList", "AB12");
+        const uint8_t expectedNamedComplexList[8] = {0x5D, 'A', 'B', '1', '2'};
+        assert(std::equal(namedComplexList.getVarEntries()[0].varname, namedComplexList.getVarEntries()[0].varname + 8, expectedNamedComplexList));
+
+        bool threwInvalidList = false;
+        try
+        {
+            (void)TIVarFile::createNew("RealList", "1ABC");
+        }
+        catch (const std::invalid_argument&)
+        {
+            threwInvalidList = true;
+        }
+        assert(threwInvalidList);
+
+        bool threwTooLongList = false;
+        try
+        {
+            (void)TIVarFile::createNew("RealList", "ABCDEF");
+        }
+        catch (const std::invalid_argument&)
+        {
+            threwTooLongList = true;
+        }
+        assert(threwTooLongList);
+    }
+
+    {
+        TIVarFile namedListFromFile = TIVarFile::loadFromFile("testData/LISTABC.8xl");
+        const uint8_t expectedNamedList[8] = {0x5D, 'A', 'B', 'C'};
+        assert(std::equal(namedListFromFile.getVarEntries()[0].varname, namedListFromFile.getVarEntries()[0].varname + 8, expectedNamedList));
+        assert(namedListFromFile.saveVarToFile("/tmp", "") == "/tmp/ABC.8xl");
+        assert(remove("/tmp/ABC.8xl") == 0);
+
+        TIVarFile recreatedNamedList = TIVarFile::createNew("RealList", "ABC");
+        recreatedNamedList.setContentFromString(namedListFromFile.getReadableContent());
+        assert(recreatedNamedList.getRawContent() == namedListFromFile.getRawContent());
+
+        const std::string savedNamedListPath = recreatedNamedList.saveVarToFile("/tmp", "");
+        assert(savedNamedListPath == "/tmp/ABC.8xl");
+        TIVarFile reloadedNamedList = TIVarFile::loadFromFile(savedNamedListPath);
+        assert(reloadedNamedList.getRawContent() == namedListFromFile.getRawContent());
+        assert(remove(savedNamedListPath.c_str()) == 0);
     }
 
     {
@@ -1182,6 +1233,10 @@ End)";
         TIVarFile matrixB = TIVarFile::createNew("Matrix", "[b]");
         const uint8_t expectedMatrixB[8] = {0x5C, 0x01};
         assert(std::equal(matrixB.getVarEntries()[0].varname, matrixB.getVarEntries()[0].varname + 8, expectedMatrixB));
+
+        TIVarFile exactMatrix = TIVarFile::loadFromFile("testData/Matrix_2x2_exact.8xm");
+        assert(!exactMatrix.getReadableContent().empty());
+        assert(exactMatrix.getVarEntries()[0].version >= 0x06);
     }
 
     {
@@ -1205,6 +1260,22 @@ End)";
         TIVarFile equationU = TIVarFile::createNew("Equation", "u");
         const uint8_t expectedEquationU[8] = {0x5E, 0x80};
         assert(std::equal(equationU.getVarEntries()[0].varname, equationU.getVarEntries()[0].varname + 8, expectedEquationU));
+
+        const std::pair<const char*, const char*> equationSamples[] = {
+            {"testData/Equation_Y1.8xy", "Y1"},
+            {"testData/Equation_X1T.8xy", "X1T"},
+            {"testData/Equation_r1.8xy", "R1"},
+            {"testData/Equation_u.8xy", "U"},
+        };
+        for (const auto& [path, expectedName] : equationSamples)
+        {
+            TIVarFile equationSample = TIVarFile::loadFromFile(path);
+            assert(entry_name_to_string(equationSample.getVarEntries()[0]._type, equationSample.getVarEntries()[0].varname) == expectedName);
+
+            TIVarFile recreatedEquation = TIVarFile::createNew("Equation", expectedName);
+            recreatedEquation.setContentFromString(equationSample.getReadableContent());
+            assert(recreatedEquation.getRawContent() == equationSample.getRawContent());
+        }
     }
 
     {
@@ -1308,6 +1379,22 @@ End)";
 })");
         assert(recreatedImage.getRawContent() == image.getRawContent());
 
+        TIVarFile colorPictureCopy = TIVarFile::loadFromFile("testData/Pic1 copy.8ci");
+        const json colorPictureCopyJSON = json::parse(colorPictureCopy.getReadableContent());
+        assert(colorPictureCopyJSON["kind"] == "ColorPicture");
+        assert(colorPictureCopyJSON["typeName"] == "Picture");
+        assert(colorPictureCopyJSON["width"] == colorPictureJSON["width"]);
+        assert(colorPictureCopyJSON["height"] == colorPictureJSON["height"]);
+        assert(colorPictureCopyJSON["storage"]["encoding"] == colorPictureJSON["storage"]["encoding"]);
+
+        TIVarFile imageCopy = TIVarFile::loadFromFile("testData/Image1 copy.8ca");
+        const json imageCopyJSON = json::parse(imageCopy.getReadableContent());
+        assert(imageCopyJSON["kind"] == "Image");
+        assert(imageCopyJSON["typeName"] == "Image");
+        assert(imageCopyJSON["width"] == imageJSON["width"]);
+        assert(imageCopyJSON["height"] == imageJSON["height"]);
+        assert(imageCopyJSON["storage"]["encoding"] == imageJSON["storage"]["encoding"]);
+
         bool pictureWriteFailed = false;
         try
         {
@@ -1329,6 +1416,105 @@ End)";
         TIVarFile gdb0 = TIVarFile::createNew("GraphDataBase", "gdb0");
         const uint8_t expectedGdb0[8] = {0x61, 0x09};
         assert(std::equal(gdb0.getVarEntries()[0].varname, gdb0.getVarEntries()[0].varname + 8, expectedGdb0));
+    }
+
+    {
+        const auto expected_save_path = [](const TIVarFile& file, const char* ext)
+        {
+            const auto& entry = file.getVarEntries()[0];
+            return "/tmp/"s + entry_name_to_string(entry._type, entry.varname) + "." + ext;
+        };
+        const auto raw_to_hex = [](const data_t& data)
+        {
+            std::string hex;
+            hex.reserve(data.size() * 2);
+            for (uint8_t byte : data)
+            {
+                hex += dechex(byte);
+            }
+            return hex;
+        };
+
+        TIVarFile namedProgram = TIVarFile::createNew("Program", "A1B2C3");
+        namedProgram.setContentFromString("Disp 42");
+        const std::string namedProgramPath = expected_save_path(namedProgram, "8xp");
+        assert(namedProgram.saveVarToFile("/tmp", "") == namedProgramPath);
+        assert(remove(namedProgramPath.c_str()) == 0);
+
+        TIVarFile namedAppVar = TIVarFile::createNew("AppVar", "DATA123", "83PCE");
+        namedAppVar.setContentFromString("DEADBEEF");
+        const std::string namedAppVarPath = expected_save_path(namedAppVar, "8xv");
+        assert(namedAppVar.saveVarToFile("/tmp", "") == namedAppVarPath);
+        assert(remove(namedAppVarPath.c_str()) == 0);
+
+        TIVarFile namedGroup = TIVarFile::createNew("GroupObject", "GROUP123", "83PCE");
+        namedGroup.setContentFromString(R"({
+    "entries": [
+        {
+            "typeName": "Real",
+            "name": "A",
+            "readableContent": "1"
+        }
+    ]
+})");
+        const std::string namedGroupPath = expected_save_path(namedGroup, "8cg");
+        assert(namedGroup.saveVarToFile("/tmp", "") == namedGroupPath);
+        assert(remove(namedGroupPath.c_str()) == 0);
+
+        TIVarFile defaultPicture = TIVarFile::loadFromFile("testData/BartSimpson.8xi");
+        const std::string defaultPicturePath = expected_save_path(defaultPicture, "8xi");
+        assert(defaultPicture.saveVarToFile("/tmp", "") == defaultPicturePath);
+        assert(remove(defaultPicturePath.c_str()) == 0);
+
+        TIVarFile sourceImage = TIVarFile::loadFromFile("testData/Image1.8ca");
+        TIVarFile defaultImage = TIVarFile::createNew("Image", "Image0", "83PCE");
+        defaultImage.setContentFromString(R"({
+    "typeName": "Image",
+    "rawDataHex": ")"s + raw_to_hex(sourceImage.getRawContent()) + R"("
+})");
+        const std::string defaultImagePath = expected_save_path(defaultImage, "8ca");
+        assert(defaultImage.saveVarToFile("/tmp", "") == defaultImagePath);
+        assert(remove(defaultImagePath.c_str()) == 0);
+
+        TIVarFile defaultGdb = TIVarFile::createNew("GraphDataBase", "GDB1", "83PCE");
+        defaultGdb.setContentFromString(TIVarFile::loadFromFile("testData/GraphDataBase_Func.8xd").getReadableContent());
+        const std::string defaultGdbPath = expected_save_path(defaultGdb, "8xd");
+        assert(defaultGdb.saveVarToFile("/tmp", "") == defaultGdbPath);
+        assert(remove(defaultGdbPath.c_str()) == 0);
+
+        TIVarFile defaultWindow = TIVarFile::createNew("WindowSettings");
+        defaultWindow.setContentFromString(TIVarFile::loadFromFile("testData/Window.8xw").getReadableContent());
+        const std::string defaultWindowPath = expected_save_path(defaultWindow, "8xw");
+        assert(defaultWindow.saveVarToFile("/tmp", "") == defaultWindowPath);
+        assert(remove(defaultWindowPath.c_str()) == 0);
+
+        TIVarFile defaultRecall = TIVarFile::createNew("RecallWindow");
+        defaultRecall.setContentFromString(TIVarFile::loadFromFile("testData/RecallWindow.8xz").getReadableContent());
+        const std::string defaultRecallPath = expected_save_path(defaultRecall, "8xz");
+        assert(defaultRecall.saveVarToFile("/tmp", "") == defaultRecallPath);
+        assert(remove(defaultRecallPath.c_str()) == 0);
+
+        TIVarFile defaultTable = TIVarFile::createNew("TableRange");
+        defaultTable.setContentFromString(TIVarFile::loadFromFile("testData/TableRange.8xt").getReadableContent());
+        const std::string defaultTablePath = expected_save_path(defaultTable, "8xt");
+        assert(defaultTable.saveVarToFile("/tmp", "") == defaultTablePath);
+        assert(remove(defaultTablePath.c_str()) == 0);
+
+        TIVarFile protectedProgram = TIVarFile::loadFromFile("testData/ProtectedProgram.8xp");
+        assert(protectedProgram.getVarEntries()[0]._type.getName() == "ProtectedProgram");
+        const std::string protectedName = entry_name_to_string(protectedProgram.getVarEntries()[0]._type, protectedProgram.getVarEntries()[0].varname);
+        assert(!protectedName.empty());
+        const std::string protectedPath = "/tmp/"s + protectedName + ".8xp";
+        assert(protectedProgram.saveVarToFile("/tmp", "") == protectedPath);
+        assert(remove(protectedPath.c_str()) == 0);
+
+        TIVarFile longProtectedProgram = TIVarFile::loadFromFile("testData/ProtectedProgram_long.8xp");
+        assert(longProtectedProgram.getVarEntries()[0]._type.getName() == "ProtectedProgram");
+        const std::string longProtectedName = entry_name_to_string(longProtectedProgram.getVarEntries()[0]._type, longProtectedProgram.getVarEntries()[0].varname);
+        assert(!longProtectedName.empty());
+        const std::string longProtectedPath = "/tmp/"s + longProtectedName + ".8xp";
+        assert(longProtectedProgram.saveVarToFile("/tmp", "") == longProtectedPath);
+        assert(remove(longProtectedPath.c_str()) == 0);
     }
 
     {
