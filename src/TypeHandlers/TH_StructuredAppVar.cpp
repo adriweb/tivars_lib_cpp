@@ -18,6 +18,7 @@
 #include <cstring>
 #include <stdexcept>
 
+using namespace std::string_literals;
 using json = nlohmann::json;
 
 namespace tivars::TypeHandlers
@@ -136,7 +137,7 @@ namespace tivars::TypeHandlers
         {
             if (pos >= data.size())
             {
-                throw std::invalid_argument(std::string("Unexpected end of structured AppVar while reading ") + fieldName);
+                throw std::invalid_argument("Unexpected end of structured AppVar while reading "s + fieldName);
             }
             return data[pos++];
         }
@@ -145,7 +146,7 @@ namespace tivars::TypeHandlers
         {
             if (pos + 1 >= data.size())
             {
-                throw std::invalid_argument(std::string("Unexpected end of structured AppVar while reading ") + fieldName);
+                throw std::invalid_argument("Unexpected end of structured AppVar while reading "s + fieldName);
             }
             const uint16_t value = static_cast<uint16_t>(data[pos]) | (static_cast<uint16_t>(data[pos + 1]) << 8);
             pos += 2;
@@ -156,7 +157,7 @@ namespace tivars::TypeHandlers
         {
             if (pos + 2 >= data.size())
             {
-                throw std::invalid_argument(std::string("Unexpected end of structured AppVar while reading ") + fieldName);
+                throw std::invalid_argument("Unexpected end of structured AppVar while reading "s + fieldName);
             }
             const uint32_t value = static_cast<uint32_t>(data[pos])
                                  | (static_cast<uint32_t>(data[pos + 1]) << 8)
@@ -169,7 +170,7 @@ namespace tivars::TypeHandlers
         {
             if (pos + length > data.size())
             {
-                throw std::invalid_argument(std::string("Unexpected end of structured AppVar while reading ") + fieldName);
+                throw std::invalid_argument("Unexpected end of structured AppVar while reading "s + fieldName);
             }
 
             std::string value(data.begin() + static_cast<ptrdiff_t>(pos), data.begin() + static_cast<ptrdiff_t>(pos + length));

@@ -15,6 +15,8 @@
 #include <sstream>
 #include <stdexcept>
 
+using namespace std::string_literals;
+
 namespace
 {
     int parseRadicalPartValue(const std::string& str)
@@ -118,9 +120,9 @@ namespace tivars::TypeHandlers
         }
 
         int leftScalar = parseRadicalPartValue(left.substr(0, leftRootPos));
-        int leftRadicand = std::stoi(left.substr(leftRootPos + std::string("√").size()));
+        int leftRadicand = std::stoi(left.substr(leftRootPos + "√"s.size()));
         int rightScalar = parseRadicalPartValue(right.substr(0, rightRootPos));
-        int rightRadicand = std::stoi(right.substr(rightRootPos + std::string("√").size()));
+        int rightRadicand = std::stoi(right.substr(rightRootPos + "√"s.size()));
         int denominator = std::stoi(denominatorString);
 
         if (leftRadicand < 0 || rightRadicand < 0)

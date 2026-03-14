@@ -16,6 +16,7 @@
 #include <cctype>
 #include <stdexcept>
 
+using namespace std::string_literals;
 using json = nlohmann::json;
 
 namespace tivars::TypeHandlers
@@ -26,7 +27,7 @@ namespace tivars::TypeHandlers
         {
             if (offset + 1 >= data.size())
             {
-                throw std::invalid_argument(std::string("Invalid backup data. Missing ") + fieldName);
+                throw std::invalid_argument("Invalid backup data. Missing "s + fieldName);
             }
             return static_cast<uint16_t>(data[offset]) | (static_cast<uint16_t>(data[offset + 1]) << 8);
         }

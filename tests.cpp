@@ -402,7 +402,7 @@ int main(int argc, char** argv)
         for (int i=0; i<9; i++) {
             assert(entries[i].typeID == TIVarType{"AppVar"}.getId());
         }
-        assert((char*)entries[1].varname == std::string("GRAPHX"));
+        assert((char*)entries[1].varname == "GRAPHX"s);
         cout << clibs.getReadableContent() << "\n" << endl;
     }
 

@@ -10,6 +10,8 @@
 #include <cmath>
 #include <cstring>
 
+using namespace std::string_literals;
+
 namespace tivars
 {
 
@@ -329,7 +331,7 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
     {
         if (second <= 0x05)
         {
-            return std::string("L") + static_cast<char>('1' + second);
+            return "L"s + static_cast<char>('1' + second);
         }
         if (second == 0x40)
         {
@@ -343,7 +345,7 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
 
     if (typeId == 0x02 && first == 0x5C && second <= 0x09)
     {
-        return std::string("[") + static_cast<char>('A' + second) + "]";
+        return "["s + static_cast<char>('A' + second) + "]";
     }
 
     if ((typeId == 0x03 || typeId == 0x0B) && first == 0x5E)
@@ -351,7 +353,7 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
         if (second >= 0x10 && second <= 0x19)
         {
             const char digit = second == 0x19 ? '0' : static_cast<char>('1' + (second - 0x10));
-            return std::string("Y") + digit;
+            return "Y"s + digit;
         }
         if (second >= 0x20 && second <= 0x2B)
         {
@@ -361,7 +363,7 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
         }
         if (second >= 0x40 && second <= 0x45)
         {
-            return std::string("R") + static_cast<char>('1' + (second - 0x40));
+            return "R"s + static_cast<char>('1' + (second - 0x40));
         }
         if (second >= 0x80 && second <= 0x82)
         {
@@ -372,19 +374,19 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
     if (typeId == 0x04 && first == 0xAA)
     {
         const char digit = second == 9 ? '0' : static_cast<char>('1' + second);
-        return std::string("Str") + digit;
+        return "Str"s + digit;
     }
 
     if (typeId == 0x07 && first == 0x60)
     {
         const char digit = second == 9 ? '0' : static_cast<char>('1' + second);
-        return std::string("Pic") + digit;
+        return "Pic"s + digit;
     }
 
     if (typeId == 0x08 && first == 0x61)
     {
         const char digit = second == 9 ? '0' : static_cast<char>('1' + second);
-        return std::string("GDB") + digit;
+        return "GDB"s + digit;
     }
 
     if (typeId == 0x0F)
@@ -403,7 +405,7 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
     if (typeId == 0x1A && first == 0x3C)
     {
         const char digit = second == 9 ? '0' : static_cast<char>('1' + second);
-        return std::string("Image") + digit;
+        return "Image"s + digit;
     }
 
     if (typeId == 0x05 || typeId == 0x06 || typeId == 0x15 || typeId == 0x17 || typeId == 0x26)
