@@ -10,6 +10,7 @@
 
 #include <stdexcept>
 
+using namespace std::string_literals;
 using json = nlohmann::json;
 
 namespace tivars::TypeHandlers
@@ -84,7 +85,7 @@ namespace tivars::TypeHandlers
             const json settings = json::parse(str);
             if (!settings.is_object())
             {
-                throw std::invalid_argument((type == typeWindowSettings ? "WindowSettings" : "RecallWindow") + std::string(" JSON must be an object"));
+                throw std::invalid_argument((type == typeWindowSettings ? "WindowSettings"s : "RecallWindow"s) + " JSON must be an object");
             }
 
             data_t data = (type == typeWindowSettings)
@@ -132,7 +133,7 @@ namespace tivars::TypeHandlers
             if ((isWindowSettings && !std::equal(windowSettingsHeader, windowSettingsHeader + windowSettingsHeaderByteCount, data.begin()))
                 || (!isWindowSettings && !std::equal(recallWindowHeader, recallWindowHeader + recallWindowHeaderByteCount, data.begin())))
             {
-                throw std::invalid_argument(std::string("Invalid ") + (isWindowSettings ? "WindowSettings" : "RecallWindow") + " data header");
+                throw std::invalid_argument("Invalid "s + (isWindowSettings ? "WindowSettings" : "RecallWindow") + " data header");
             }
 
             json settings;

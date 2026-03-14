@@ -23,6 +23,7 @@
 #include <cstring>
 #include <array>
 
+using namespace std::string_literals;
 using json = nlohmann::json;
 
 static size_t strlen_mb(const std::string& s)
@@ -76,17 +77,17 @@ static std::string prettify_token_string(std::string str)
 {
     for (char c = 'a'; c <= 'f'; c++)
     {
-        tivars::replace_all(str, std::string("[|") + c + "]", std::string(1, c));
+        tivars::replace_all(str, "[|"s + c + "]", std::string(1, c));
     }
 
-    for (char c : std::string("prszt"))
+    for (char c : "prszt"s)
     {
-        tivars::replace_all(str, std::string("[") + c + "]", std::string(1, c));
+        tivars::replace_all(str, "["s + c + "]", std::string(1, c));
     }
 
-    for (char c : std::string("uvw"))
+    for (char c : "uvw"s)
     {
-        tivars::replace_all(str, std::string("|") + c, std::string(1, c));
+        tivars::replace_all(str, "|"s + c, std::string(1, c));
     }
 
     return str;
