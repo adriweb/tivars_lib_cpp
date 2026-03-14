@@ -3,6 +3,10 @@
  * (C) 2015-2026 Adrien "Adriweb" Bertrand
  * https://github.com/adriweb/tivars_lib_cpp
  * License: MIT
+ *
+ * This code has been mostly possible thanks to LogicalJoe's research on
+ * https://github.com/TI-Toolkit/tivars_hexfiend_templates/
+ * and kg583's on https://github.com/TI-Toolkit/tivars_lib_py
  */
 
 #include "TIFlashFile.h"
@@ -11,6 +15,7 @@
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
+#include <ctime>
 
 #include "TIModels.h"
 #include "json.hpp"
@@ -24,12 +29,274 @@ namespace tivars
 
     namespace
     {
+        uint16_t read_be16(const data_t& data, size_t offset)
+        {
+            return static_cast<uint16_t>((data[offset] << 8) | data[offset + 1]);
+        }
+
+        uint32_t read_be32(const data_t& data, size_t offset)
+        {
+            return (static_cast<uint32_t>(data[offset]) << 24)
+                 | (static_cast<uint32_t>(data[offset + 1]) << 16)
+                 | (static_cast<uint32_t>(data[offset + 2]) << 8)
+                 | static_cast<uint32_t>(data[offset + 3]);
+        }
+
         uint32_t read_le32(const data_t& data, size_t offset)
         {
             return static_cast<uint32_t>(data[offset])
                  | (static_cast<uint32_t>(data[offset + 1]) << 8)
                  | (static_cast<uint32_t>(data[offset + 2]) << 16)
                  | (static_cast<uint32_t>(data[offset + 3]) << 24);
+        }
+
+        uint32_t read_le24(const data_t& data, size_t offset)
+        {
+            return static_cast<uint32_t>(data[offset])
+                 | (static_cast<uint32_t>(data[offset + 1]) << 8)
+                 | (static_cast<uint32_t>(data[offset + 2]) << 16);
+        }
+
+        std::string to_hex_string(const data_t& data, size_t offset = 0, size_t length = std::string::npos)
+        {
+            const size_t end = std::min(data.size(), offset + (length == std::string::npos ? data.size() : length));
+            std::string out;
+            for (size_t i = offset; i < end; i++)
+            {
+                out += dechex(data[i]);
+            }
+            return out;
+        }
+
+        std::string flash_field_name(uint16_t value)
+        {
+            switch (value)
+            {
+                case 0x000: return "Padding";
+                case 0x010: return "Certificate revision";
+                case 0x020: return "Date signature";
+                case 0x022: return "CSE signature";
+                case 0x023: return "CE signature";
+                case 0x032: return "Date stamp";
+                case 0x033: return "Certificate parent";
+                case 0x034: return "Exam LED available";
+                case 0x037: return "Minimum installable OS";
+                case 0x040: return "Calculator ID";
+                case 0x041: return "Validation ID";
+                case 0x042: return "Model name";
+                case 0x043: return "Python co-processor";
+                case 0x051: return "About text";
+                case 0x071: return "Standard key header";
+                case 0x073: return "Standard key signature";
+                case 0x081: return "Custom app key header";
+                case 0x083: return "Custom app key data";
+                case 0x090: return "Date stamp subfield";
+                case 0x0A0: return "Calculator ID-related";
+                case 0x0A1: return "Calculator ID";
+                case 0x0A2: return "Validation key";
+                case 0x0B0: return "Default language";
+                case 0x0C0: return "Exam mode status";
+                case 0x800: return "Master";
+                case 0x801: return "Signing key";
+                case 0x802: return "Revision";
+                case 0x803: return "Build";
+                case 0x804: return "Name";
+                case 0x805: return "Expiration date";
+                case 0x806: return "Overuse count";
+                case 0x807: return "Final";
+                case 0x808: return "Page count";
+                case 0x809: return "Disable TI splash";
+                case 0x80A: return "Max hardware revision";
+                case 0x80C: return "Lowest basecode";
+                case 0x810: return "Master";
+                case 0x811: return "Signing key";
+                case 0x812: return "Version";
+                case 0x813: return "Build";
+                case 0x814: return "Name";
+                case 0x817: return "Final";
+                case 0x81A: return "Max hardware";
+                default:
+                {
+                    std::ostringstream out;
+                    out << std::uppercase << std::hex << std::setw(3) << std::setfill('0') << value;
+                    return out.str();
+                }
+            }
+        }
+
+        std::string flash_field_hex(uint16_t value)
+        {
+            std::ostringstream out;
+            out << std::uppercase << std::hex << std::setw(3) << std::setfill('0') << value;
+            return out.str();
+        }
+
+        std::string format_unix_timestamp(uint32_t timestamp)
+        {
+            const std::time_t raw = static_cast<std::time_t>(timestamp);
+            std::tm tm{};
+#ifdef _WIN32
+            gmtime_s(&tm, &raw);
+#else
+            gmtime_r(&raw, &tm);
+#endif
+            char buffer[32] = {};
+            std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S UTC", &tm);
+            return buffer;
+        }
+
+        json parse_flash_fields(const data_t& data, size_t start, size_t end);
+
+        json parse_extended_flash_field(const data_t& data, size_t start, size_t size)
+        {
+            json out = {
+                {"rawDataHex", to_hex_string(data, start, size)}
+            };
+
+            if (size >= 3 && std::string(data.begin() + static_cast<ptrdiff_t>(start), data.begin() + static_cast<ptrdiff_t>(start + 3)) == "eZ8")
+            {
+                out["format"] = "eZ80";
+                if (size >= 39)
+                {
+                    const size_t infoStart = start;
+                    const uint32_t mainOffset = read_le24(data, infoStart + 18);
+                    out["name"] = std::string(data.begin() + static_cast<ptrdiff_t>(infoStart + 3), data.begin() + static_cast<ptrdiff_t>(infoStart + 12));
+                    const size_t nulPos = out["name"].get<std::string>().find('\0');
+                    if (nulPos != std::string::npos)
+                    {
+                        out["name"] = out["name"].get<std::string>().substr(0, nulPos);
+                    }
+                    out["flag1"] = data[infoStart + 12];
+                    out["unknownFlag"] = data[infoStart + 13];
+                    out["flag2"] = data[infoStart + 14];
+                    out["mainOffset"] = mainOffset;
+                    out["initializedLocation"] = read_le24(data, infoStart + 21);
+                    out["initializedSize"] = read_le24(data, infoStart + 24);
+                    out["entryPoint"] = read_le24(data, infoStart + 27);
+                    out["language"] = read_le24(data, infoStart + 30);
+                    out["execLib"] = read_le24(data, infoStart + 33);
+                    const uint32_t copyrightOffset = read_le24(data, infoStart + 36);
+                    if (copyrightOffset < size)
+                    {
+                        out["copyright"] = std::string(data.begin() + static_cast<ptrdiff_t>(start + copyrightOffset), data.begin() + static_cast<ptrdiff_t>(start + size));
+                        const size_t nulPos = out["copyright"].get<std::string>().find('\0');
+                        if (nulPos != std::string::npos)
+                        {
+                            out["copyright"] = out["copyright"].get<std::string>().substr(0, nulPos);
+                        }
+                    }
+
+                    json relocations = json::array();
+                    const size_t relocationStart = infoStart + 39;
+                    const size_t relocationEnd = std::min(start + size, start + static_cast<size_t>(mainOffset));
+                    for (size_t pos = relocationStart; pos + 5 < relocationEnd; pos += 6)
+                    {
+                        const uint32_t hole = read_le24(data, pos);
+                        const uint32_t address = read_le24(data, pos + 3);
+                        relocations.push_back({
+                            {"hole", hole},
+                            {"base", (address >> 22) != 0 ? "Data Base" : "Code Base"},
+                            {"offset", address & 0x3FFFFF}
+                        });
+                    }
+                    out["relocationTable"] = relocations;
+                    if (mainOffset <= size)
+                    {
+                        out["bodyHex"] = to_hex_string(data, start + mainOffset, size - mainOffset);
+                    }
+                }
+            }
+            else
+            {
+                out["format"] = "raw";
+            }
+
+            return out;
+        }
+
+        size_t flash_field_payload_size(const data_t& data, size_t& pos, uint8_t sizeCode)
+        {
+            switch (sizeCode)
+            {
+                case 0x0D:
+                    return data.at(pos++);
+                case 0x0E:
+                {
+                    const size_t size = read_be16(data, pos);
+                    pos += 2;
+                    return size;
+                }
+                case 0x0F:
+                {
+                    const size_t size = read_be32(data, pos);
+                    pos += 4;
+                    return size;
+                }
+                default:
+                    return sizeCode;
+            }
+        }
+
+        std::pair<json, size_t> parse_flash_field(const data_t& data, size_t pos, size_t end)
+        {
+            if (pos + 1 >= end)
+            {
+                throw std::runtime_error("Unexpected end of flash field data");
+            }
+
+            const size_t fieldStart = pos;
+            const uint16_t field = read_be16(data, pos);
+            pos += 2;
+            const uint16_t fieldId = static_cast<uint16_t>(field >> 4);
+            const uint8_t sizeCode = static_cast<uint8_t>(field & 0x0F);
+            const size_t payloadSize = flash_field_payload_size(data, pos, sizeCode);
+            if (pos + payloadSize > end)
+            {
+                throw std::runtime_error("Flash field extends beyond available data");
+            }
+
+            json j = {
+                {"id", fieldId},
+                {"idHex", flash_field_hex(fieldId)},
+                {"name", flash_field_name(fieldId)},
+                {"payloadSize", payloadSize},
+                {"headerSize", pos - fieldStart},
+                {"offset", fieldStart}
+            };
+
+            if ((fieldId == 0x800 || fieldId == 0x810 || fieldId == 0x032) && payloadSize > 0)
+            {
+                j["fields"] = parse_flash_fields(data, pos, pos + payloadSize);
+            }
+            else if (fieldId == 0x817 && payloadSize > 0)
+            {
+                j["extended"] = parse_extended_flash_field(data, pos, payloadSize);
+            }
+            else if (fieldId == 0x090 && payloadSize == 4)
+            {
+                const uint32_t timestamp = read_be32(data, pos);
+                j["timestamp"] = timestamp;
+                j["timestampUtc"] = format_unix_timestamp(timestamp);
+            }
+            else if (payloadSize > 0)
+            {
+                j["rawDataHex"] = to_hex_string(data, pos, payloadSize);
+            }
+
+            return {j, pos + payloadSize - fieldStart};
+        }
+
+        json parse_flash_fields(const data_t& data, size_t start, size_t end)
+        {
+            json fields = json::array();
+            size_t pos = start;
+            while (pos < end)
+            {
+                const auto [field, consumed] = parse_flash_field(data, pos, end);
+                fields.push_back(field);
+                pos += consumed;
+            }
+            return fields;
         }
     }
 
@@ -146,6 +413,14 @@ namespace tivars
         if (header.binaryFlag == rawBinaryDataFlag)
         {
             j["calcDataHex"] = toHex(header.calcData);
+            try
+            {
+                j["fields"] = parse_flash_fields(header.calcData, 0, header.calcData.size());
+            }
+            catch (const std::exception& e)
+            {
+                j["fieldsError"] = e.what();
+            }
             if (header.type.getName() == "FlashLicense")
             {
                 j["license"] = std::string(header.calcData.begin(), header.calcData.end());
