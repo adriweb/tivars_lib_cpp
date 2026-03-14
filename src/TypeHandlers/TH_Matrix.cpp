@@ -16,6 +16,7 @@ namespace tivars::TypeHandlers
     data_t TH_Matrix::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;
+        (void)_ctx;
 
         data_t data(2); // reserve 2 bytes for size fields
 
@@ -24,15 +25,13 @@ namespace tivars::TypeHandlers
             throw std::invalid_argument("Invalid input string. Needs to be a valid matrix");
         }
 
-        size_t rowCount, colCount;
         std::vector<std::vector<std::string>> matrix;
-        std::vector<std::string> rows;
 
-        rows = explode(str.substr(2, str.length()-4), "][");
-        rowCount = rows.size();
+        std::vector<std::string> rows = explode(str.substr(2, str.length() - 4), "][");
+        const size_t rowCount = rows.size();
         matrix.resize(rowCount);
 
-        colCount = count(rows[0].begin(), rows[0].end(), ',') + 1;
+        const size_t colCount = std::ranges::count(rows[0], ',') + 1;
 
         if (colCount > 0xFF || rowCount > 0xFF)
         {
@@ -76,6 +75,7 @@ namespace tivars::TypeHandlers
     std::string TH_Matrix::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options; // TODO: prettified option
+        (void)_ctx;
 
         const size_t byteCount = data.size();
         if (byteCount < 2)
@@ -118,7 +118,7 @@ namespace tivars::TypeHandlers
     {
         uint8_t version = 0;
         for (size_t offset = 2; offset < data.size(); offset += 9) {
-            uint8_t internalType = data[offset] & 0x3F;
+            const uint8_t internalType = data[offset] & 0x3F;
             if (internalType > 0x1B) { // exact complex frac
                 version = 0x10;
                 break;

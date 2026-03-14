@@ -45,7 +45,6 @@ namespace tivars::TypeHandlers
     public:
         th();
         static const constexpr size_t dataByteCount = 9;
-        static const constexpr char* validPattern = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]{1,2})?)";
     };
 
     class STH_ExactFraction : public TH_GenericReal

@@ -110,9 +110,9 @@ namespace tivars
 
         std::string getRawContentHexStr();
 
-        std::string getReadableContent(const options_t& options, uint16_t entryIdx);
-        std::string getReadableContent(const options_t& options);
-        std::string getReadableContent();
+        std::string getReadableContent(const options_t& options, uint16_t entryIdx) const;
+        std::string getReadableContent(const options_t& options) const;
+        std::string getReadableContent() const;
 
         std::string saveVarToFile(std::string directory, std::string name);
         std::string saveVarToFile(std::string path);
@@ -128,14 +128,14 @@ namespace tivars
         void makeHeaderFromFile();
         void makeVarEntriesFromFile();
 
-        uint16_t computeChecksumFromInstanceData();
-        uint16_t computeChecksumFromFileData();
+        uint16_t computeChecksumFromInstanceData() const;
+        uint16_t computeChecksumFromFileData() const;
 
         // Extends BinaryFile.
-        uint16_t get_two_bytes_swapped()
+        uint16_t get_two_bytes_swapped() const
         {
-            uint8_t low = this->get_raw_byte();
-            uint8_t high = this->get_raw_byte();
+            const uint8_t low = this->get_raw_byte();
+            const uint8_t high = this->get_raw_byte();
             return low + (high << 8);
         }
 

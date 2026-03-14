@@ -133,7 +133,7 @@ namespace tivars
 
         std::string format_unix_timestamp(uint32_t timestamp)
         {
-            const std::time_t raw = static_cast<std::time_t>(timestamp);
+            const std::time_t raw = timestamp;
             std::tm tm{};
 #ifdef _WIN32
             gmtime_s(&tm, &raw);
@@ -161,8 +161,7 @@ namespace tivars
                     const size_t infoStart = start;
                     const uint32_t mainOffset = read_le24(data, infoStart + 18);
                     out["name"] = std::string(data.begin() + static_cast<ptrdiff_t>(infoStart + 3), data.begin() + static_cast<ptrdiff_t>(infoStart + 12));
-                    const size_t nulPos = out["name"].get<std::string>().find('\0');
-                    if (nulPos != std::string::npos)
+                    if (const size_t nulPos = out["name"].get<std::string>().find('\0'); nulPos != std::string::npos)
                     {
                         out["name"] = out["name"].get<std::string>().substr(0, nulPos);
                     }
@@ -179,8 +178,7 @@ namespace tivars
                     if (copyrightOffset < size)
                     {
                         out["copyright"] = std::string(data.begin() + static_cast<ptrdiff_t>(start + copyrightOffset), data.begin() + static_cast<ptrdiff_t>(start + size));
-                        const size_t nulPos = out["copyright"].get<std::string>().find('\0');
-                        if (nulPos != std::string::npos)
+                        if (const size_t nulPos = out["copyright"].get<std::string>().find('\0'); nulPos != std::string::npos)
                         {
                             out["copyright"] = out["copyright"].get<std::string>().substr(0, nulPos);
                         }
@@ -402,11 +400,11 @@ namespace tivars
         j["hasChecksum"] = header.hasChecksum;
 
         j["devices"] = json::array();
-        for (const auto& device : header.devices)
+        for (const auto& [devType, typeId] : header.devices)
         {
             j["devices"].push_back({
-                {"deviceType", device.first},
-                {"typeId", device.second},
+                {"deviceType", devType},
+                {"typeId", typeId},
             });
         }
 
@@ -429,12 +427,12 @@ namespace tivars
         else
         {
             j["blocks"] = json::array();
-            for (const auto& block : parseIntelBlocks(header.calcData))
+            for (const auto& [address, blockType, data] : parseIntelBlocks(header.calcData))
             {
                 j["blocks"].push_back({
-                    {"address", toHex({static_cast<uint8_t>((block.address >> 8) & 0xFF), static_cast<uint8_t>(block.address & 0xFF)})},
-                    {"blockType", dechex(block.blockType)},
-                    {"dataHex", toHex(block.data)},
+                    {"address", toHex({static_cast<uint8_t>((address >> 8) & 0xFF), static_cast<uint8_t>(address & 0xFF)})},
+                    {"blockType", dechex(blockType)},
+                    {"dataHex", toHex(data)},
                 });
             }
         }
@@ -449,7 +447,7 @@ namespace tivars
             throw std::out_of_range("Invalid flash header index");
         }
 
-        flash_header_t& header = headers[headerIdx];
+        auto& [magic, revision, binaryFlag, objectType, date, name, devices, productId, calcData, hasChecksum, type, model] = headers[headerIdx];
         const json j = json::parse(str);
         if (!j.is_object())
         {
@@ -458,45 +456,45 @@ namespace tivars
 
         if (j.contains("typeName"))
         {
-            header.type = TIVarType{j.at("typeName").get<std::string>()};
+            type = TIVarType{j.at("typeName").get<std::string>()};
         }
         if (j.contains("magic"))
         {
-            header.magic = j.at("magic").get<std::string>();
+            magic = j.at("magic").get<std::string>();
         }
         if (j.contains("revision"))
         {
-            header.revision = j.at("revision").get<std::string>();
+            revision = j.at("revision").get<std::string>();
         }
         if (j.contains("binaryFlag"))
         {
-            header.binaryFlag = static_cast<uint8_t>(j.at("binaryFlag").get<int>());
+            binaryFlag = static_cast<uint8_t>(j.at("binaryFlag").get<int>());
         }
         if (j.contains("objectType"))
         {
-            header.objectType = static_cast<uint8_t>(j.at("objectType").get<int>());
+            objectType = static_cast<uint8_t>(j.at("objectType").get<int>());
         }
         if (j.contains("date"))
         {
-            const json& date = j.at("date");
-            if (!date.is_array() || date.size() != 3)
+            const json& jsonDate = j.at("date");
+            if (!jsonDate.is_array() || jsonDate.size() != 3)
             {
                 throw std::invalid_argument("Flash header date must be a [day, month, year] array");
             }
-            header.date.day = static_cast<uint8_t>(date[0].get<int>());
-            header.date.month = static_cast<uint8_t>(date[1].get<int>());
-            header.date.year = static_cast<uint16_t>(date[2].get<int>());
+            date.day = static_cast<uint8_t>(jsonDate[0].get<int>());
+            date.month = static_cast<uint8_t>(jsonDate[1].get<int>());
+            date.year = static_cast<uint16_t>(jsonDate[2].get<int>());
         }
         if (j.contains("name"))
         {
-            header.name = j.at("name").get<std::string>();
+            name = j.at("name").get<std::string>();
         }
         if (j.contains("devices"))
         {
-            header.devices.clear();
+            devices.clear();
             for (const json& device : j.at("devices"))
             {
-                header.devices.emplace_back(
+                devices.emplace_back(
                     static_cast<uint8_t>(device.at("deviceType").get<int>()),
                     static_cast<uint8_t>(device.at("typeId").get<int>())
                 );
@@ -504,12 +502,12 @@ namespace tivars
         }
         if (j.contains("productId"))
         {
-            header.productId = static_cast<uint8_t>(j.at("productId").get<int>());
-            header.model = modelFromProductId(header.productId);
+            productId = static_cast<uint8_t>(j.at("productId").get<int>());
+            model = modelFromProductId(productId);
         }
         if (j.contains("hasChecksum"))
         {
-            header.hasChecksum = j.at("hasChecksum").get<bool>();
+            hasChecksum = j.at("hasChecksum").get<bool>();
         }
 
         if (j.contains("blocks"))
@@ -522,27 +520,27 @@ namespace tivars
                 {
                     throw std::invalid_argument("Flash block address must be a two-byte hex string");
                 }
-                flash_block_t block{};
-                block.address = static_cast<uint16_t>((addressBytes[0] << 8) | addressBytes[1]);
-                block.blockType = static_cast<uint8_t>(hexdec(item.at("blockType").get<std::string>()));
-                block.data = parseHex(item.at("dataHex").get<std::string>());
-                blocks.push_back(block);
+                blocks.emplace_back(
+                    static_cast<uint16_t>((addressBytes[0] << 8) | addressBytes[1]),
+                    hexdec(item.at("blockType").get<std::string>()),
+                    parseHex(item.at("dataHex").get<std::string>())
+                );
             }
-            header.calcData = makeIntelData(blocks);
+            calcData = makeIntelData(blocks);
         }
         else if (j.contains("calcDataHex"))
         {
-            header.calcData = parseHex(j.at("calcDataHex").get<std::string>());
+            calcData = parseHex(j.at("calcDataHex").get<std::string>());
         }
-        else if (header.type.getName() == "FlashLicense" && j.contains("license"))
+        else if (type.getName() == "FlashLicense" && j.contains("license"))
         {
             const std::string license = j.at("license").get<std::string>();
-            header.calcData.assign(license.begin(), license.end());
+            calcData.assign(license.begin(), license.end());
         }
 
-        if (!header.devices.empty())
+        if (!devices.empty())
         {
-            header.type = TIVarType{header.devices.front().second};
+            type = TIVarType{devices.front().second};
         }
     }
 
@@ -737,7 +735,7 @@ namespace tivars
     uint16_t TIFlashFile::computeChecksum(const data_t& data)
     {
         uint32_t sum = 0;
-        for (uint8_t byte : data)
+        for (const uint8_t byte : data)
         {
             sum += byte;
         }
@@ -791,7 +789,7 @@ namespace tivars
             << std::setw(2) << static_cast<int>(block.data.size())
             << std::setw(4) << static_cast<int>(block.address)
             << std::setw(2) << static_cast<int>(block.blockType);
-        for (uint8_t byte : block.data)
+        for (const uint8_t byte : block.data)
         {
             out << std::setw(2) << static_cast<int>(byte);
         }
@@ -800,11 +798,11 @@ namespace tivars
                               + ((block.address >> 8) & 0xFF)
                               + (block.address & 0xFF)
                               + block.blockType;
-        for (uint8_t byte : block.data)
+        for (const uint8_t byte : block.data)
         {
             checksumBase += byte;
         }
-        out << std::setw(2) << static_cast<int>((-static_cast<int>(checksumBase)) & 0xFF);
+        out << std::setw(2) << (-static_cast<int>(checksumBase) & 0xFF);
         return out.str();
     }
 
@@ -824,15 +822,15 @@ namespace tivars
 
         flash_block_t block{};
         block.address = static_cast<uint16_t>(std::stoul(record.substr(3, 4), nullptr, 16));
-        block.blockType = static_cast<uint8_t>(hexdec(record.substr(7, 2)));
+        block.blockType = hexdec(record.substr(7, 2));
         block.data = parseHex(record.substr(9, size * 2));
 
-        const uint8_t fileChecksum = static_cast<uint8_t>(hexdec(record.substr(record.size() - 2, 2)));
+        const uint8_t fileChecksum = hexdec(record.substr(record.size() - 2, 2));
         uint32_t checksumBase = static_cast<uint32_t>(block.data.size())
                               + ((block.address >> 8) & 0xFF)
                               + (block.address & 0xFF)
                               + block.blockType;
-        for (uint8_t byte : block.data)
+        for (const uint8_t byte : block.data)
         {
             checksumBase += byte;
         }
@@ -879,7 +877,7 @@ namespace tivars
         data.reserve(hex.size() / 2);
         for (size_t i = 0; i < hex.size(); i += 2)
         {
-            data.push_back(static_cast<uint8_t>(hexdec(hex.substr(i, 2))));
+            data.push_back(hexdec(hex.substr(i, 2)));
         }
         return data;
     }
@@ -888,7 +886,7 @@ namespace tivars
     {
         std::ostringstream out;
         out << std::uppercase << std::hex << std::setfill('0');
-        for (uint8_t byte : data)
+        for (const uint8_t byte : data)
         {
             out << std::setw(2) << static_cast<int>(byte);
         }

@@ -30,9 +30,9 @@ namespace tivars
             close();
         }
 
-        uint8_t get_raw_byte();
-        data_t get_raw_bytes(size_t bytes);
-        std::string get_string_bytes(size_t bytes);
+        uint8_t get_raw_byte() const;
+        data_t get_raw_bytes(size_t bytes) const;
+        std::string get_string_bytes(size_t bytes) const;
         size_t size() const;
         void close();
 

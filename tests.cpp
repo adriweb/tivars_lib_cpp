@@ -271,7 +271,7 @@ int main(int argc, char** argv)
         asmProgram.setContentFromString(R"({
     "rawDataHex": "BB6DC90100000000000000000000000000000000000000000000000000000000000048656C6C6F00"
 })");
-        const json asmMetadata = json::parse(asmProgram.getReadableContent({{"metadata", 1}}));
+        const json asmMetadata = json::parse(asmProgram.getReadableContent({{"metadata", true}}));
         assert(asmMetadata["isAssembly"] == true);
         assert(asmMetadata["shell"] == "MirageOS");
         assert(asmMetadata["description"] == "Hello");
@@ -281,7 +281,7 @@ int main(int argc, char** argv)
         metadataProgram.setContentFromString(R"({
     "rawDataHex": "BB6DC901000000000000000000000000000000000000000000000000000000000000486900"
 })");
-        const json metadataProgramJSON = json::parse(metadataProgram.getReadableContent({{"metadata", 1}}));
+        const json metadataProgramJSON = json::parse(metadataProgram.getReadableContent({{"metadata", true}}));
         assert(metadataProgramJSON["isAssembly"] == true);
         assert(metadataProgramJSON["shell"] == "MirageOS");
     }
@@ -289,7 +289,7 @@ int main(int argc, char** argv)
     {
         TIVarFile basicProgram = TIVarFile::createNew("Program", "META");
         basicProgram.setContentFromString("Disp 42");
-        const json basicMetadata = json::parse(basicProgram.getReadableContent({{"metadata", 1}}));
+        const json basicMetadata = json::parse(basicProgram.getReadableContent({{"metadata", true}}));
         assert(basicMetadata["isAssembly"] == false);
         assert(basicMetadata["code"] == "Disp 42");
     }
@@ -1314,7 +1314,7 @@ End)";
         {
             std::string hex;
             hex.reserve(data.size() * 2);
-            for (uint8_t byte : data)
+            for (const uint8_t byte : data)
             {
                 hex += dechex(byte);
             }
@@ -1426,7 +1426,7 @@ End)";
         {
             std::string hex;
             hex.reserve(data.size() * 2);
-            for (uint8_t byte : data)
+            for (const uint8_t byte : data)
             {
                 hex += dechex(byte);
             }

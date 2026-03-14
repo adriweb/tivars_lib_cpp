@@ -53,7 +53,7 @@ namespace tivars::TypeHandlers
         {
             std::erase_if(str, [](unsigned char ch) { return std::isspace(ch) != 0; });
             std::erase(str, '*');
-            std::replace(str.begin(), str.end(), 'j', 'i');
+            std::ranges::replace(str, 'j', 'i');
             return str;
         }
 
@@ -122,14 +122,14 @@ namespace tivars::TypeHandlers
             return parts;
         }
 
-        MemberParser parseRealMember(const std::string& coeff, const options_t& options, const TIVarFile* _ctx, data_t& encodedData)
+        uint8_t parseRealMember(const std::string& coeff, const options_t& options, const TIVarFile* _ctx, data_t& encodedData)
         {
-            for (const auto& parser : realMemberParsers)
+            for (const auto& [subtype, makeDataFromString] : realMemberParsers)
             {
                 try
                 {
-                    encodedData = parser.makeDataFromString(coeff, options, _ctx);
-                    return parser;
+                    encodedData = makeDataFromString(coeff, options, _ctx);
+                    return subtype;
                 }
                 catch (const std::exception&)
                 {
@@ -156,31 +156,34 @@ namespace tivars::TypeHandlers
             throw std::runtime_error("Needs _type in options for TH_GenericComplex::makeDataFromString");
         }
         const uint8_t type = (uint8_t)typeIter->second;
-        const auto& imagParserIter = imaginaryMemberParsers.find(type);
-        if (imagParserIter == imaginaryMemberParsers.end())
+        if (!imaginaryMemberParsers.contains(type))
         {
             throw std::runtime_error("Unknown/Invalid type for this TH_GenericComplex: " + std::to_string(type));
         }
 
-        const ComplexParts parts = splitComplexString(normalizeComplexInput(str));
+        const auto& [real, imag] = splitComplexString(normalizeComplexInput(str));
 
         data_t data;
-        data_t realMemberData;
-        const MemberParser realParser = parseRealMember(parts.real, options, _ctx, realMemberData);
-        realMemberData[0] = static_cast<uint8_t>((realMemberData[0] & 0x80) | (realParser.subtype & 0x1F));
-        data.insert(data.end(), realMemberData.begin(), realMemberData.end());
 
-        data_t imagMemberData = imagParserIter->second.makeDataFromString(parts.imag, options, _ctx);
-        imagMemberData[0] = static_cast<uint8_t>((imagMemberData[0] & 0x80) | (imagParserIter->second.subtype & 0x1F));
-        data.insert(data.end(), imagMemberData.begin(), imagMemberData.end());
+        {
+            data_t realMemberData;
+            const auto& subtype = parseRealMember(real, options, _ctx, realMemberData);
+            realMemberData[0] = static_cast<uint8_t>((realMemberData[0] & 0x80) | (subtype & 0x1F));
+            data.insert(data.end(), realMemberData.begin(), realMemberData.end());
+        }
+
+        {
+            const auto& [subtype, makeDataFromString] = imaginaryMemberParsers.at(type);
+            data_t imagMemberData = makeDataFromString(imag, options, _ctx);
+            imagMemberData[0] = static_cast<uint8_t>((imagMemberData[0] & 0x80) | (subtype & 0x1F));
+            data.insert(data.end(), imagMemberData.begin(), imagMemberData.end());
+        }
 
         return data;
     }
 
     std::string TH_GenericComplex::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
-        constexpr size_t bytesPerMember = 9;
-
         if (data.size() != 2*bytesPerMember)
         {
             throw std::invalid_argument("Invalid data array. Needs to contain 18 bytes");
