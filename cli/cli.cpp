@@ -6,6 +6,7 @@
 
 #include "../src/TypeHandlers/TypeHandlers.h"
 #include "../src/TIVarFile.h"
+#include "../src/TIFlashFile.h"
 #include "../src/TIModels.h"
 #include "../src/TIVarTypes.h"
 
@@ -23,6 +24,9 @@ enum FileType
 };
 
 enum FileType getType(const cxxopts::ParseResult& options, const string& filename, const string& option);
+bool isFlashType(const TIVarType& type);
+bool isFlashExtension(const string& extension);
+string lowercase(string value);
 
 int main(int argc, char** argv)
 {
@@ -72,14 +76,6 @@ int main(int argc, char** argv)
         }
         opath = result["output"].as<string>();
 
-        if (result.count("csv"))
-        {
-            string csvFilePath = result["csv"].as<string>();
-            TH_Tokenized::initTokensFromCSVFilePath(csvFilePath);
-        } else {
-            TH_Tokenized::initTokens();
-        }
-
         enum FileType iformat = getType(result, ipath, "iformat");
         enum FileType oformat = getType(result, opath, "oformat");
 
@@ -112,132 +108,249 @@ int main(int argc, char** argv)
 
         try
         {
-            TIVarFile file = iformat == VARFILE ? TIVarFile::loadFromFile(ipath) : TIVarFile::createNew(varvarType);
+            const bool useFlashFile = (iformat == VARFILE)
+                                    ? [&]() {
+                                          const auto& pos = ipath.find_last_of('.');
+                                          return pos != string::npos && isFlashExtension(ipath.substr(pos + 1));
+                                      }()
+                                    : isFlashType(varvarType);
 
-            if (result.count("name"))
+            if (useFlashFile)
             {
-                string name = result["name"].as<string>();
-                file.setVarName(name);
-            }
+                TIFlashFile file;
 
-            if (result.count("calc"))
-            {
-                string modelStr = result["calc"].as<string>();
-                try
+                if (iformat == VARFILE)
                 {
-                    TIModel model{modelStr};
-                    file.setCalcModel(model);
-                } catch (invalid_argument& e)
+                    file = TIFlashFile::loadFromFile(ipath);
+                }
+                else
                 {
-                    cout << modelStr << "is not a valid calc model." << endl;
-                    cout << "Valid models:";
-                    for (const auto& model: TIModels::all())
+                    string flashName;
+                    if (result.count("name"))
                     {
-                        cout << " " << model.first;
-                    }
-                    cout << endl;
-                    return 1;
-                }
-            }
-
-            file.setArchived(result["archive"].as<bool>());
-
-            if (iformat == RAW)
-            {
-                ifstream in(ipath, ios::in | ios::binary);
-                if (!in)
-                {
-                    cout << ipath << ": Failed to open file" << endl;
-                    return 1;
-                }
-                in.seekg(0, ios::end);
-                int filesize = in.tellg();
-                in.seekg(0, ios::beg);
-
-                data_t data;
-                data.resize(filesize + 2);
-                data[0] = filesize & 0xFF;
-                data[1] = (filesize >> 8) & 0xFF;
-                in.read((char*) &data[2], filesize);
-                in.close();
-
-                file.setContentFromData(data);
-            } else if (iformat == READABLE)
-            {
-                ifstream in(ipath, ios::in);
-                if (!in)
-                {
-                    cout << ipath << ": Failed to open file" << endl;
-                    return 1;
-                }
-
-                ostringstream str;
-                str << in.rdbuf();
-                in.close();
-
-                options_t contentOptions;
-                contentOptions["detect_strings"] = result["detect_strings"].as<bool>();
-
-                file.setContentFromString(str.str(), contentOptions);
-            }
-
-            switch (oformat)
-            {
-                case RAW:
-                {
-                    ofstream out(opath, ios::out | ios::binary);
-                    if (!out)
-                    {
-                        cout << opath << ": Failed to open file" << endl;
-                        return 1;
-                    }
-                    out.write((char*) (&file.getRawContent()[2]), file.getRawContent().size() - 2);
-                    break;
-                }
-                case READABLE:
-                {
-                    ofstream out(opath, ios::out);
-                    if (!out)
-                    {
-                        cout << opath << ": Failed to open file" << endl;
-                        return 1;
+                        flashName = result["name"].as<string>();
                     }
 
-                    options_t contentOptions;
-                    contentOptions["reindent"] = result["reindent"].as<bool>();
-                    contentOptions["prettify"] = result["prettify"].as<bool>();
-
-                    if (result.count("lang"))
+                    TIModel model{"84+CE"};
+                    if (result.count("calc"))
                     {
-                        string langStr = result["lang"].as<string>();
-                        if (langStr == "en")
+                        string modelStr = result["calc"].as<string>();
+                        try
                         {
-                            contentOptions["lang"] = TH_Tokenized::LANG_EN;
-                        } else if (langStr == "fr")
+                            model = TIModel{modelStr};
+                        } catch (invalid_argument& e)
                         {
-                            contentOptions["lang"] = TH_Tokenized::LANG_FR;
-                        } else
-                        {
-                            cout << langStr << " is not a valid language code" << endl;
-                            cout << "Valid languages: en, fr" << endl;
+                            cout << modelStr << "is not a valid calc model." << endl;
+                            cout << "Valid models:";
+                            for (const auto& validModel: TIModels::all())
+                            {
+                                cout << " " << validModel.first;
+                            }
+                            cout << endl;
                             return 1;
                         }
                     }
 
-                    out << file.getReadableContent(contentOptions);
-                    break;
+                    file = TIFlashFile::createNew(varvarType, flashName, model);
                 }
-                case VARFILE:
+
+                if (iformat == RAW)
                 {
-                    try
+                    file = TIFlashFile::loadFromFile(ipath);
+                }
+                else if (iformat == READABLE)
+                {
+                    ifstream in(ipath, ios::in);
+                    if (!in)
                     {
-                        file.saveVarToFile(opath);
-                    } catch (runtime_error& e)
-                    {
-                        cout << opath << ": failed to write file." << endl;
+                        cout << ipath << ": Failed to open file" << endl;
                         return 1;
                     }
-                    break;
+
+                    ostringstream str;
+                    str << in.rdbuf();
+                    in.close();
+
+                    file.setContentFromString(str.str());
+                }
+
+                switch (oformat)
+                {
+                    case RAW:
+                    {
+                        ofstream out(opath, ios::out | ios::binary);
+                        if (!out)
+                        {
+                            cout << opath << ": Failed to open file" << endl;
+                            return 1;
+                        }
+                        const data_t bytes = file.makeBinData();
+                        out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+                        break;
+                    }
+                    case READABLE:
+                    {
+                        ofstream out(opath, ios::out);
+                        if (!out)
+                        {
+                            cout << opath << ": Failed to open file" << endl;
+                            return 1;
+                        }
+
+                        out << file.getReadableContent();
+                        break;
+                    }
+                    case VARFILE:
+                    {
+                        try
+                        {
+                            file.saveToFile(opath);
+                        } catch (runtime_error& e)
+                        {
+                            cout << opath << ": failed to write file." << endl;
+                            return 1;
+                        }
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                if (result.count("csv"))
+                {
+                    string csvFilePath = result["csv"].as<string>();
+                    TH_Tokenized::initTokensFromCSVFilePath(csvFilePath);
+                } else {
+                    TH_Tokenized::initTokens();
+                }
+
+                TIVarFile file = iformat == VARFILE ? TIVarFile::loadFromFile(ipath) : TIVarFile::createNew(varvarType);
+
+                if (result.count("name"))
+                {
+                    string name = result["name"].as<string>();
+                    file.setVarName(name);
+                }
+
+                if (result.count("calc"))
+                {
+                    string modelStr = result["calc"].as<string>();
+                    try
+                    {
+                        TIModel model{modelStr};
+                        file.setCalcModel(model);
+                    } catch (invalid_argument& e)
+                    {
+                        cout << modelStr << "is not a valid calc model." << endl;
+                        cout << "Valid models:";
+                        for (const auto& model: TIModels::all())
+                        {
+                            cout << " " << model.first;
+                        }
+                        cout << endl;
+                        return 1;
+                    }
+                }
+
+                file.setArchived(result["archive"].as<bool>());
+
+                if (iformat == RAW)
+                {
+                    ifstream in(ipath, ios::in | ios::binary);
+                    if (!in)
+                    {
+                        cout << ipath << ": Failed to open file" << endl;
+                        return 1;
+                    }
+                    in.seekg(0, ios::end);
+                    int filesize = in.tellg();
+                    in.seekg(0, ios::beg);
+
+                    data_t data;
+                    data.resize(filesize + 2);
+                    data[0] = filesize & 0xFF;
+                    data[1] = (filesize >> 8) & 0xFF;
+                    in.read((char*) &data[2], filesize);
+                    in.close();
+
+                    file.setContentFromData(data);
+                } else if (iformat == READABLE)
+                {
+                    ifstream in(ipath, ios::in);
+                    if (!in)
+                    {
+                        cout << ipath << ": Failed to open file" << endl;
+                        return 1;
+                    }
+
+                    ostringstream str;
+                    str << in.rdbuf();
+                    in.close();
+
+                    options_t contentOptions;
+                    contentOptions["detect_strings"] = result["detect_strings"].as<bool>();
+
+                    file.setContentFromString(str.str(), contentOptions);
+                }
+
+                switch (oformat)
+                {
+                    case RAW:
+                    {
+                        ofstream out(opath, ios::out | ios::binary);
+                        if (!out)
+                        {
+                            cout << opath << ": Failed to open file" << endl;
+                            return 1;
+                        }
+                        out.write((char*) (&file.getRawContent()[2]), file.getRawContent().size() - 2);
+                        break;
+                    }
+                    case READABLE:
+                    {
+                        ofstream out(opath, ios::out);
+                        if (!out)
+                        {
+                            cout << opath << ": Failed to open file" << endl;
+                            return 1;
+                        }
+
+                        options_t contentOptions;
+                        contentOptions["reindent"] = result["reindent"].as<bool>();
+                        contentOptions["prettify"] = result["prettify"].as<bool>();
+
+                        if (result.count("lang"))
+                        {
+                            string langStr = result["lang"].as<string>();
+                            if (langStr == "en")
+                            {
+                                contentOptions["lang"] = TH_Tokenized::LANG_EN;
+                            } else if (langStr == "fr")
+                            {
+                                contentOptions["lang"] = TH_Tokenized::LANG_FR;
+                            } else
+                            {
+                                cout << langStr << " is not a valid language code" << endl;
+                                cout << "Valid languages: en, fr" << endl;
+                                return 1;
+                            }
+                        }
+
+                        out << file.getReadableContent(contentOptions);
+                        break;
+                    }
+                    case VARFILE:
+                    {
+                        try
+                        {
+                            file.saveVarToFile(opath);
+                        } catch (runtime_error& e)
+                        {
+                            cout << opath << ": failed to write file." << endl;
+                            return 1;
+                        }
+                        break;
+                    }
                 }
             }
 
@@ -255,6 +368,36 @@ int main(int argc, char** argv)
         cout << options.help() << endl;
         return 0;
     }
+}
+
+bool isFlashType(const TIVarType& type)
+{
+    const string& name = type.getName();
+    return name == "OperatingSystem"
+        || name == "FlashApp"
+        || name == "Certificate"
+        || name == "CertificateMemory"
+        || name == "UnitCertificate"
+        || name == "FlashLicense";
+}
+
+string lowercase(string value)
+{
+    transform(value.begin(), value.end(), value.begin(), ::tolower);
+    return value;
+}
+
+bool isFlashExtension(const string& extension)
+{
+    const string lowered = lowercase(extension);
+    for (const string& flashExtension : {"82u", "8xu", "8cu", "8eu", "8pu", "8yu", "8xk", "8ck", "8ek", "8xq", "8cq"})
+    {
+        if (lowered == flashExtension)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 static unordered_map<string, FileType> const fileTypes = {
