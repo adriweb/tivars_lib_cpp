@@ -8,6 +8,7 @@
 #include "tivarslib_utils.h"
 #include <sstream>
 #include <cmath>
+#include <cstring>
 
 namespace tivars
 {
@@ -295,6 +296,131 @@ std::string dec2frac(double num, const std::string& var, double err)
 std::string trimZeros(const std::string& str)
 {
     return std::to_string(std::stoi(str));
+}
+
+std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes, size_t size)
+{
+    if (nameBytes == nullptr || size == 0)
+    {
+        return "";
+    }
+
+    const uint8_t first = nameBytes[0];
+    const uint8_t second = size > 1 ? nameBytes[1] : 0x00;
+    const uint8_t typeId = static_cast<uint8_t>(type.getId());
+
+    const auto nulPos = static_cast<const uint8_t*>(memchr(nameBytes, '\0', size));
+    const size_t asciiLen = nulPos ? static_cast<size_t>(nulPos - nameBytes) : size;
+    const auto asciiString = [&]() {
+        return std::string(reinterpret_cast<const char*>(nameBytes), asciiLen);
+    };
+    const auto printableAsciiString = [&]() {
+        for (size_t i = 0; i < asciiLen; i++)
+        {
+            if (nameBytes[i] < 0x20 || nameBytes[i] > 0x7E)
+            {
+                return std::string();
+            }
+        }
+        return asciiString();
+    };
+
+    if ((typeId == 0x01 || typeId == 0x0D) && first == 0x5D)
+    {
+        if (second <= 0x05)
+        {
+            return std::string("L") + static_cast<char>('1' + second);
+        }
+        if (second == 0x40)
+        {
+            return "IDList";
+        }
+
+        const auto listNulPos = static_cast<const uint8_t*>(memchr(nameBytes + 1, '\0', size - 1));
+        const size_t listLen = listNulPos ? static_cast<size_t>(listNulPos - (nameBytes + 1)) : (size - 1);
+        return std::string(reinterpret_cast<const char*>(nameBytes + 1), listLen);
+    }
+
+    if (typeId == 0x02 && first == 0x5C && second <= 0x09)
+    {
+        return std::string("[") + static_cast<char>('A' + second) + "]";
+    }
+
+    if ((typeId == 0x03 || typeId == 0x0B) && first == 0x5E)
+    {
+        if (second >= 0x10 && second <= 0x19)
+        {
+            const char digit = second == 0x19 ? '0' : static_cast<char>('1' + (second - 0x10));
+            return std::string("Y") + digit;
+        }
+        if (second >= 0x20 && second <= 0x2B)
+        {
+            const uint8_t idx = static_cast<uint8_t>((second - 0x20) / 2);
+            const char axis = (second % 2 == 0) ? 'X' : 'Y';
+            return std::string(1, axis) + static_cast<char>('1' + idx) + "T";
+        }
+        if (second >= 0x40 && second <= 0x45)
+        {
+            return std::string("R") + static_cast<char>('1' + (second - 0x40));
+        }
+        if (second >= 0x80 && second <= 0x82)
+        {
+            return std::string(1, static_cast<char>('U' + (second - 0x80)));
+        }
+    }
+
+    if (typeId == 0x04 && first == 0xAA)
+    {
+        const char digit = second == 9 ? '0' : static_cast<char>('1' + second);
+        return std::string("Str") + digit;
+    }
+
+    if (typeId == 0x07 && first == 0x60)
+    {
+        const char digit = second == 9 ? '0' : static_cast<char>('1' + second);
+        return std::string("Pic") + digit;
+    }
+
+    if (typeId == 0x08 && first == 0x61)
+    {
+        const char digit = second == 9 ? '0' : static_cast<char>('1' + second);
+        return std::string("GDB") + digit;
+    }
+
+    if (typeId == 0x0F)
+    {
+        return "Window";
+    }
+    if (typeId == 0x10)
+    {
+        return "RclWindow";
+    }
+    if (typeId == 0x11)
+    {
+        return "TblSet";
+    }
+
+    if (typeId == 0x1A && first == 0x3C)
+    {
+        const char digit = second == 9 ? '0' : static_cast<char>('1' + second);
+        return std::string("Image") + digit;
+    }
+
+    if (typeId == 0x05 || typeId == 0x06 || typeId == 0x15 || typeId == 0x17 || typeId == 0x26)
+    {
+        return printableAsciiString();
+    }
+
+    if (first >= 'A' && first <= 'Z')
+    {
+        return std::string(1, static_cast<char>(first));
+    }
+    if (first == 0x5B)
+    {
+        return "θ";
+    }
+
+    return printableAsciiString();
 }
 
 }
