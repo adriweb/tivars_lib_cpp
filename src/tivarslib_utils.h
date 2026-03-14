@@ -63,6 +63,7 @@ std::string dec2frac(double num, const std::string& var = "", double err = 0.001
 std::string trimZeros(const std::string& str);
 
 std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes, size_t size = 8);
+std::string sanitize_for_host_filename(const std::string& name);
 
 }
 

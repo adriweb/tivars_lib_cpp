@@ -901,6 +901,7 @@ namespace tivars
             if (name.empty())
             {
                 name = this->hasMultipleEntries() ? "GROUP" : entry_name_to_string(this->entries[0]._type, this->entries[0].varname, sizeof(var_entry_t::varname));
+                name = sanitize_for_host_filename(name);
             }
             std::string fileName;
             if (this->hasMultipleEntries())

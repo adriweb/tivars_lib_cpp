@@ -1217,6 +1217,7 @@ End)";
         const auto& firstVarEntry = testTheta.getVarEntries()[0];
         cout << "testTheta firstVarEntry varname : " << firstVarEntry.varname << endl;
         assert(std::equal(firstVarEntry.varname, firstVarEntry.varname + 8, testThetaVarName));
+        assert(sanitize_for_host_filename("θ/Y₀") == "θ_Y0T");
     }
 
     {
@@ -1499,6 +1500,11 @@ End)";
             const auto& entry = file.getVarEntries()[0];
             return "/tmp/"s + entry_name_to_string(entry._type, entry.varname) + "." + ext;
         };
+        const auto expected_sanitized_save_path = [](const TIVarFile& file, const char* ext)
+        {
+            const auto& entry = file.getVarEntries()[0];
+            return "/tmp/"s + sanitize_for_host_filename(entry_name_to_string(entry._type, entry.varname)) + "." + ext;
+        };
         const auto raw_to_hex = [](const data_t& data)
         {
             std::string hex;
@@ -1521,6 +1527,12 @@ End)";
         const std::string namedAppVarPath = expected_save_path(namedAppVar, "8xv");
         assert(namedAppVar.saveVarToFile("/tmp", "") == namedAppVarPath);
         assert(remove(namedAppVarPath.c_str()) == 0);
+
+        TIVarFile thetaReal = TIVarFile::createNew("Real", "θ");
+        thetaReal.setContentFromString("1");
+        const std::string thetaRealPath = expected_sanitized_save_path(thetaReal, "8xn");
+        assert(thetaReal.saveVarToFile("/tmp", "") == thetaRealPath);
+        assert(remove(thetaRealPath.c_str()) == 0);
 
         TIVarFile namedGroup = TIVarFile::createNew("GroupObject", "GROUP123", "83PCE");
         namedGroup.setContentFromString(R"({
