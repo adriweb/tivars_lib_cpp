@@ -395,7 +395,7 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
     }
     if (typeId == 0x10)
     {
-        return "RclWindow";
+        return "RclWindw";
     }
     if (typeId == 0x11)
     {
