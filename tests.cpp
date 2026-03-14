@@ -1129,6 +1129,17 @@ End)";
     }
 
     {
+        const auto raw_to_hex = [](const data_t& data)
+        {
+            std::string hex;
+            hex.reserve(data.size() * 2);
+            for (uint8_t byte : data)
+            {
+                hex += dechex(byte);
+            }
+            return hex;
+        };
+
         TIVarFile monoPicture = TIVarFile::loadFromFile("testData/BartSimpson.8xi");
         const json monoPictureJSON = json::parse(monoPicture.getReadableContent());
         assert(monoPictureJSON["kind"] == "MonoPicture");
@@ -1163,6 +1174,27 @@ End)";
         assert(imageJSON["storage"]["encoding"] == "RGB565");
         assert(imageJSON["storage"]["imageMagic"] == "81");
         assert(imageJSON["storage"]["rowPaddingBytes"] == 2);
+
+        TIVarFile recreatedMonoPicture = TIVarFile::createNew("Picture", "Pic1");
+        recreatedMonoPicture.setContentFromString(R"({
+    "typeName": "Picture",
+    "rawDataHex": ")" + raw_to_hex(monoPicture.getRawContent()) + R"("
+})");
+        assert(recreatedMonoPicture.getRawContent() == monoPicture.getRawContent());
+
+        TIVarFile recreatedColorPicture = TIVarFile::createNew("Picture", "Pic1");
+        recreatedColorPicture.setContentFromString(R"({
+    "typeName": "Picture",
+    "rawDataHex": ")" + raw_to_hex(colorPicture.getRawContent()) + R"("
+})");
+        assert(recreatedColorPicture.getRawContent() == colorPicture.getRawContent());
+
+        TIVarFile recreatedImage = TIVarFile::createNew("Image", "Image1");
+        recreatedImage.setContentFromString(R"({
+    "typeName": "Image",
+    "rawDataHex": ")" + raw_to_hex(image.getRawContent()) + R"("
+})");
+        assert(recreatedImage.getRawContent() == image.getRawContent());
 
         bool pictureWriteFailed = false;
         try
