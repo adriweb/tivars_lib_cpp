@@ -326,6 +326,44 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
         }
         return asciiString();
     };
+    const auto canonicalize_equation_name = [&](uint8_t& outSecond) {
+        if (first == 0x5E)
+        {
+            outSecond = second;
+            return true;
+        }
+        if (first == 'r' && second >= 0x81 && second <= 0x86)
+        {
+            outSecond = static_cast<uint8_t>(0x40 + (second - 0x81));
+            return true;
+        }
+        if (first == 'U')
+        {
+            outSecond = 0x80;
+            return true;
+        }
+        if (first == 'V')
+        {
+            outSecond = 0x81;
+            return true;
+        }
+        if (first == 'W')
+        {
+            outSecond = 0x82;
+            return true;
+        }
+        if (first == 'X' && second >= 0x81 && second <= 0x86)
+        {
+            outSecond = static_cast<uint8_t>(0x20 + ((second - 0x81) * 2));
+            return true;
+        }
+        if (first == 'Y' && second >= 0x81 && second <= 0x86)
+        {
+            outSecond = static_cast<uint8_t>(0x21 + ((second - 0x81) * 2));
+            return true;
+        }
+        return false;
+    };
 
     if ((typeId == 0x01 || typeId == 0x0D) && first == 0x5D)
     {
@@ -348,26 +386,32 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
         return "["s + static_cast<char>('A' + second) + "]";
     }
 
-    if ((typeId == 0x03 || typeId == 0x0B) && first == 0x5E)
+    if (typeId == 0x03 || typeId == 0x0B)
     {
-        if (second >= 0x10 && second <= 0x19)
+        uint8_t canonicalSecond = 0x00;
+        if (!canonicalize_equation_name(canonicalSecond))
         {
-            const char digit = second == 0x19 ? '0' : static_cast<char>('1' + (second - 0x10));
+            canonicalSecond = second;
+        }
+
+        if (canonicalSecond >= 0x10 && canonicalSecond <= 0x19)
+        {
+            const char digit = canonicalSecond == 0x19 ? '0' : static_cast<char>('1' + (canonicalSecond - 0x10));
             return "Y"s + digit;
         }
-        if (second >= 0x20 && second <= 0x2B)
+        if (canonicalSecond >= 0x20 && canonicalSecond <= 0x2B)
         {
-            const uint8_t idx = static_cast<uint8_t>((second - 0x20) / 2);
-            const char axis = (second % 2 == 0) ? 'X' : 'Y';
+            const uint8_t idx = static_cast<uint8_t>((canonicalSecond - 0x20) / 2);
+            const char axis = (canonicalSecond % 2 == 0) ? 'X' : 'Y';
             return std::string(1, axis) + static_cast<char>('1' + idx) + "T";
         }
-        if (second >= 0x40 && second <= 0x45)
+        if (canonicalSecond >= 0x40 && canonicalSecond <= 0x45)
         {
-            return "R"s + static_cast<char>('1' + (second - 0x40));
+            return "R"s + static_cast<char>('1' + (canonicalSecond - 0x40));
         }
-        if (second >= 0x80 && second <= 0x82)
+        if (canonicalSecond >= 0x80 && canonicalSecond <= 0x82)
         {
-            return std::string(1, static_cast<char>('U' + (second - 0x80)));
+            return std::string(1, static_cast<char>('U' + (canonicalSecond - 0x80)));
         }
     }
 
