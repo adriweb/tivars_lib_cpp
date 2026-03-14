@@ -47,13 +47,6 @@ namespace tivars
             return s;
         }
 
-        std::string varNameToString(const uint8_t* varname, size_t size)
-        {
-            const void* nulPos = memchr(varname, '\0', size);
-            const size_t len = nulPos ? static_cast<const uint8_t*>(nulPos) - varname : size;
-            return std::string(reinterpret_cast<const char*>(varname), len);
-        }
-
         std::string normalize_theta_chars(std::string name)
         {
             for (const auto& token : {"θ", "Θ", "ϴ", "ᶿ"})
@@ -896,7 +889,7 @@ namespace tivars
         } else {
             if (name.empty())
             {
-                name = this->hasMultipleEntries() ? "GROUP" : varNameToString(this->entries[0].varname, sizeof(var_entry_t::varname));
+                name = this->hasMultipleEntries() ? "GROUP" : entry_name_to_string(this->entries[0]._type, this->entries[0].varname, sizeof(var_entry_t::varname));
             }
             std::string fileName;
             if (this->hasMultipleEntries())
