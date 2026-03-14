@@ -1,0 +1,178 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GraphDataBase",
+  "type": "object",
+  "definitions": {
+    "color": {
+      "type": "string",
+      "enum": [
+        "Blue",
+        "Red",
+        "Black",
+        "Magenta",
+        "Green",
+        "Orange",
+        "Brown",
+        "Navy",
+        "LtBlue",
+        "Yellow",
+        "White",
+        "LtGray",
+        "MedGray",
+        "Gray",
+        "DarkGray"
+      ]
+    },
+    "realValue": {
+      "type": ["number", "string"]
+    },
+    "equation": {
+      "type": "object",
+      "properties": {
+        "style": {
+          "type": "string",
+          "enum": [
+            "SolidLine",
+            "ThickLine",
+            "ShadeAbove",
+            "ShadeBelow",
+            "Trace",
+            "Animate",
+            "DottedLine"
+          ]
+        },
+        "color": {
+          "$ref": "#/definitions/color"
+        },
+        "flags": {
+          "type": "object",
+          "properties": {
+            "selected": { "type": "boolean" },
+            "wasUsedForGraph": { "type": "boolean" },
+            "linkTransfer": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "expr": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "graphMode": {
+      "type": "string",
+      "enum": ["Function", "Parametric", "Polar", "Sequence"]
+    },
+    "formatSettings": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Dot",
+          "Connected",
+          "Simul",
+          "Sequential",
+          "GridOn",
+          "GridOff",
+          "GridLine",
+          "GridDot",
+          "PolarGC",
+          "RectGC",
+          "CoordOff",
+          "CoordOn",
+          "AxesOff",
+          "AxesOn",
+          "LabelOn",
+          "LabelOff"
+        ]
+      }
+    },
+    "seqSettings": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["Time", "Web", "uv", "vw", "uw"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "extSettings": {
+      "type": "object",
+      "properties": {
+        "showExpr": {
+          "type": "boolean"
+        },
+        "seqMode": {
+          "type": "string",
+          "enum": ["SEQ(n)", "SEQ(n+1)", "SEQ(n+2)"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "globalWindowSettings": {
+      "type": "object",
+      "properties": {
+        "Xmin": { "$ref": "#/definitions/realValue" },
+        "Xmax": { "$ref": "#/definitions/realValue" },
+        "Xscl": { "$ref": "#/definitions/realValue" },
+        "Ymin": { "$ref": "#/definitions/realValue" },
+        "Ymax": { "$ref": "#/definitions/realValue" },
+        "Yscl": { "$ref": "#/definitions/realValue" }
+      },
+      "additionalProperties": false
+    },
+    "specificData": {
+      "type": "object",
+      "properties": {
+        "settings": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/realValue"
+          }
+        },
+        "equations": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/equation"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "global84CSettings": {
+      "type": "object",
+      "properties": {
+        "colors": {
+          "type": "object",
+          "properties": {
+            "grid": { "$ref": "#/definitions/color" },
+            "axes": { "$ref": "#/definitions/color" },
+            "border": {
+              "type": "integer",
+              "enum": [1, 2, 3, 4]
+            }
+          },
+          "additionalProperties": false
+        },
+        "other": {
+          "type": "object",
+          "properties": {
+            "globalLineStyle": {
+              "type": "string",
+              "enum": ["Thick", "Thin", "DotThick", "DotThin"]
+            },
+            "detectAsymptotes": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

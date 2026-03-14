@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PythonImageAppVar",
+  "type": "object",
+  "definitions": {
+    "hexString": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]*$"
+    }
+  },
+  "properties": {
+    "typeName": {
+      "const": "PythonImageAppVar"
+    },
+    "subtype": {
+      "const": "PythonImage"
+    },
+    "magic": {
+      "const": "IM8C"
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 16777215
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 16777215
+    },
+    "palette": {
+      "type": "object",
+      "properties": {
+        "marker": {
+          "type": "integer",
+          "readOnly": true
+        },
+        "entryCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256,
+          "readOnly": true
+        },
+        "hasAlpha": {
+          "type": "boolean"
+        },
+        "transparentIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "minItems": 1,
+          "maxItems": 256
+        }
+      },
+      "required": ["hasAlpha", "transparentIndex", "entries"],
+      "additionalProperties": false
+    },
+    "imageDataLength": {
+      "type": "integer",
+      "minimum": 0,
+      "readOnly": true
+    },
+    "imageDataHex": {
+      "$ref": "#/definitions/hexString"
+    },
+    "rawDataHex": {
+      "$ref": "#/definitions/hexString"
+    }
+  },
+  "required": ["width", "height", "palette"],
+  "additionalProperties": false
+}

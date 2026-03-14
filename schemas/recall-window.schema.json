@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RecallWindow",
+  "type": "object",
+  "definitions": {
+    "realValue": {
+      "type": ["number", "string"]
+    },
+    "integerValue": {
+      "type": ["integer", "number", "string"]
+    }
+  },
+  "properties": {
+    "Xmin": { "$ref": "#/definitions/realValue" },
+    "Xmax": { "$ref": "#/definitions/realValue" },
+    "Xscl": { "$ref": "#/definitions/realValue" },
+    "Ymin": { "$ref": "#/definitions/realValue" },
+    "Ymax": { "$ref": "#/definitions/realValue" },
+    "Yscl": { "$ref": "#/definitions/realValue" },
+    "Thetamin": { "$ref": "#/definitions/realValue" },
+    "Thetamax": { "$ref": "#/definitions/realValue" },
+    "Thetastep": { "$ref": "#/definitions/realValue" },
+    "Tmin": { "$ref": "#/definitions/realValue" },
+    "Tmax": { "$ref": "#/definitions/realValue" },
+    "Tstep": { "$ref": "#/definitions/realValue" },
+    "PlotStart": { "$ref": "#/definitions/integerValue" },
+    "nMax": { "$ref": "#/definitions/integerValue" },
+    "unMin0": { "$ref": "#/definitions/realValue" },
+    "vnMin0": { "$ref": "#/definitions/realValue" },
+    "nMin": { "$ref": "#/definitions/integerValue" },
+    "unMin1": { "$ref": "#/definitions/realValue" },
+    "vnMin1": { "$ref": "#/definitions/realValue" },
+    "wnMin0": { "$ref": "#/definitions/realValue" },
+    "PlotStep": { "$ref": "#/definitions/integerValue" },
+    "Xres": { "$ref": "#/definitions/integerValue" },
+    "wnMin1": { "$ref": "#/definitions/realValue" }
+  },
+  "required": [
+    "Xmin",
+    "Xmax",
+    "Xscl",
+    "Ymin",
+    "Ymax",
+    "Yscl",
+    "Thetamin",
+    "Thetamax",
+    "Thetastep",
+    "Tmin",
+    "Tmax",
+    "Tstep",
+    "PlotStart",
+    "nMax",
+    "unMin0",
+    "vnMin0",
+    "nMin",
+    "unMin1",
+    "vnMin1",
+    "wnMin0",
+    "PlotStep",
+    "Xres",
+    "wnMin1"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Image",
+  "definitions": {
+    "hexString": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]*$"
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "typeName": {
+          "const": "Image"
+        },
+        "rawDataHex": {
+          "$ref": "#/definitions/hexString"
+        }
+      },
+      "required": ["rawDataHex"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "typeName": {
+          "const": "Image"
+        },
+        "kind": {
+          "const": "Image"
+        },
+        "dataLength": {
+          "type": "integer",
+          "minimum": 0,
+          "readOnly": true
+        },
+        "storedLength": {
+          "type": "integer",
+          "minimum": 0,
+          "readOnly": true
+        },
+        "hasColor": {
+          "type": "boolean",
+          "readOnly": true
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 0,
+          "readOnly": true
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0,
+          "readOnly": true
+        },
+        "storage": {
+          "type": "object",
+          "properties": {
+            "encoding": { "const": "RGB565" },
+            "rowsStoredReversed": { "type": "boolean" },
+            "rowPaddingBytes": { "type": "integer" },
+            "imageMagic": { "type": "string" },
+            "dataWidth": { "type": "integer" },
+            "dataHeight": { "type": "integer" }
+          },
+          "required": [
+            "encoding",
+            "rowsStoredReversed",
+            "rowPaddingBytes",
+            "imageMagic",
+            "dataWidth",
+            "dataHeight"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": ["typeName", "kind", "dataLength", "storedLength", "storage"],
+      "additionalProperties": false
+    }
+  ]
+}

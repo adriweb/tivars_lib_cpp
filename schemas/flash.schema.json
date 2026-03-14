@@ -1,0 +1,258 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TIFlashHeader",
+  "type": "object",
+  "definitions": {
+    "hexString": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]*$"
+    },
+    "device": {
+      "type": "object",
+      "properties": {
+        "deviceType": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "typeId": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "required": ["deviceType", "typeId"],
+      "additionalProperties": false
+    },
+    "block": {
+      "type": "object",
+      "properties": {
+        "address": {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{4}$"
+        },
+        "blockType": {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{2}$"
+        },
+        "dataHex": {
+          "$ref": "#/definitions/hexString"
+        }
+      },
+      "required": ["address", "blockType", "dataHex"],
+      "additionalProperties": false
+    },
+    "flashField": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "idHex": { "type": "string" },
+        "name": { "type": "string" },
+        "payloadSize": { "type": "integer" },
+        "headerSize": { "type": "integer" },
+        "offset": { "type": "integer" },
+        "rawDataHex": { "$ref": "#/definitions/hexString" },
+        "timestamp": { "type": "integer" },
+        "timestampUtc": { "type": "string" },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/flashField"
+          }
+        },
+        "extended": {
+          "$ref": "#/definitions/flashExtendedField"
+        }
+      },
+      "required": ["id", "idHex", "name", "payloadSize", "headerSize", "offset"],
+      "additionalProperties": false
+    },
+    "flashRelocation": {
+      "type": "object",
+      "properties": {
+        "hole": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "base": {
+          "type": "string",
+          "enum": ["Code Base", "Data Base"]
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": ["hole", "base", "offset"],
+      "additionalProperties": false
+    },
+    "flashExtendedField": {
+      "type": "object",
+      "properties": {
+        "rawDataHex": {
+          "$ref": "#/definitions/hexString"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["raw", "eZ80"]
+        },
+        "name": {
+          "type": "string"
+        },
+        "flag1": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "unknownFlag": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "flag2": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "mainOffset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "initializedLocation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "initializedSize": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "entryPoint": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "language": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "execLib": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "copyright": {
+          "type": "string"
+        },
+        "relocationTable": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/flashRelocation"
+          }
+        },
+        "bodyHex": {
+          "$ref": "#/definitions/hexString"
+        }
+      },
+      "required": ["rawDataHex", "format"],
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "typeName": {
+      "type": "string"
+    },
+    "typeId": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "magic": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "revisionMajor": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "revisionMinor": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "binaryFlag": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "objectType": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "date": {
+      "type": "array",
+      "items": { "type": "integer" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "name": {
+      "type": "string"
+    },
+    "devices": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/device"
+      }
+    },
+    "productId": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "calcDataSize": {
+      "type": "integer",
+      "minimum": 0,
+      "readOnly": true
+    },
+    "hasChecksum": {
+      "type": "boolean"
+    },
+    "calcDataHex": {
+      "$ref": "#/definitions/hexString"
+    },
+    "license": {
+      "type": "string"
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/block"
+      }
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/flashField"
+      },
+      "readOnly": true
+    },
+    "fieldsError": {
+      "type": "string",
+      "readOnly": true
+    },
+    "certificateVersion": {
+      "type": "object",
+      "properties": {
+        "major": { "type": "integer" },
+        "minor": { "type": "integer" },
+        "patch": { "type": "integer" },
+        "build": { "type": "integer" },
+        "string": { "type": "string" },
+        "source": { "type": "string" }
+      },
+      "required": ["major", "minor", "string"],
+      "additionalProperties": false,
+      "readOnly": true
+    }
+  },
+  "additionalProperties": false
+}

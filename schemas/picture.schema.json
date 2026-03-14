@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Picture",
+  "definitions": {
+    "hexString": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]*$"
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "typeName": {
+          "const": "Picture"
+        },
+        "rawDataHex": {
+          "$ref": "#/definitions/hexString"
+        }
+      },
+      "required": ["rawDataHex"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "typeName": {
+          "const": "Picture"
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["MonoPicture", "ColorPicture"]
+        },
+        "dataLength": {
+          "type": "integer",
+          "minimum": 0,
+          "readOnly": true
+        },
+        "storedLength": {
+          "type": "integer",
+          "minimum": 0,
+          "readOnly": true
+        },
+        "hasColor": {
+          "type": "boolean",
+          "readOnly": true
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 0,
+          "readOnly": true
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0,
+          "readOnly": true
+        },
+        "storage": {
+          "type": "object",
+          "properties": {
+            "encoding": { "type": "string" },
+            "rowsStoredReversed": { "type": "boolean" },
+            "pixelsPerByte": { "type": "integer" },
+            "paletteSize": { "type": "integer" },
+            "dataWidth": { "type": "integer" },
+            "dataHeight": { "type": "integer" }
+          },
+          "required": ["encoding", "rowsStoredReversed", "dataWidth", "dataHeight"],
+          "additionalProperties": true
+        }
+      },
+      "required": ["typeName", "kind", "dataLength", "storedLength", "storage"],
+      "additionalProperties": false
+    }
+  ]
+}

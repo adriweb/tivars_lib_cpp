@@ -149,6 +149,49 @@ int main(int argc, char** argv)
     }
 
     {
+        const std::vector<std::string> schemaPaths = {
+            "schemas/backup.schema.json",
+            "schemas/cabrijr-appvar.schema.json",
+            "schemas/cellsheet-appvar.schema.json",
+            "schemas/cellsheet-state-appvar.schema.json",
+            "schemas/flash.schema.json",
+            "schemas/gdb.schema.json",
+            "schemas/group.schema.json",
+            "schemas/image.schema.json",
+            "schemas/notefolio-appvar.schema.json",
+            "schemas/picture.schema.json",
+            "schemas/python-appvar.schema.json",
+            "schemas/python-image-appvar.schema.json",
+            "schemas/python-module-appvar.schema.json",
+            "schemas/recall-window.schema.json",
+            "schemas/studycards-appvar.schema.json",
+            "schemas/studycards-setgs-appvar.schema.json",
+            "schemas/table-range.schema.json",
+            "schemas/window-settings.schema.json"
+        };
+
+        for (const auto& path : schemaPaths)
+        {
+            std::ifstream schemaFile(path);
+            assert(schemaFile.is_open());
+
+            const json schemaJSON = json::parse(schemaFile);
+            assert(schemaJSON.is_object());
+            assert(schemaJSON.contains("$schema"));
+            assert(schemaJSON.contains("title"));
+
+            if (path == "schemas/flash.schema.json")
+            {
+                assert(schemaJSON.contains("definitions"));
+                assert(schemaJSON["definitions"].contains("flashExtendedField"));
+                assert(schemaJSON["definitions"]["flashExtendedField"]["properties"].contains("relocationTable"));
+                assert(schemaJSON["definitions"]["flashExtendedField"]["properties"].contains("bodyHex"));
+                assert(schemaJSON["definitions"]["flashField"]["properties"]["extended"]["$ref"] == "#/definitions/flashExtendedField");
+            }
+        }
+    }
+
+    {
         TIVarFile testReal = TIVarFile::createNew("Real", "A");
         for (const auto& str : { "0.0", "0", "+0.0", "+0" })
         {

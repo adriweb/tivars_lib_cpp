@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CabriJrAppVar",
+  "type": "object",
+  "definitions": {
+    "hexString": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]*$"
+    }
+  },
+  "properties": {
+    "typeName": {
+      "const": "CabriJrAppVar"
+    },
+    "subtype": {
+      "const": "CabriJr"
+    },
+    "magic": {
+      "const": "CaJu"
+    },
+    "variant": {
+      "type": "string",
+      "enum": ["File", "Language"]
+    },
+    "variantByte": {
+      "type": "string",
+      "readOnly": true
+    },
+    "structure": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "compressed": {
+      "type": "boolean",
+      "readOnly": true
+    },
+    "unknownBeforeWordHex": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{2}$"
+    },
+    "unknownWord": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "unknownAfterWordHex": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{2}$"
+    },
+    "nameOffsetUnits": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "nameOffset": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "dataHex": {
+      "$ref": "#/definitions/hexString"
+    },
+    "unreadHex": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{2}$"
+    },
+    "entryOffsetUnits": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "entryOffset": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "blockCount": {
+      "type": "integer",
+      "readOnly": true
+    },
+    "blocksHex": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9A-Fa-f]{36}$"
+      }
+    },
+    "trailingWord": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "trailingDataHex": {
+      "$ref": "#/definitions/hexString"
+    },
+    "unknownHex": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{4}$"
+    },
+    "languageId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 3
+    },
+    "text": {
+      "type": "string"
+    },
+    "lines": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rawDataHex": {
+      "$ref": "#/definitions/hexString"
+    }
+  },
+  "additionalProperties": false
+}

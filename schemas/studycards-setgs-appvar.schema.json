@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StudyCardsSetgsAppVar",
+  "type": "object",
+  "definitions": {
+    "hexString": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]*$"
+    }
+  },
+  "properties": {
+    "typeName": {
+      "const": "StudyCardsSetgsAppVar"
+    },
+    "subtype": {
+      "const": "StudyCardsSettings"
+    },
+    "magic": {
+      "type": "string"
+    },
+    "flags": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "keepKnownCards": {
+      "type": "boolean"
+    },
+    "reintroduceCards": {
+      "type": "boolean"
+    },
+    "shuffleCards": {
+      "type": "boolean"
+    },
+    "ignoreLevels": {
+      "type": "boolean"
+    },
+    "animateFlip": {
+      "type": "boolean"
+    },
+    "boxMode5": {
+      "type": "boolean"
+    },
+    "currentAppVar": {
+      "type": "string",
+      "maxLength": 9
+    },
+    "rawDataHex": {
+      "$ref": "#/definitions/hexString"
+    }
+  },
+  "additionalProperties": false
+}
