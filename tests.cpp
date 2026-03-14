@@ -997,6 +997,44 @@ End)";
     }
 
     {
+        TIVarFile notefolio = TIVarFile::createNew("NotefolioAppVar", "NOTES", "83+");
+        notefolio.setContentFromString(R"({
+    "typeName": "NotefolioAppVar",
+    "reservedHex": "00000000",
+    "name": "NOTES",
+    "headerUnknownHex": "010203040506",
+    "text": "Hello NoteFolio",
+    "textNullTerminated": true,
+    "trailingDataHex": "AA55"
+})");
+        assert(notefolio.getVarEntries()[0]._type.getName() == "NotefolioAppVar");
+        const json notefolioJSON = json::parse(notefolio.getReadableContent());
+        assert(notefolioJSON["typeName"] == "NotefolioAppVar");
+        assert(notefolioJSON["subtype"] == "Notefolio");
+        assert(notefolioJSON["magic"] == "F347BFAF");
+        assert(notefolioJSON["reservedHex"] == "00000000");
+        assert(notefolioJSON["name"] == "NOTES");
+        assert(notefolioJSON["storedTextLength"] == 16);
+        assert(notefolioJSON["headerUnknownHex"] == "010203040506");
+        assert(notefolioJSON["text"] == "Hello NoteFolio");
+        assert(notefolioJSON["textNullTerminated"] == true);
+        assert(notefolioJSON["textDataHex"] == "48656C6C6F204E6F7465466F6C696F00");
+        assert(notefolioJSON["trailingDataHex"] == "AA55");
+
+        TIVarFile genericNotefolio = TIVarFile::createNew("AppVar", "NFGEN", "83+");
+        genericNotefolio.setContentFromString(notefolio.getReadableContent());
+        assert(genericNotefolio.getVarEntries()[0]._type.getName() == "NotefolioAppVar");
+        assert(genericNotefolio.getRawContent() == notefolio.getRawContent());
+
+        TIVarFile rawNotefolio = TIVarFile::createNew("NotefolioAppVar", "RAWNOTES", "83+");
+        rawNotefolio.setContentFromString(R"({
+    "typeName": "NotefolioAppVar",
+    "rawDataHex": "F347BFAF000000004E4F544553000000100001020304050648656C6C6F204E6F7465466F6C696F00AA55"
+})");
+        assert(rawNotefolio.getRawContent() == notefolio.getRawContent());
+    }
+
+    {
         TIVarFile testPython = TIVarFile::createNew("PythonAppVar", "TEST123", "83PCE");
         testPython.setContentFromString("from math import *\nprint(math)\n\n# plop");
         testPython.saveVarToFile("testData", "Pythontest_new");
