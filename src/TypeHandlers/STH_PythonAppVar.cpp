@@ -17,9 +17,6 @@
 
 namespace tivars::TypeHandlers
 {
-    const constexpr char STH_PythonAppVar::ID_CODE[];
-    const constexpr char STH_PythonAppVar::ID_SCRIPT[];
-
     data_t STH_PythonAppVar::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)options;

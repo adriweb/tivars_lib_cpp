@@ -35,14 +35,14 @@ namespace tivars
     {
         const TIModel model(orderID, name, flags, sig, productId);
 
-        if (!models.count(name))
+        if (!models.contains(name))
             models[name] = model;
 
         const std::string pid_str = std::to_string(productId);
-        if (!models.count(pid_str))
+        if (!models.contains(pid_str))
             models[pid_str] = model;
 
-        if (!models.count(sig))
+        if (!models.contains(sig))
             models[sig] = model;
     }
 
@@ -85,17 +85,17 @@ namespace tivars
 
     bool TIModels::isValidPID(uint8_t pid)
     {
-        return (pid > 0 && models.count(std::to_string(pid)));
+        return (pid > 0 && models.contains(std::to_string(pid)));
     }
 
     bool TIModels::isValidName(const std::string& name)
     {
-        return (!name.empty() && models.count(name));
+        return (!name.empty() && models.contains(name));
     }
 
     bool TIModels::isValidSignature(const std::string& sig)
     {
-        return (!sig.empty() && models.count(sig));
+        return (!sig.empty() && models.contains(sig));
     }
 
 };

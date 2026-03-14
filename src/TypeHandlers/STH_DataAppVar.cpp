@@ -21,7 +21,7 @@ namespace tivars::TypeHandlers
         const size_t length = str.size();
         const size_t bytes  = length / 2;
         bool formatOk = (length % 2) == 0;
-        for (char c : str)
+        for (const char c : str)
         {
             if (!std::isxdigit(static_cast<unsigned char>(c)))
             {

@@ -66,8 +66,8 @@ namespace tivars::TypeHandlers
 
         const size_t numCount = (size_t) ((data[0] & 0xFF) + ((data[1] & 0xFF) << 8));
 
-        const bool isRealList    = (numCount == (size_t)((byteCount - 2) / TH_GenericReal::dataByteCount));
-        const bool isComplexList = (numCount == (size_t)((byteCount - 2) / TH_GenericComplex::dataByteCount));
+        const bool isRealList    = (numCount == (byteCount - 2) / TH_GenericReal::dataByteCount);
+        const bool isComplexList = (numCount == (byteCount - 2) / TH_GenericComplex::dataByteCount);
 
         if (!(isRealList ^ isComplexList))
         {
@@ -101,7 +101,7 @@ namespace tivars::TypeHandlers
     {
         uint8_t version = 0;
         for (size_t offset = 2; offset < data.size(); offset += 9) {
-            uint8_t internalType = data[offset] & 0x3F;
+            const uint8_t internalType = data[offset] & 0x3F;
             if (internalType > 0x1B) { // exact complex frac
                 version = 0x10;
                 break;

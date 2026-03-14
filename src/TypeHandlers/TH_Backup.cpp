@@ -41,7 +41,7 @@ namespace tivars::TypeHandlers
         std::string to_hex_string(const data_t& data)
         {
             std::string result;
-            for (uint8_t byte : data)
+            for (const uint8_t byte : data)
             {
                 result += dechex(byte);
             }
@@ -55,7 +55,7 @@ namespace tivars::TypeHandlers
                 throw std::invalid_argument(std::string(fieldName) + " must contain an even number of hex digits");
             }
 
-            for (char c : str)
+            for (const char c : str)
             {
                 if (!std::isxdigit(static_cast<unsigned char>(c)))
                 {
@@ -174,22 +174,22 @@ namespace tivars::TypeHandlers
         (void)options;
         (void)_ctx;
 
-        const backup_contents_t contents = parseInternal(data);
+        const auto& [hasData4, addressOfData2, data1, data2, data3, data4] = parseInternal(data);
         json j = {
             {"typeName", "Backup"},
-            {"segmentCount", contents.hasData4 ? 4 : 3},
-            {"addressOfData2", contents.addressOfData2},
-            {"data1Length", contents.data1.size()},
-            {"data1Hex", to_hex_string(contents.data1)},
-            {"data2Length", contents.data2.size()},
-            {"data2Hex", to_hex_string(contents.data2)},
-            {"data3Length", contents.data3.size()},
-            {"data3Hex", to_hex_string(contents.data3)},
+            {"segmentCount", hasData4 ? 4 : 3},
+            {"addressOfData2", addressOfData2},
+            {"data1Length", data1.size()},
+            {"data1Hex", to_hex_string(data1)},
+            {"data2Length", data2.size()},
+            {"data2Hex", to_hex_string(data2)},
+            {"data3Length", data3.size()},
+            {"data3Hex", to_hex_string(data3)},
         };
-        if (contents.hasData4)
+        if (hasData4)
         {
-            j["data4Length"] = contents.data4.size();
-            j["data4Hex"] = to_hex_string(contents.data4);
+            j["data4Length"] = data4.size();
+            j["data4Hex"] = to_hex_string(data4);
         }
         return j.dump(4);
     }

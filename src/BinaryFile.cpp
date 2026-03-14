@@ -12,10 +12,6 @@
 
 namespace tivars
 {
-    /**
-     * @param null filePath
-     * @throws \Exception
-     */
     BinaryFile::BinaryFile(const std::string& filePath)
     {
         if (!filePath.empty())
@@ -46,7 +42,7 @@ namespace tivars
      * @return  uint8_t
      * @throws  runtime_error
      */
-    uint8_t BinaryFile::get_raw_byte()
+    uint8_t BinaryFile::get_raw_byte() const
     {
         if (file)
         {
@@ -65,11 +61,11 @@ namespace tivars
     /**
      * Returns an array of bytes bytes read from the file
      *
-     * @param   size_t bytes
+     * @param   bytes The number of bytes to read
      * @return  data_t
      * @throws  runtime_error
      */
-    data_t BinaryFile::get_raw_bytes(size_t bytes)
+    data_t BinaryFile::get_raw_bytes(size_t bytes) const
     {
         if (file)
         {
@@ -88,11 +84,11 @@ namespace tivars
     /**
      * Returns a string of bytes bytes read from the file (doesn't stop at NUL)
      *
-     * @param   size_t bytes The number of bytes to read
+     * @param   bytes The number of bytes to read
      * @return  string
      * @throws  runtime_error
      */
-    std::string BinaryFile::get_string_bytes(size_t bytes)
+    std::string BinaryFile::get_string_bytes(size_t bytes) const
     {
         if (file)
         {

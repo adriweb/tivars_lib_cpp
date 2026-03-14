@@ -53,7 +53,7 @@ namespace tivars::TypeHandlers
         {
             std::string out;
             out.reserve(data.size() * 2);
-            for (uint8_t byte : data)
+            for (const uint8_t byte : data)
             {
                 out += dechex(byte);
             }
@@ -123,10 +123,10 @@ namespace tivars::TypeHandlers
                     return TH_GenericComplex::dataByteCount;
 
                 case 0x01: // RealList
-                    return static_cast<size_t>(2 + read_le16(data, offset) * TH_GenericReal::dataByteCount);
+                    return 2 + read_le16(data, offset) * TH_GenericReal::dataByteCount;
 
                 case 0x0D: // ComplexList
-                    return static_cast<size_t>(2 + read_le16(data, offset) * TH_GenericComplex::dataByteCount);
+                    return 2 + read_le16(data, offset) * TH_GenericComplex::dataByteCount;
 
                 case 0x02: // Matrix
                 {
@@ -134,7 +134,7 @@ namespace tivars::TypeHandlers
                     {
                         throw std::invalid_argument("Unexpected end of GroupObject matrix data");
                     }
-                    return static_cast<size_t>(2 + data[offset] * data[offset + 1] * TH_GenericReal::dataByteCount);
+                    return 2 + data[offset] * data[offset + 1] * TH_GenericReal::dataByteCount;
                 }
 
                 case 0x07: // Picture
@@ -269,7 +269,7 @@ namespace tivars::TypeHandlers
                 case 0x15: // AppVar/PythonAppVar
                 case 0x17: // GroupObject
                 {
-                    const size_t nameLen = std::find(rawName.begin(), rawName.end(), 0x00) - rawName.begin();
+                    const size_t nameLen = std::ranges::find(rawName, 0x00) - rawName.begin();
                     data.push_back(static_cast<uint8_t>(nameLen));
                     data.insert(data.end(), rawName.begin(), rawName.begin() + static_cast<long>(nameLen));
                     break;
@@ -278,7 +278,7 @@ namespace tivars::TypeHandlers
                 case 0x01: // RealList
                 case 0x0D: // ComplexList
                 {
-                    const size_t nameLen = std::find(rawName.begin(), rawName.end(), 0x00) - rawName.begin();
+                    const size_t nameLen = std::ranges::find(rawName, 0x00) - rawName.begin();
                     data.push_back(static_cast<uint8_t>(nameLen + 1));
                     data.insert(data.end(), rawName.begin(), rawName.begin() + static_cast<long>(nameLen));
                     data.push_back(0x00);
@@ -286,7 +286,7 @@ namespace tivars::TypeHandlers
                 }
 
                 default:
-                    data.insert(data.end(), rawName.begin(), rawName.begin() + static_cast<long>(fixedNameByteCount));
+                    data.insert(data.end(), rawName.begin(), rawName.begin() + fixedNameByteCount);
                     break;
             }
 

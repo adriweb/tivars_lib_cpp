@@ -116,7 +116,7 @@ namespace tivars::TypeHandlers
 
         const bool negative = ((data[0] & 0x80) == 0x80);
         if (!data[2]) {
-            return scientific ? "0e0" : "0";
+            return "0";
         }
         int exponent = data[1] - 0x80;
 

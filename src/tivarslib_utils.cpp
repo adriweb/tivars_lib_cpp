@@ -171,7 +171,7 @@ bool is_numeric(const std::string& str)
     char* p;
     const double ignored = strtod(str.c_str(), &p);
     (void)ignored;
-    return (bool)!*p;
+    return !*p;
 }
 
 bool file_exists(const std::string& path) {
@@ -186,7 +186,7 @@ bool file_exists(const std::string& path) {
     }
 }
 
-std::string str_pad(const std::string& str, unsigned long pad_length, std::string pad_string)
+std::string str_pad(const std::string& str, unsigned long pad_length, const std::string& pad_string)
 {
     unsigned long i, x;
     const unsigned long str_size = str.size();

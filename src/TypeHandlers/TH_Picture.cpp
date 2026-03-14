@@ -35,7 +35,7 @@ namespace tivars::TypeHandlers
                 throw std::invalid_argument(std::string(fieldName) + " must contain an even number of hex digits");
             }
 
-            for (char c : str)
+            for (const char c : str)
             {
                 if (!std::isxdigit(static_cast<unsigned char>(c)))
                 {
@@ -81,7 +81,7 @@ namespace tivars::TypeHandlers
 
         const size_t actualSize = data.size();
         const uint16_t storedLength = read_le16(data);
-        if (actualSize != static_cast<size_t>(storedLength + minimumDataByteCount))
+        if (actualSize != storedLength + minimumDataByteCount)
         {
             throw std::invalid_argument("Invalid picture/image data length");
         }

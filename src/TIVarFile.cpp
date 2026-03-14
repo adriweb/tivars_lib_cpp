@@ -173,14 +173,14 @@ namespace tivars
             {
                 return false;
             }
-            for (char c : upperName)
+            for (const char c : upperName)
             {
                 if (!is_name_char(c))
                 {
                     return false;
                 }
             }
-            name = std::string(1, static_cast<char>(0x5D)) + upperName;
+            name = std::string(1, 0x5D) + upperName;
             return true;
         }
 
@@ -309,7 +309,7 @@ namespace tivars
      * Internal constructor, called from loadFromFile and createNew.
      * If filePath empty or not given, it's a programmer error, and it will throw in BinaryFile(filePath) anyway.
      * To create a TIVarFile not from a file, use TIVarFile::createNew
-     * @param   string  filePath
+     * @param   filePath
      * @throws  \Exception
      */
     TIVarFile::TIVarFile(const std::string& filePath) : BinaryFile(filePath)
@@ -352,8 +352,8 @@ namespace tivars
         const std::string signature = this->calcModel.getSig();
         const std::string comment = str_pad("Created by tivars_lib_cpp", sizeof(var_header_t::comment), "\0");
 
-        std::copy(signature.begin(), signature.end(), this->header.signature);
-        std::copy(comment.begin(), comment.end(), this->header.comment);
+        std::ranges::copy(signature, this->header.signature);
+        std::ranges::copy(comment, this->header.comment);
         this->header.entries_len = 0; // will have to be overwritten later
 
         this->entries.resize(1);
@@ -393,9 +393,9 @@ namespace tivars
         const auto sig_extra = this->get_raw_bytes(sizeof(var_header_t::sig_extra));
         this->header.ownerPID = this->get_raw_byte();
         const auto comment = this->get_string_bytes(sizeof(var_header_t::comment));
-        std::copy(signature.begin(), signature.end(), this->header.signature);
-        std::copy(sig_extra.begin(), sig_extra.end(), this->header.sig_extra);
-        std::copy(comment.begin(), comment.end(), this->header.comment);
+        std::ranges::copy(signature, this->header.signature);
+        std::ranges::copy(sig_extra, this->header.sig_extra);
+        std::ranges::copy(comment, this->header.comment);
         this->header.entries_len  = this->get_two_bytes_swapped();
 
         // the calcModel may later get updated with a more precise one
@@ -464,7 +464,7 @@ namespace tivars
             entry.determineFullType();
 
             // We preserve the raw on-file varname bytes on load instead of re-normalizing through setVarName().
-            std::copy(varNameFromFile.begin(), varNameFromFile.end(), entry.varname);
+            std::ranges::copy(varNameFromFile, entry.varname);
 
             this->entries.push_back(entry);
         }
@@ -473,7 +473,7 @@ namespace tivars
 
     /*** Private actions ***/
 
-    uint16_t TIVarFile::computeChecksumFromFileData()
+    uint16_t TIVarFile::computeChecksumFromFileData() const
     {
         if (this->fromFile)
         {
@@ -490,7 +490,7 @@ namespace tivars
         }
     }
 
-    uint16_t TIVarFile::computeChecksumFromInstanceData()
+    uint16_t TIVarFile::computeChecksumFromInstanceData() const
     {
         uint16_t sum = 0;
         for (const auto& entry : this->entries)
@@ -631,7 +631,7 @@ namespace tivars
             isValid = !newName.empty() && newName.size() <= sizeof(varname) && is_alpha_or_theta(newName[0]);
             if (isValid)
             {
-                for (char c : newName)
+                for (const char c : newName)
                 {
                     if (!is_name_char(c))
                     {
@@ -689,7 +689,7 @@ namespace tivars
         }
 
         newName = str_pad(newName, sizeof(varname), "\0");
-        std::copy(newName.begin(), newName.end(), varname);
+        std::ranges::copy(newName, varname);
     }
 
     void TIVarFile::var_entry_t::determineFullType()
@@ -744,7 +744,7 @@ namespace tivars
     {
         this->calcModel = model;
         std::string signature = model.getSig();
-        std::copy(signature.begin(), signature.end(), this->header.signature);
+        std::ranges::copy(signature, this->header.signature);
     }
 
     void TIVarFile::setVarName(const std::string& name, uint16_t entryIdx)
@@ -798,16 +798,16 @@ namespace tivars
         return result.str();
     }
 
-    std::string TIVarFile::getReadableContent(const options_t& options, uint16_t entryIdx)
+    std::string TIVarFile::getReadableContent(const options_t& options, uint16_t entryIdx) const
     {
         const auto& entry = this->entries[entryIdx];
         return std::get<1>(entry._type.getHandlers())(entry.data, options, this);
     }
-    std::string TIVarFile::getReadableContent(const options_t& options)
+    std::string TIVarFile::getReadableContent(const options_t& options) const
     {
         return getReadableContent(options, 0);
     }
-    std::string TIVarFile::getReadableContent()
+    std::string TIVarFile::getReadableContent() const
     {
         return getReadableContent({}, 0);
     }
@@ -974,8 +974,8 @@ namespace tivars
                     .function("isCorrupt"                , &tivars::TIVarFile::isCorrupt)
                     .function("getRawContent"            , select_overload<data_t(void)>(&tivars::TIVarFile::getRawContent))
                     .function("getRawContentHexStr"      , &tivars::TIVarFile::getRawContentHexStr)
-                    .function("getReadableContent"       , select_overload<std::string(const options_t&)>(&tivars::TIVarFile::getReadableContent))
-                    .function("getReadableContent"       , select_overload<std::string(void)>(&tivars::TIVarFile::getReadableContent))
+                    .function("getReadableContent"       , select_overload<std::string(const options_t&)const>(&tivars::TIVarFile::getReadableContent))
+                    .function("getReadableContent"       , select_overload<std::string(void)const>(&tivars::TIVarFile::getReadableContent))
 
                     .function("saveVarToFile"            , select_overload<std::string(std::string, std::string)>(&tivars::TIVarFile::saveVarToFile))
                     .function("saveVarToFile"            , select_overload<std::string(std::string)>(&tivars::TIVarFile::saveVarToFile))

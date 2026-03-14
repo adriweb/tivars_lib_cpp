@@ -80,12 +80,12 @@ static std::string prettify_token_string(std::string str)
         tivars::replace_all(str, "[|"s + c + "]", std::string(1, c));
     }
 
-    for (char c : "prszt"s)
+    for (const char c : "prszt"s)
     {
         tivars::replace_all(str, "["s + c + "]", std::string(1, c));
     }
 
-    for (char c : "uvw"s)
+    for (const char c : "uvw"s)
     {
         tivars::replace_all(str, "|"s + c, std::string(1, c));
     }
@@ -113,7 +113,7 @@ static void split_var_keyword_lines(std::string& str, const std::string& keyword
 static std::string bytes_to_hex(const data_t& data)
 {
     std::string result;
-    for (uint8_t byte : data)
+    for (const uint8_t byte : data)
     {
         result += tivars::dechex(byte);
     }
@@ -129,7 +129,7 @@ static data_t hex_to_bytes(const std::string& str)
 
     data_t out;
     out.reserve(str.size() / 2);
-    for (char c : str)
+    for (const char c : str)
     {
         if (!std::isxdigit(static_cast<unsigned char>(c)))
         {
@@ -434,7 +434,7 @@ namespace tivars::TypeHandlers
                     break;
                 }
 
-                if (tokens_NameToBytes.count(currentSubString))
+                if (tokens_NameToBytes.contains(currentSubString))
                 {
                     uint16_t tokenValue = tokens_NameToBytes[currentSubString];
                     if (tokenValue > 0xFF)
@@ -480,7 +480,7 @@ namespace tivars::TypeHandlers
             }
         }
 
-        const data_t rawBytes(data.begin() + static_cast<ptrdiff_t>(fromRawBytes ? 0 : 2), data.end());
+        const data_t rawBytes(data.begin() + (fromRawBytes ? 0 : 2), data.end());
         if (options.contains("metadata") && options.at("metadata") == 1)
         {
             json metadata = parse_asm_metadata(rawBytes);
@@ -500,7 +500,7 @@ namespace tivars::TypeHandlers
         if (!fromRawBytes && howManyBytes >= 2 && dataSize >= 4)
         {
             const uint16_t twoFirstBytes = (uint16_t) ((data[3] & 0xFF) + ((data[2] & 0xFF) << 8));
-            if (std::find(std::begin(squishedASMTokens), std::end(squishedASMTokens), twoFirstBytes) != std::end(squishedASMTokens))
+            if (std::ranges::find(squishedASMTokens, twoFirstBytes) != std::end(squishedASMTokens))
             {
                 return "[Error] This is a squished ASM program - cannot preview it!";
             }
@@ -523,7 +523,7 @@ namespace tivars::TypeHandlers
                 bytesKey = nextToken + (currentToken << 8);
                 i++;
             }
-            if (tokens_BytesToName.find(bytesKey) != tokens_BytesToName.end())
+            if (tokens_BytesToName.contains(bytesKey))
             {
                 str += tokens_BytesToName[bytesKey][langIdx];
             } else {
@@ -573,7 +573,7 @@ namespace tivars::TypeHandlers
                 if (offset >= dataSize) {
                     break;
                 }
-                uint8_t secondByte = data[offset++];
+                const uint8_t secondByte = data[offset++];
                 if (firstByte == 0xBB) {
                     if (secondByte > maxBB) maxBB = secondByte;
                 } else if (firstByte == 0xEF) {
@@ -684,20 +684,20 @@ namespace tivars::TypeHandlers
         std::vector<std::string> closingTokens         = { "End", "EndIf", "End!If" };
         uint16_t nextIndent = 0;
         std::string oldFirstCommand, firstCommand;
-        for (auto& line : lines)
+        for (auto& [indent, text] : lines)
         {
             oldFirstCommand = firstCommand;
-            firstCommand = get_first_command(line.second);
+            firstCommand = get_first_command(text);
 
-            line.first = nextIndent;
+            indent = nextIndent;
 
             if (is_in_vector(increaseIndentAfter, firstCommand))
             {
                 nextIndent++;
             }
-            if (line.first > 0 && is_in_vector(decreaseIndentOfToken, firstCommand))
+            if (indent > 0 && is_in_vector(decreaseIndentOfToken, firstCommand))
             {
-                line.first--;
+                indent--;
             }
             if (nextIndent > 0 && (is_in_vector(closingTokens, firstCommand) || (oldFirstCommand == "If" && firstCommand != "Then" && lang != PRGMLANG_AXE && lang != PRGMLANG_ICE)))
             {
@@ -706,9 +706,9 @@ namespace tivars::TypeHandlers
         }
 
         str = "";
-        for (const auto& line : lines)
+        for (const auto& [indent, text] : lines)
         {
-            str += std::string(line.first * indent_n, indent_char) + line.second + '\n';
+            str += std::string(indent * indent_n, indent_char) + text + '\n';
         }
 
         return ltrim(rtrim(str, "\t\n\r\f\v"));
@@ -741,7 +741,7 @@ namespace tivars::TypeHandlers
         }
 
         std::string tokStr;
-        if (tokens_BytesToName.find(bytesKey) != tokens_BytesToName.end())
+        if (tokens_BytesToName.contains(bytesKey))
         {
             tokStr = tokens_BytesToName[bytesKey][langIdx];
         } else {
@@ -764,7 +764,7 @@ namespace tivars::TypeHandlers
         }
 
         std::string tokStr;
-        if (tokens_BytesToName.find(tokenBytes) != tokens_BytesToName.end())
+        if (tokens_BytesToName.contains(tokenBytes))
         {
             tokStr = tokens_BytesToName[tokenBytes][LANG_EN];
         } else {
@@ -788,7 +788,7 @@ namespace tivars::TypeHandlers
         if (dataSize >= 2)
         {
             const uint16_t twoFirstBytes = (uint16_t) ((data[1] & 0xFF) + ((data[0] & 0xFF) << 8));
-            if (std::find(std::begin(squishedASMTokens), std::end(squishedASMTokens), twoFirstBytes) != std::end(squishedASMTokens))
+            if (std::ranges::find(squishedASMTokens, twoFirstBytes) != std::end(squishedASMTokens))
             {
                 throw std::invalid_argument("This is a squished ASM program - cannot process it!");
             }
@@ -831,7 +831,7 @@ namespace tivars::TypeHandlers
             }
 
             std::string tokStr;
-            if (tokens_BytesToName.find(bytesKey) != tokens_BytesToName.end())
+            if (tokens_BytesToName.contains(bytesKey))
             {
                 tokStr = tokens_BytesToName[bytesKey][langIdx];
             } else {

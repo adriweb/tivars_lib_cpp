@@ -68,13 +68,13 @@ namespace tivars
         const TIVarType varType(id, name, exts, handlers);
         types[name] = varType;
         const std::string id_str = std::to_string(id);
-        if (types.count(id_str) == 0)
+        if (!types.contains(id_str))
         {
             types[id_str] = varType;
         }
         for (const std::string& ext : exts)
         {
-            if (!ext.empty() && !types.count(ext))
+            if (!ext.empty() && !types.contains(ext))
             {
                 types[ext] = varType;
             }
@@ -150,12 +150,12 @@ namespace tivars
 
     bool TIVarTypes::isValidID(uint8_t id)
     {
-        return types.count(std::to_string(id));
+        return types.contains(std::to_string(id));
     }
 
     bool TIVarTypes::isValidName(const std::string& name)
     {
-        return (!name.empty() && types.count(name));
+        return (!name.empty() && types.contains(name));
     }
 }
 

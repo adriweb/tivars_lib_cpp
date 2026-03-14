@@ -94,7 +94,7 @@ namespace tivars::TypeHandlers
         bool has_prefix(const data_t& data, const std::array<uint8_t, 4>& magic)
         {
             return data.size() >= appVarSizePrefixByteCount + magic.size()
-                && std::equal(magic.begin(), magic.end(), data.begin() + static_cast<ptrdiff_t>(appVarSizePrefixByteCount));
+                && std::equal(magic.begin(), magic.end(), data.begin() + appVarSizePrefixByteCount);
         }
 
         void ensure_sized_payload(const data_t& data)
@@ -115,7 +115,7 @@ namespace tivars::TypeHandlers
         data_t payload_from_data(const data_t& data)
         {
             ensure_sized_payload(data);
-            return data_t(data.begin() + static_cast<ptrdiff_t>(appVarSizePrefixByteCount), data.end());
+            return data_t(data.begin() + appVarSizePrefixByteCount, data.end());
         }
 
         data_t wrap_payload(const data_t& payload)
@@ -204,7 +204,7 @@ namespace tivars::TypeHandlers
 
             data_t out;
             out.reserve(str.size() / 2);
-            for (char c : str)
+            for (const char c : str)
             {
                 if (!std::isxdigit(static_cast<unsigned char>(c)))
                 {
@@ -819,7 +819,7 @@ namespace tivars::TypeHandlers
             out["cardOffsets"] = cardOffsets;
 
             json titles = json::array();
-            for (uint16_t offset : titleOffsets)
+            for (const uint16_t offset : titleOffsets)
             {
                 std::string title;
                 if (offset < payload.size())

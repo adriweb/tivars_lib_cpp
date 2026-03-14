@@ -52,9 +52,9 @@ void ParseCSV(const std::string& csvSource, std::vector<std::vector<std::string>
 
 bool is_numeric(const std::string& str);
 
-bool file_exists(const std::string& filePath);
+bool file_exists(const std::string& path);
 
-std::string str_pad(const std::string& str, unsigned long pad_length, std::string pad_string = " ");
+std::string str_pad(const std::string& str, unsigned long pad_length, const std::string& pad_string = " ");
 
 std::string multiple(int num, const std::string& var);
 
