@@ -62,11 +62,20 @@ You can find code that use this project as a JS lib here: https://github.com/TI-
 | Window Settings           | **✓** (JSON) | **✓** (JSON) |
 | Recall Window             | **✓** (JSON) | **✓** (JSON) |
 | Table Range               | **✓** (JSON) | **✓** (JSON) |
-| Picture                   | **✓** (JSON metadata) |              |
-| Image                     | **✓** (JSON metadata) |              |
+| Picture                   | **✓** (JSON metadata) | **✓** (`rawDataHex` JSON) |
+| Image                     | **✓** (JSON metadata) | **✓** (`rawDataHex` JSON) |
 | Application Variable      |    **✓**     |    **✓**     |
 | Python AppVar             |    **✓**     |    **✓**     |
+| Python Module AppVar      | **✓** (JSON) | **✓** (JSON) |
+| Python Image AppVar       | **✓** (JSON) | **✓** (JSON) |
+| StudyCards AppVar         | **✓** (JSON) | **✓** (`rawDataHex` JSON) |
+| StudyCards Setgs AppVar   | **✓** (JSON) | **✓** (JSON) |
+| CellSheet AppVar          | **✓** (JSON) | **✓** (JSON) |
+| CellSheet State AppVar    | **✓** (JSON) | **✓** (JSON) |
+| CabriJr AppVar            | **✓** (JSON) | **✓** (JSON) |
+| Notefolio AppVar          | **✓** (JSON) | **✓** (JSON) |
 | Group Object              | **✓** (JSON) | **✓** (JSON) |
+| Backup                    | **✓** (JSON) | **✓** (JSON) |
 | Exact Complex Fraction    |    **✓**     |    **✓**     |
 | Exact Real Radical        |    **✓**     |    **✓**     |
 | Exact Complex Radical     |    **✓**     |    **✓**     |
@@ -74,12 +83,12 @@ You can find code that use this project as a JS lib here: https://github.com/TI-
 | Exact Complex Pi Fraction |    **✓**     |    **✓**     |
 | Exact Real Pi             |    **✓**     |    **✓**     |
 | Exact Real Pi Fraction    |    **✓**     |    **✓**     |
-| Operating System / Flash App / Certificate | **✓** (JSON metadata) |              |
+| Operating System / Flash App / Certificate | **✓** (JSON metadata) | **✓** (JSON) |
 
 Special vartype naming rules are implemented for constrained names such as strings, lists, matrices, equations, pictures, images, GDBs, and settings vars.
 
-Picture/image support is currently read-only and exposes metadata as JSON; raw pixel import/export is not implemented.
-Flash file support is currently read-only and exposes header/object metadata as JSON.
+Picture/image support exposes metadata as JSON and supports `rawDataHex` import/export for exact roundtrips; raw pixel decoding/encoding is still not implemented.
+Flash file support exposes header/object metadata as JSON and supports JSON -> file reconstruction, including multi-header files.
+Structured AppVar support includes generic subtype detection from raw data / JSON for Python modules, Python images, StudyCards, StudyCards settings, CellSheet, CellSheet state, CabriJr, and Notefolio payloads.
 
-To this date, there are no plans to support other types (except maybe some fancy things with the image/picture vartypes...).  
-Pull Requests are welcome, though :)
+Big thanks to @LogicalJoe for his research in https://github.com/TI-Toolkit/tivars_hexfiend_templates/
