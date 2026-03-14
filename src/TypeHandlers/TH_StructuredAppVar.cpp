@@ -26,6 +26,7 @@ namespace tivars::TypeHandlers
     {
         constexpr char PYTHON_MODULE_MAGIC[] = "PYMP";
         constexpr char PYTHON_IMAGE_MAGIC[] = "IM8C";
+        constexpr char CABRIJR_MAGIC[] = "CaJu";
         constexpr std::array<uint8_t, 4> STUDY_CARDS_MAGIC          = {0xF3, 0x47, 0xBF, 0xA7};
         constexpr std::array<uint8_t, 4> STUDY_CARDS_SETTINGS_MAGIC = {0xF3, 0x47, 0xBF, 0xA8};
         constexpr std::array<uint8_t, 4> CELSHEET_MAGIC             = {0xF3, 0x47, 0xBF, 0xAA};
@@ -37,6 +38,11 @@ namespace tivars::TypeHandlers
         constexpr size_t studyCardsTitleCount = 4;
         constexpr size_t studyCardsSettingsNameByteCount = 9;
         constexpr size_t cellSheetNameByteCount = 8;
+        constexpr uint8_t cabriJrVariantFile = 'f';
+        constexpr uint8_t cabriJrVariantLanguage = 'l';
+        constexpr size_t cabriJrLanguageUnknownByteCount = 2;
+        constexpr size_t cabriJrLanguageIdByteCount = 3;
+        constexpr size_t cabriJrCompressedBlockByteCount = 18;
         constexpr size_t notefolioReservedByteCount = 4;
         constexpr size_t notefolioNameByteCount = 8;
         constexpr size_t notefolioHeaderUnknownByteCount = 6;
@@ -66,6 +72,10 @@ namespace tivars::TypeHandlers
             if (typeName == "CellSheetStateAppVar")
             {
                 return APPVAR_SUBTYPE_CELSHEET_STATE;
+            }
+            if (typeName == "CabriJrAppVar")
+            {
+                return APPVAR_SUBTYPE_CABRIJR;
             }
             if (typeName == "NotefolioAppVar")
             {
@@ -260,6 +270,59 @@ namespace tivars::TypeHandlers
             while (value != 0);
         }
 
+        json split_lines_json(const std::string& text, char delim)
+        {
+            json lines = json::array();
+            if (text.empty())
+            {
+                return lines;
+            }
+
+            size_t start = 0;
+            while (true)
+            {
+                const size_t end = text.find(delim, start);
+                if (end == std::string::npos)
+                {
+                    lines.push_back(text.substr(start));
+                    break;
+                }
+
+                lines.push_back(text.substr(start, end - start));
+                start = end + 1;
+                if (start == text.size())
+                {
+                    lines.push_back("");
+                    break;
+                }
+            }
+
+            return lines;
+        }
+
+        std::string join_lines(const json& lines, char delim)
+        {
+            if (!lines.is_array())
+            {
+                throw std::invalid_argument("lines must be an array of strings");
+            }
+
+            std::string text;
+            for (size_t i = 0; i < lines.size(); i++)
+            {
+                if (!lines[i].is_string())
+                {
+                    throw std::invalid_argument("lines must contain only strings");
+                }
+                if (i != 0)
+                {
+                    text.push_back(delim);
+                }
+                text += lines[i].get<std::string>();
+            }
+            return text;
+        }
+
         StructuredAppVarSubtype subtype_from_json(const json& j)
         {
             if (j.contains("typeName"))
@@ -292,6 +355,10 @@ namespace tivars::TypeHandlers
                 if (subtype == "CellSheetState")
                 {
                     return APPVAR_SUBTYPE_CELSHEET_STATE;
+                }
+                if (subtype == "CabriJr")
+                {
+                    return APPVAR_SUBTYPE_CABRIJR;
                 }
                 if (subtype == "Notefolio")
                 {
@@ -441,6 +508,120 @@ namespace tivars::TypeHandlers
                     {
                         vector_append(payload, parse_hex_string(j.at("payloadHex").get<std::string>(), "payloadHex"));
                     }
+                    return payload;
+                }
+
+                case APPVAR_SUBTYPE_CABRIJR:
+                {
+                    payload.insert(payload.end(), CABRIJR_MAGIC, CABRIJR_MAGIC + magicByteCount);
+
+                    const std::string variant = j.value("variant", "");
+                    if (variant == "File")
+                    {
+                        payload.push_back(cabriJrVariantFile);
+                        const uint8_t structure = static_cast<uint8_t>(j.at("structure").get<int>() & 0xFF);
+                        payload.push_back(structure);
+
+                        if (structure == 0x04)
+                        {
+                            const data_t unknownBeforeWord = j.contains("unknownBeforeWordHex")
+                                ? parse_hex_string(j.at("unknownBeforeWordHex").get<std::string>(), "unknownBeforeWordHex")
+                                : data_t{0x00};
+                            if (unknownBeforeWord.size() != 1)
+                            {
+                                throw std::invalid_argument("unknownBeforeWordHex must contain exactly 1 byte");
+                            }
+                            payload.push_back(unknownBeforeWord[0]);
+                            append_le16(payload, static_cast<uint16_t>(j.value("unknownWord", 0) & 0xFFFF));
+
+                            const data_t unknownAfterWord = j.contains("unknownAfterWordHex")
+                                ? parse_hex_string(j.at("unknownAfterWordHex").get<std::string>(), "unknownAfterWordHex")
+                                : data_t{0x00};
+                            if (unknownAfterWord.size() != 1)
+                            {
+                                throw std::invalid_argument("unknownAfterWordHex must contain exactly 1 byte");
+                            }
+                            payload.push_back(unknownAfterWord[0]);
+                            payload.push_back(static_cast<uint8_t>(j.value("nameOffsetUnits", 0) & 0xFF));
+
+                            if (j.contains("dataHex"))
+                            {
+                                vector_append(payload, parse_hex_string(j.at("dataHex").get<std::string>(), "dataHex"));
+                            }
+                        }
+                        else
+                        {
+                            const data_t unread = j.contains("unreadHex")
+                                ? parse_hex_string(j.at("unreadHex").get<std::string>(), "unreadHex")
+                                : data_t{0x00};
+                            if (unread.size() != 1)
+                            {
+                                throw std::invalid_argument("unreadHex must contain exactly 1 byte");
+                            }
+                            payload.push_back(unread[0]);
+                            payload.push_back(static_cast<uint8_t>(j.value("nameOffsetUnits", 0) & 0xFF));
+                            payload.push_back(static_cast<uint8_t>(j.value("entryOffsetUnits", 0) & 0xFF));
+
+                            const json& blocks = j.at("blocksHex");
+                            if (!blocks.is_array())
+                            {
+                                throw std::invalid_argument("blocksHex must be an array");
+                            }
+                            if (blocks.size() > 0xFF)
+                            {
+                                throw std::invalid_argument("blocksHex must contain at most 255 blocks");
+                            }
+                            payload.push_back(static_cast<uint8_t>(blocks.size()));
+                            for (const json& block : blocks)
+                            {
+                                const data_t blockData = parse_hex_string(block.get<std::string>(), "blocksHex");
+                                if (blockData.size() != cabriJrCompressedBlockByteCount)
+                                {
+                                    throw std::invalid_argument("Each blocksHex entry must contain exactly 18 bytes");
+                                }
+                                vector_append(payload, blockData);
+                            }
+
+                            if (j.contains("trailingWord"))
+                            {
+                                append_le16(payload, static_cast<uint16_t>(j.at("trailingWord").get<int>() & 0xFFFF));
+                            }
+                            if (j.contains("trailingDataHex"))
+                            {
+                                vector_append(payload, parse_hex_string(j.at("trailingDataHex").get<std::string>(), "trailingDataHex"));
+                            }
+                        }
+                    }
+                    else if (variant == "Language")
+                    {
+                        payload.push_back(cabriJrVariantLanguage);
+
+                        const data_t unknown = j.contains("unknownHex")
+                            ? parse_hex_string(j.at("unknownHex").get<std::string>(), "unknownHex")
+                            : data_t{0x01, 0x5F};
+                        if (unknown.size() != cabriJrLanguageUnknownByteCount)
+                        {
+                            throw std::invalid_argument("unknownHex must contain exactly 2 bytes");
+                        }
+                        vector_append(payload, unknown);
+
+                        const std::string languageId = j.at("languageId").get<std::string>();
+                        if (languageId.size() != cabriJrLanguageIdByteCount)
+                        {
+                            throw std::invalid_argument("languageId must contain exactly 3 characters");
+                        }
+                        payload.insert(payload.end(), languageId.begin(), languageId.end());
+
+                        const std::string text = j.contains("lines")
+                            ? join_lines(j.at("lines"), '\r')
+                            : j.value("text", "");
+                        payload.insert(payload.end(), text.begin(), text.end());
+                    }
+                    else
+                    {
+                        throw std::invalid_argument("CabriJrAppVar variant must be File or Language");
+                    }
+
                     return payload;
                 }
 
@@ -698,6 +879,99 @@ namespace tivars::TypeHandlers
             };
         }
 
+        json parse_cabrijr_appvar(const data_t& payload)
+        {
+            size_t pos = magicByteCount;
+            const uint8_t variantByte = read_u8(payload, pos, "variant");
+            json out = {
+                {"typeName", "CabriJrAppVar"},
+                {"subtype", "CabriJr"},
+                {"magic", CABRIJR_MAGIC},
+                {"variantByte", std::string(1, static_cast<char>(variantByte))},
+            };
+
+            if (variantByte == cabriJrVariantFile)
+            {
+                out["variant"] = "File";
+                const uint8_t structure = read_u8(payload, pos, "structure");
+                out["structure"] = structure;
+
+                if (structure == 0x04)
+                {
+                    out["compressed"] = false;
+                    out["unknownBeforeWordHex"] = dechex(read_u8(payload, pos, "unknownBeforeWord"));
+                    out["unknownWord"] = read_le16(payload, pos, "unknownWord");
+                    out["unknownAfterWordHex"] = dechex(read_u8(payload, pos, "unknownAfterWord"));
+                    const uint8_t nameOffsetUnits = read_u8(payload, pos, "nameOffsetUnits");
+                    out["nameOffsetUnits"] = nameOffsetUnits;
+                    out["nameOffset"] = static_cast<uint16_t>(21 * nameOffsetUnits);
+                    out["dataHex"] = to_hex_string(data_t(payload.begin() + static_cast<ptrdiff_t>(pos), payload.end()));
+                }
+                else
+                {
+                    out["compressed"] = true;
+                    out["unreadHex"] = dechex(read_u8(payload, pos, "unread"));
+                    const uint8_t nameOffsetUnits = read_u8(payload, pos, "nameOffsetUnits");
+                    const uint8_t entryOffsetUnits = read_u8(payload, pos, "entryOffsetUnits");
+                    const uint8_t blockCount = read_u8(payload, pos, "blockCount");
+                    out["nameOffsetUnits"] = nameOffsetUnits;
+                    out["nameOffset"] = static_cast<uint16_t>(2 * nameOffsetUnits + 36);
+                    out["entryOffsetUnits"] = entryOffsetUnits;
+                    out["entryOffset"] = static_cast<uint16_t>(2 * entryOffsetUnits + 18);
+                    out["blockCount"] = blockCount;
+
+                    if (pos + static_cast<size_t>(blockCount) * cabriJrCompressedBlockByteCount > payload.size())
+                    {
+                        throw std::invalid_argument("Invalid CabriJrAppVar compressed block data length");
+                    }
+
+                    json blocks = json::array();
+                    for (uint8_t i = 0; i < blockCount; i++)
+                    {
+                        const data_t block(payload.begin() + static_cast<ptrdiff_t>(pos),
+                                           payload.begin() + static_cast<ptrdiff_t>(pos + cabriJrCompressedBlockByteCount));
+                        pos += cabriJrCompressedBlockByteCount;
+                        blocks.push_back(to_hex_string(block));
+                    }
+                    out["blocksHex"] = blocks;
+
+                    if (entryOffsetUnits == 0x20 && pos + 2 <= payload.size())
+                    {
+                        out["trailingWord"] = read_le16(payload, pos, "trailingWord");
+                    }
+                    out["trailingDataHex"] = to_hex_string(data_t(payload.begin() + static_cast<ptrdiff_t>(pos), payload.end()));
+                }
+            }
+            else if (variantByte == cabriJrVariantLanguage)
+            {
+                out["variant"] = "Language";
+                if (pos + cabriJrLanguageUnknownByteCount + cabriJrLanguageIdByteCount > payload.size())
+                {
+                    throw std::invalid_argument("Invalid CabriJrAppVar language data length");
+                }
+
+                const data_t unknown(payload.begin() + static_cast<ptrdiff_t>(pos),
+                                     payload.begin() + static_cast<ptrdiff_t>(pos + cabriJrLanguageUnknownByteCount));
+                pos += cabriJrLanguageUnknownByteCount;
+                const std::string languageId(payload.begin() + static_cast<ptrdiff_t>(pos),
+                                             payload.begin() + static_cast<ptrdiff_t>(pos + cabriJrLanguageIdByteCount));
+                pos += cabriJrLanguageIdByteCount;
+                const std::string text(payload.begin() + static_cast<ptrdiff_t>(pos), payload.end());
+
+                out["unknownHex"] = to_hex_string(unknown);
+                out["languageId"] = languageId;
+                out["text"] = text;
+                out["lines"] = split_lines_json(text, '\r');
+            }
+            else
+            {
+                throw std::invalid_argument("Invalid CabriJrAppVar variant");
+            }
+
+            out["rawDataHex"] = to_hex_string(payload);
+            return out;
+        }
+
         json parse_notefolio_appvar(const data_t& payload)
         {
             size_t pos = magicByteCount;
@@ -763,6 +1037,10 @@ namespace tivars::TypeHandlers
         {
             return "PythonImageAppVar";
         }
+        if (has_prefix(data, CABRIJR_MAGIC))
+        {
+            return "CabriJrAppVar";
+        }
         if (has_prefix(data, STUDY_CARDS_MAGIC))
         {
             return "StudyCardsAppVar";
@@ -825,6 +1103,8 @@ namespace tivars::TypeHandlers
             case APPVAR_SUBTYPE_CELSHEET:
             case APPVAR_SUBTYPE_CELSHEET_STATE:
                 return parse_cellsheet_appvar(payload, subtype).dump(4);
+            case APPVAR_SUBTYPE_CABRIJR:
+                return parse_cabrijr_appvar(payload).dump(4);
             case APPVAR_SUBTYPE_NOTEFOLIO:
                 return parse_notefolio_appvar(payload).dump(4);
         }

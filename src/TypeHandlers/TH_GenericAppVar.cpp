@@ -30,6 +30,7 @@ namespace tivars::TypeHandlers
                  || typeName == "StudyCardsSetgsAppVar"
                  || typeName == "CellSheetAppVar"
                  || typeName == "CellSheetStateAppVar"
+                 || typeName == "CabriJrAppVar"
                  || typeName == "NotefolioAppVar")
                 {
                     return TH_StructuredAppVar::makeDataFromString(trimmed, options, _ctx);

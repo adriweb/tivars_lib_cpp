@@ -983,6 +983,80 @@ End)";
     }
 
     {
+        TIVarFile cabriFile = TIVarFile::createNew("CabriJrAppVar", "CABF", "83PCE");
+        cabriFile.setContentFromString(R"({
+    "typeName": "CabriJrAppVar",
+    "variant": "File",
+    "structure": 4,
+    "unknownBeforeWordHex": "AA",
+    "unknownWord": 4660,
+    "unknownAfterWordHex": "BB",
+    "nameOffsetUnits": 3,
+    "dataHex": "01020304"
+})");
+        const json cabriFileJSON = json::parse(cabriFile.getReadableContent());
+        assert(cabriFileJSON["typeName"] == "CabriJrAppVar");
+        assert(cabriFileJSON["variant"] == "File");
+        assert(cabriFileJSON["compressed"] == false);
+        assert(cabriFileJSON["structure"] == 4);
+        assert(cabriFileJSON["unknownBeforeWordHex"] == "AA");
+        assert(cabriFileJSON["unknownWord"] == 4660);
+        assert(cabriFileJSON["unknownAfterWordHex"] == "BB");
+        assert(cabriFileJSON["nameOffsetUnits"] == 3);
+        assert(cabriFileJSON["nameOffset"] == 63);
+        assert(cabriFileJSON["dataHex"] == "01020304");
+
+        TIVarFile genericCabriFile = TIVarFile::createNew("AppVar", "GCBF", "83PCE");
+        genericCabriFile.setContentFromString(cabriFile.getReadableContent());
+        assert(genericCabriFile.getVarEntries()[0]._type.getName() == "CabriJrAppVar");
+        assert(genericCabriFile.getRawContent() == cabriFile.getRawContent());
+    }
+
+    {
+        TIVarFile cabriCompressed = TIVarFile::createNew("CabriJrAppVar", "CABC", "83PCE");
+        cabriCompressed.setContentFromString(R"({
+    "typeName": "CabriJrAppVar",
+    "variant": "File",
+    "structure": 3,
+    "unreadHex": "99",
+    "nameOffsetUnits": 4,
+    "entryOffsetUnits": 32,
+    "blocksHex": ["000102030405060708090A0B0C0D0E0F1011"],
+    "trailingWord": 48879,
+    "trailingDataHex": "AA55"
+})");
+        const json cabriCompressedJSON = json::parse(cabriCompressed.getReadableContent());
+        assert(cabriCompressedJSON["variant"] == "File");
+        assert(cabriCompressedJSON["compressed"] == true);
+        assert(cabriCompressedJSON["structure"] == 3);
+        assert(cabriCompressedJSON["unreadHex"] == "99");
+        assert(cabriCompressedJSON["nameOffsetUnits"] == 4);
+        assert(cabriCompressedJSON["entryOffsetUnits"] == 32);
+        assert(cabriCompressedJSON["blockCount"] == 1);
+        assert(cabriCompressedJSON["blocksHex"][0] == "000102030405060708090A0B0C0D0E0F1011");
+        assert(cabriCompressedJSON["trailingWord"] == 48879);
+        assert(cabriCompressedJSON["trailingDataHex"] == "AA55");
+    }
+
+    {
+        TIVarFile cabriLanguage = TIVarFile::createNew("CabriJrAppVar", "CABL", "83PCE");
+        cabriLanguage.setContentFromString(R"({
+    "typeName": "CabriJrAppVar",
+    "variant": "Language",
+    "languageId": "ENG",
+    "lines": ["MAIN,SUB", "HELP LINE", ""]
+})");
+        const json cabriLanguageJSON = json::parse(cabriLanguage.getReadableContent());
+        assert(cabriLanguageJSON["variant"] == "Language");
+        assert(cabriLanguageJSON["unknownHex"] == "015F");
+        assert(cabriLanguageJSON["languageId"] == "ENG");
+        assert(cabriLanguageJSON["text"] == "MAIN,SUB\rHELP LINE\r");
+        assert(cabriLanguageJSON["lines"].size() == 3);
+        assert(cabriLanguageJSON["lines"][0] == "MAIN,SUB");
+        assert(cabriLanguageJSON["lines"][2] == "");
+    }
+
+    {
         TIVarFile studyCards = TIVarFile::createNew("StudyCardsAppVar", "STUDY", "84+");
         studyCards.setContentFromString(R"({
     "typeName": "StudyCardsAppVar",
