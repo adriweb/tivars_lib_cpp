@@ -469,4 +469,24 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
     return printableAsciiString();
 }
 
+std::string sanitize_for_host_filename(const std::string& name)
+{
+    std::string sanitized(name);
+
+    replace_all(sanitized, "", "T");
+    replace_all(sanitized, "₀", "0");
+    replace_all(sanitized, "₁", "1");
+    replace_all(sanitized, "₂", "2");
+    replace_all(sanitized, "₃", "3");
+    replace_all(sanitized, "₄", "4");
+    replace_all(sanitized, "₅", "5");
+    replace_all(sanitized, "₆", "6");
+    replace_all(sanitized, "₇", "7");
+    replace_all(sanitized, "₈", "8");
+    replace_all(sanitized, "₉", "9");
+    replace_all(sanitized, "/", "_");
+
+    return sanitized;
+}
+
 }
