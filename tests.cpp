@@ -1121,6 +1121,59 @@ End)";
         TIVarFile pythonFromTest2 = TIVarFile::loadFromFile("testData/python_HELLO.8xv");
         cout << "pythonFromTest2.getReadableContent() : " << pythonFromTest2.getReadableContent() << endl;
         assert(pythonFromTest2.getReadableContent() == "import sys\nprint(sys.version)\n");
+
+        const json pythonMetadata = json::parse(pythonFromTest2.getReadableContent({{"metadata", true}}));
+        assert(pythonMetadata["typeName"] == "PythonAppVar");
+        assert(pythonMetadata["magic"] == "PYCD");
+        assert(pythonMetadata["metadataRecordCount"] == 0);
+        assert(pythonMetadata["code"] == "import sys\nprint(sys.version)\n");
+        assert(pythonMetadata["rawDataHex"] == "5059434400696D706F7274207379730A7072696E74287379732E76657273696F6E290A");
+    }
+
+    {
+        TIVarFile pythonBom = TIVarFile::createNew("PythonAppVar", "BOMTEST", "83PCE");
+        pythonBom.setContentFromString(std::string("\xEF\xBB\xBF") + "print(42)\n");
+        assert(pythonBom.getReadableContent() == "print(42)\n");
+
+        TIVarFile pythonWithMetadata = TIVarFile::createNew("PythonAppVar", "METAPY", "83PCE");
+        pythonWithMetadata.setContentFromString(R"({
+    "typeName": "PythonAppVar",
+    "filename": "hello.py",
+    "code": "print(\"hi\")\n",
+    "appendTrailingCRLF": true
+})");
+        const json pythonWithMetadataJSON = json::parse(pythonWithMetadata.getReadableContent({{"metadata", true}}));
+        assert(pythonWithMetadataJSON["filename"] == "hello.py");
+        assert(pythonWithMetadataJSON["metadataRecordCount"] == 1);
+        assert(pythonWithMetadataJSON["metadataRecords"][0]["type"] == 1);
+        assert(pythonWithMetadataJSON["metadataRecords"][0]["name"] == "hello.py");
+        assert(pythonWithMetadataJSON["code"] == "print(\"hi\")\n");
+
+        const std::string pythonWithoutMetadata = pythonWithMetadata.getReadableContent({{"metadata", false}});
+        assert(pythonWithoutMetadata == "print(\"hi\")\n");
+
+        TIVarFile pythonFromMetadataJSON = TIVarFile::createNew("PythonAppVar", "METAPY", "83PCE");
+        pythonFromMetadataJSON.setContentFromString(pythonWithMetadataJSON.dump());
+        assert(pythonFromMetadataJSON.getRawContent() == pythonWithMetadata.getRawContent());
+
+        TIVarFile oversizedPython = TIVarFile::createNew("PythonAppVar", "BIGPY", "83PCE");
+        oversizedPython.setContentFromString(std::string(70000, 'A'));
+        assert(oversizedPython.getRawContent().size() == 65514);
+        assert(oversizedPython.getReadableContent().size() == 65507);
+        assert(oversizedPython.getReadableContent() == std::string(65507, 'A'));
+
+        TIVarFile oversizedPythonMetadata = TIVarFile::createNew("PythonAppVar", "BIGMETA", "83PCE");
+        oversizedPythonMetadata.setContentFromString(R"({
+    "typeName": "PythonAppVar",
+    "filename": "really_long_name.py",
+    "code": ")"s + std::string(70000, 'B') + R"(",
+    "appendTrailingCRLF": true
+})");
+        const json oversizedPythonMetadataJSON = json::parse(oversizedPythonMetadata.getReadableContent({{"metadata", true}}));
+        assert(oversizedPythonMetadata.getRawContent().size() == 65514);
+        assert(oversizedPythonMetadataJSON["filename"] == "really_long_name.py");
+        assert(oversizedPythonMetadataJSON["code"].get<std::string>().back() == '\n');
+        assert(oversizedPythonMetadataJSON["code"].get<std::string>().size() == 65485);
     }
 
     {
