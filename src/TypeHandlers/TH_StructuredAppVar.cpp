@@ -30,12 +30,16 @@ namespace tivars::TypeHandlers
         constexpr std::array<uint8_t, 4> STUDY_CARDS_SETTINGS_MAGIC = {0xF3, 0x47, 0xBF, 0xA8};
         constexpr std::array<uint8_t, 4> CELSHEET_MAGIC             = {0xF3, 0x47, 0xBF, 0xAA};
         constexpr std::array<uint8_t, 4> CELSHEET_STATE_MAGIC       = {0xF3, 0x47, 0xBF, 0xAB};
+        constexpr std::array<uint8_t, 4> NOTEFOLIO_MAGIC            = {0xF3, 0x47, 0xBF, 0xAF};
         constexpr size_t appVarSizePrefixByteCount = 2;
         constexpr size_t magicByteCount = 4;
         constexpr uint8_t pythonImagePaletteMarker = 0x01;
         constexpr size_t studyCardsTitleCount = 4;
         constexpr size_t studyCardsSettingsNameByteCount = 9;
         constexpr size_t cellSheetNameByteCount = 8;
+        constexpr size_t notefolioReservedByteCount = 4;
+        constexpr size_t notefolioNameByteCount = 8;
+        constexpr size_t notefolioHeaderUnknownByteCount = 6;
 
         StructuredAppVarSubtype subtype_from_type_name(const std::string& typeName)
         {
@@ -62,6 +66,10 @@ namespace tivars::TypeHandlers
             if (typeName == "CellSheetStateAppVar")
             {
                 return APPVAR_SUBTYPE_CELSHEET_STATE;
+            }
+            if (typeName == "NotefolioAppVar")
+            {
+                return APPVAR_SUBTYPE_NOTEFOLIO;
             }
             throw std::invalid_argument("Unknown structured AppVar type name: " + typeName);
         }
@@ -285,6 +293,10 @@ namespace tivars::TypeHandlers
                 {
                     return APPVAR_SUBTYPE_CELSHEET_STATE;
                 }
+                if (subtype == "Notefolio")
+                {
+                    return APPVAR_SUBTYPE_NOTEFOLIO;
+                }
             }
             throw std::invalid_argument("Structured AppVar JSON must contain typeName or subtype");
         }
@@ -428,6 +440,72 @@ namespace tivars::TypeHandlers
                     if (j.contains("payloadHex"))
                     {
                         vector_append(payload, parse_hex_string(j.at("payloadHex").get<std::string>(), "payloadHex"));
+                    }
+                    return payload;
+                }
+
+                case APPVAR_SUBTYPE_NOTEFOLIO:
+                {
+                    payload.insert(payload.end(), NOTEFOLIO_MAGIC.begin(), NOTEFOLIO_MAGIC.end());
+
+                    const data_t reserved = j.contains("reservedHex")
+                        ? parse_hex_string(j.at("reservedHex").get<std::string>(), "reservedHex")
+                        : data_t(notefolioReservedByteCount, 0x00);
+                    if (reserved.size() != notefolioReservedByteCount)
+                    {
+                        throw std::invalid_argument("reservedHex must contain exactly 4 bytes");
+                    }
+                    vector_append(payload, reserved);
+
+                    const std::string name = j.value("name", "");
+                    if (name.size() > notefolioNameByteCount)
+                    {
+                        throw std::invalid_argument("name must be at most 8 characters");
+                    }
+                    const std::string paddedName = str_pad(name, notefolioNameByteCount, std::string(1, '\0'));
+                    payload.insert(payload.end(), paddedName.begin(), paddedName.end());
+
+                    data_t textData;
+                    if (j.contains("textDataHex"))
+                    {
+                        textData = parse_hex_string(j.at("textDataHex").get<std::string>(), "textDataHex");
+                    }
+                    else
+                    {
+                        const std::string text = j.value("text", "");
+                        textData.assign(text.begin(), text.end());
+                        if (j.value("textNullTerminated", true))
+                        {
+                            textData.push_back('\0');
+                        }
+                    }
+
+                    const size_t storedTextLength = j.contains("storedTextLength")
+                        ? j.at("storedTextLength").get<size_t>()
+                        : textData.size();
+                    if (storedTextLength != textData.size())
+                    {
+                        throw std::invalid_argument("storedTextLength must match the actual textData length");
+                    }
+                    if (storedTextLength > 0xFFFF)
+                    {
+                        throw std::invalid_argument("storedTextLength is too large");
+                    }
+                    append_le16(payload, static_cast<uint16_t>(storedTextLength));
+
+                    const data_t headerUnknown = j.contains("headerUnknownHex")
+                        ? parse_hex_string(j.at("headerUnknownHex").get<std::string>(), "headerUnknownHex")
+                        : data_t(notefolioHeaderUnknownByteCount, 0x00);
+                    if (headerUnknown.size() != notefolioHeaderUnknownByteCount)
+                    {
+                        throw std::invalid_argument("headerUnknownHex must contain exactly 6 bytes");
+                    }
+                    vector_append(payload, headerUnknown);
+                    vector_append(payload, textData);
+
+                    if (j.contains("trailingDataHex"))
+                    {
+                        vector_append(payload, parse_hex_string(j.at("trailingDataHex").get<std::string>(), "trailingDataHex"));
                     }
                     return payload;
                 }
@@ -619,6 +697,56 @@ namespace tivars::TypeHandlers
                 {"rawDataHex", to_hex_string(payload)}
             };
         }
+
+        json parse_notefolio_appvar(const data_t& payload)
+        {
+            size_t pos = magicByteCount;
+            if (pos + notefolioReservedByteCount + notefolioNameByteCount + 2 + notefolioHeaderUnknownByteCount > payload.size())
+            {
+                throw std::invalid_argument("Invalid NotefolioAppVar data length");
+            }
+            const data_t reserved(payload.begin() + static_cast<ptrdiff_t>(pos),
+                                  payload.begin() + static_cast<ptrdiff_t>(pos + notefolioReservedByteCount));
+            pos += notefolioReservedByteCount;
+            const std::string name = read_fixed_string(payload, pos, notefolioNameByteCount, "name");
+            const uint16_t storedTextLength = read_le16(payload, pos, "stored text length");
+            const data_t headerUnknown(payload.begin() + static_cast<ptrdiff_t>(pos),
+                                       payload.begin() + static_cast<ptrdiff_t>(pos + notefolioHeaderUnknownByteCount));
+            pos += notefolioHeaderUnknownByteCount;
+
+            if (pos + storedTextLength > payload.size())
+            {
+                throw std::invalid_argument("Invalid NotefolioAppVar text length");
+            }
+
+            const data_t textData(payload.begin() + static_cast<ptrdiff_t>(pos),
+                                  payload.begin() + static_cast<ptrdiff_t>(pos + storedTextLength));
+            pos += storedTextLength;
+            const data_t trailingData(payload.begin() + static_cast<ptrdiff_t>(pos), payload.end());
+
+            std::string text(textData.begin(), textData.end());
+            const size_t nulPos = text.find('\0');
+            const bool textNullTerminated = nulPos != std::string::npos;
+            if (textNullTerminated)
+            {
+                text.erase(nulPos);
+            }
+
+            return json{
+                {"typeName", "NotefolioAppVar"},
+                {"subtype", "Notefolio"},
+                {"magic", "F347BFAF"},
+                {"reservedHex", to_hex_string(reserved)},
+                {"name", name},
+                {"storedTextLength", storedTextLength},
+                {"headerUnknownHex", to_hex_string(headerUnknown)},
+                {"text", text},
+                {"textNullTerminated", textNullTerminated},
+                {"textDataHex", to_hex_string(textData)},
+                {"trailingDataHex", to_hex_string(trailingData)},
+                {"rawDataHex", to_hex_string(payload)}
+            };
+        }
     }
 
     std::string detectStructuredAppVarTypeName(const data_t& data)
@@ -650,6 +778,10 @@ namespace tivars::TypeHandlers
         if (has_prefix(data, CELSHEET_STATE_MAGIC))
         {
             return "CellSheetStateAppVar";
+        }
+        if (has_prefix(data, NOTEFOLIO_MAGIC))
+        {
+            return "NotefolioAppVar";
         }
         return "AppVar";
     }
@@ -693,6 +825,8 @@ namespace tivars::TypeHandlers
             case APPVAR_SUBTYPE_CELSHEET:
             case APPVAR_SUBTYPE_CELSHEET_STATE:
                 return parse_cellsheet_appvar(payload, subtype).dump(4);
+            case APPVAR_SUBTYPE_NOTEFOLIO:
+                return parse_notefolio_appvar(payload).dump(4);
         }
 
         throw std::invalid_argument("Unsupported structured AppVar subtype");
