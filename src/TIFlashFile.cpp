@@ -16,6 +16,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <ctime>
+#include <unordered_map>
 
 #include "TIModels.h"
 #include "json.hpp"
@@ -143,6 +144,236 @@ namespace tivars
             char buffer[32] = {};
             std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S UTC", &tm);
             return buffer;
+        }
+
+        data_t decode_hex_string(const std::string& hex)
+        {
+            if (hex.size() % 2 != 0)
+            {
+                return {};
+            }
+
+            data_t out;
+            out.reserve(hex.size() / 2);
+            for (size_t i = 0; i < hex.size(); i += 2)
+            {
+                out.push_back(hexdec(hex.substr(i, 2)));
+            }
+            return out;
+        }
+
+        bool parse_revision_parts(const std::string& revision, int& major, int& minor)
+        {
+            const size_t dotPos = revision.find('.');
+            if (dotPos == std::string::npos)
+            {
+                return false;
+            }
+
+            major = std::stoi(revision.substr(0, dotPos));
+            minor = std::stoi(revision.substr(dotPos + 1));
+            return true;
+        }
+
+        void collect_flash_fields_by_id(const json& fields, std::unordered_map<int, json>& found)
+        {
+            if (!fields.is_array())
+            {
+                return;
+            }
+
+            for (const auto& field : fields)
+            {
+                if (!field.is_object())
+                {
+                    continue;
+                }
+
+                if (field.contains("id"))
+                {
+                    const int id = field.at("id").get<int>();
+                    if (!found.contains(id))
+                    {
+                        found.emplace(id, field);
+                    }
+                }
+
+                if (field.contains("fields"))
+                {
+                    collect_flash_fields_by_id(field.at("fields"), found);
+                }
+            }
+        }
+
+        std::string join_version_string(int major, int minor, int patch, int build)
+        {
+            std::string value = std::to_string(major) + "." + std::to_string(minor);
+            if (patch >= 0)
+            {
+                value += "." + std::to_string(patch);
+            }
+            if (build >= 0)
+            {
+                if (patch < 0)
+                {
+                    value += ".0";
+                }
+                value += "." + std::to_string(build);
+            }
+            return value;
+        }
+
+        json parse_certificate_version(const json& fields)
+        {
+            std::unordered_map<int, json> found;
+            collect_flash_fields_by_id(fields, found);
+
+            int major = -1;
+            int minor = -1;
+            int patch = -1;
+            int build = -1;
+            std::string source;
+
+            if (const auto it = found.find(0x80D); it != found.end() && it->second.contains("rawDataHex"))
+            {
+                const data_t bytes = decode_hex_string(it->second.at("rawDataHex").get<std::string>());
+                if (bytes.size() >= 3)
+                {
+                    patch = bytes[0];
+                    minor = bytes[1];
+                    major = bytes[2];
+                    source = "80D";
+                }
+            }
+
+            if (const auto it = found.find(0x812); it != found.end() && it->second.contains("rawDataHex"))
+            {
+                const data_t bytes = decode_hex_string(it->second.at("rawDataHex").get<std::string>());
+                std::string ascii(bytes.begin(), bytes.end());
+                if (const size_t nulPos = ascii.find('\0'); nulPos != std::string::npos)
+                {
+                    ascii.erase(nulPos);
+                }
+                if (!ascii.empty())
+                {
+                    std::vector<int> parts;
+                    size_t start = 0;
+                    bool valid = true;
+                    while (start <= ascii.size())
+                    {
+                        const size_t dotPos = ascii.find('.', start);
+                        const size_t end = dotPos == std::string::npos ? ascii.size() : dotPos;
+                        if (end == start)
+                        {
+                            valid = false;
+                            break;
+                        }
+                        for (size_t i = start; i < end; i++)
+                        {
+                            if (!std::isdigit(static_cast<unsigned char>(ascii[i])))
+                            {
+                                valid = false;
+                                break;
+                            }
+                        }
+                        if (!valid)
+                        {
+                            break;
+                        }
+                        parts.push_back(std::stoi(ascii.substr(start, end - start)));
+                        if (dotPos == std::string::npos)
+                        {
+                            break;
+                        }
+                        start = dotPos + 1;
+                    }
+
+                    if (valid && parts.size() >= 2)
+                    {
+                        major = parts[0];
+                        minor = parts[1];
+                        if (parts.size() >= 3)
+                        {
+                            patch = parts[2];
+                        }
+                        if (parts.size() >= 4)
+                        {
+                            build = parts[3];
+                        }
+                        source = "812";
+                    }
+                }
+            }
+
+            if (const auto it = found.find(0x803); it != found.end() && it->second.contains("rawDataHex"))
+            {
+                const data_t bytes = decode_hex_string(it->second.at("rawDataHex").get<std::string>());
+                if (!bytes.empty())
+                {
+                    build = 0;
+                    for (size_t i = 0; i < bytes.size() && i < sizeof(int); i++)
+                    {
+                        build |= bytes[i] << (i * 8);
+                    }
+                    if (source.empty())
+                    {
+                        source = "803";
+                    }
+                }
+            }
+            else if (const auto it = found.find(0x813); it != found.end() && it->second.contains("rawDataHex"))
+            {
+                const data_t bytes = decode_hex_string(it->second.at("rawDataHex").get<std::string>());
+                if (!bytes.empty())
+                {
+                    build = 0;
+                    for (size_t i = 0; i < bytes.size() && i < sizeof(int); i++)
+                    {
+                        build |= bytes[i] << (i * 8);
+                    }
+                    if (source.empty())
+                    {
+                        source = "813";
+                    }
+                }
+            }
+
+            if (major < 0 || minor < 0)
+            {
+                return json();
+            }
+
+            json version = {
+                {"major", major},
+                {"minor", minor},
+                {"string", join_version_string(major, minor, patch, build)}
+            };
+            if (patch >= 0)
+            {
+                version["patch"] = patch;
+            }
+            if (build >= 0)
+            {
+                version["build"] = build;
+            }
+            if (!source.empty())
+            {
+                version["source"] = source;
+            }
+            return version;
+        }
+
+        data_t flatten_flash_blocks_for_fields(const std::vector<tivars::TIFlashFile::flash_block_t>& blocks)
+        {
+            data_t out;
+            for (const auto& block : blocks)
+            {
+                if (block.blockType == 0x00)
+                {
+                    vector_append(out, block.data);
+                }
+            }
+            return out;
         }
 
         json parse_flash_fields(const data_t& data, size_t start, size_t end);
@@ -398,6 +629,13 @@ namespace tivars
         j["productId"] = header.productId;
         j["calcDataSize"] = header.calcData.size();
         j["hasChecksum"] = header.hasChecksum;
+        int revisionMajor = -1;
+        int revisionMinor = -1;
+        if (parse_revision_parts(header.revision, revisionMajor, revisionMinor))
+        {
+            j["revisionMajor"] = revisionMajor;
+            j["revisionMinor"] = revisionMinor;
+        }
 
         j["devices"] = json::array();
         for (const auto& [devType, typeId] : header.devices)
@@ -414,6 +652,10 @@ namespace tivars
             try
             {
                 j["fields"] = parse_flash_fields(header.calcData, 0, header.calcData.size());
+                if (const json certificateVersion = parse_certificate_version(j["fields"]); !certificateVersion.is_null())
+                {
+                    j["certificateVersion"] = certificateVersion;
+                }
             }
             catch (const std::exception& e)
             {
@@ -426,14 +668,31 @@ namespace tivars
         }
         else
         {
+            std::vector<flash_block_t> blocks = parseIntelBlocks(header.calcData);
             j["blocks"] = json::array();
-            for (const auto& [address, blockType, data] : parseIntelBlocks(header.calcData))
+            for (const auto& [address, blockType, data] : blocks)
             {
                 j["blocks"].push_back({
                     {"address", toHex({static_cast<uint8_t>((address >> 8) & 0xFF), static_cast<uint8_t>(address & 0xFF)})},
                     {"blockType", dechex(blockType)},
                     {"dataHex", toHex(data)},
                 });
+            }
+            try
+            {
+                const data_t flattenedFields = flatten_flash_blocks_for_fields(blocks);
+                if (!flattenedFields.empty())
+                {
+                    j["fields"] = parse_flash_fields(flattenedFields, 0, flattenedFields.size());
+                    if (const json certificateVersion = parse_certificate_version(j["fields"]); !certificateVersion.is_null())
+                    {
+                        j["certificateVersion"] = certificateVersion;
+                    }
+                }
+            }
+            catch (const std::exception& e)
+            {
+                j["fieldsError"] = e.what();
             }
         }
 

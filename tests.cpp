@@ -64,6 +64,8 @@ int main(int argc, char** argv)
         assert(flashOsJSON["typeName"] == "OperatingSystem");
         assert(flashOsJSON["name"] == "basecode");
         assert(flashOsJSON["revision"] == "5.8");
+        assert(flashOsJSON["revisionMajor"] == 5);
+        assert(flashOsJSON["revisionMinor"] == 8);
         assert(flashOsJSON["binaryFlag"] == 0);
         assert(flashOsJSON["objectType"] == 0);
         assert(flashOsJSON["date"][0] == 26);
@@ -85,6 +87,11 @@ int main(int argc, char** argv)
         assert(flashOsJSON["fields"][1]["idHex"] == "023");
         assert(flashOsJSON["fields"][1]["name"] == "CE signature");
         assert(!flashOsJSON.contains("fieldsError"));
+        assert(flashOsJSON["certificateVersion"]["major"] == 5);
+        assert(flashOsJSON["certificateVersion"]["minor"] == 8);
+        assert(flashOsJSON["certificateVersion"]["patch"] == 0);
+        assert(flashOsJSON["certificateVersion"]["build"] == 22);
+        assert(flashOsJSON["certificateVersion"]["string"] == "5.8.0.22");
         */
 
         TIFlashFile flashApp = TIFlashFile::loadFromFile("testData/smartpad.8xk");
@@ -92,6 +99,8 @@ int main(int argc, char** argv)
         assert(flashAppJSON["typeName"] == "FlashApp");
         assert(flashAppJSON["name"] == "SmartPad");
         assert(flashAppJSON["revision"] == "1.1");
+        assert(flashAppJSON["revisionMajor"] == 1);
+        assert(flashAppJSON["revisionMinor"] == 1);
         assert(flashAppJSON["binaryFlag"] == 1);
         assert(flashAppJSON["objectType"] == 0x88);
         assert(flashAppJSON["blocks"].size() == 78);
