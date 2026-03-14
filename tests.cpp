@@ -1329,6 +1329,19 @@ End)";
             recreatedEquation.setContentFromString(equationSample.getReadableContent());
             assert(recreatedEquation.getRawContent() == equationSample.getRawContent());
         }
+
+        const uint8_t altEquationY1T[8] = {'Y', 0x81};
+        assert(entry_name_to_string(TIVarType{"Equation"}, altEquationY1T) == "Y1T");
+        const uint8_t altEquationX3T[8] = {'X', 0x83};
+        assert(entry_name_to_string(TIVarType{"Equation"}, altEquationX3T) == "X3T");
+        const uint8_t altEquationR6[8] = {'r', 0x86};
+        assert(entry_name_to_string(TIVarType{"Equation"}, altEquationR6) == "R6");
+        const uint8_t altEquationU[8] = {'U', 0x00};
+        assert(entry_name_to_string(TIVarType{"Equation"}, altEquationU) == "U");
+        const uint8_t altEquationV[8] = {'V', 0x00};
+        assert(entry_name_to_string(TIVarType{"Equation"}, altEquationV) == "V");
+        const uint8_t altEquationW[8] = {'W', 0x00};
+        assert(entry_name_to_string(TIVarType{"Equation"}, altEquationW) == "W");
     }
 
     {
