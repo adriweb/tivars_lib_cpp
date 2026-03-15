@@ -30,7 +30,7 @@
     "displayHelp": {
       "type": "boolean"
     },
-    "displayEquationPreview": {
+    "displayEquEvalInPreview": {
       "type": "boolean"
     },
     "number": {

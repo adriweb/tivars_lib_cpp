@@ -500,7 +500,7 @@ namespace tivars::TypeHandlers
                     if (!j.contains("flags"))
                     {
                         flags |= j.value("displayHelp", true) ? 0 : 0x04;
-                        flags |= j.value("displayEquationPreview", true) ? 0 : 0x08;
+                        flags |= j.value("displayEquEvalInPreview", false) ? 0x08 : 0;
                     }
                     payload.push_back(static_cast<uint8_t>(flags & 0xFF));
                     payload.push_back(static_cast<uint8_t>(j.value("number", 0) & 0xFF));
@@ -873,7 +873,7 @@ namespace tivars::TypeHandlers
                 {"name", name},
                 {"flags", flags},
                 {"displayHelp", (flags & 0x04) == 0},
-                {"displayEquationPreview", (flags & 0x08) == 0},
+                {"displayEquEvalInPreview", (flags & 0x08) != 0},
                 {"number", number},
                 {"payloadHex", to_hex_string(data_t(payload.begin() + static_cast<ptrdiff_t>(pos), payload.end()))},
                 {"rawDataHex", to_hex_string(payload)}
