@@ -45,6 +45,37 @@ Integration example:
 
 You can find code that use this project as a JS lib here: https://github.com/TI-Planet/zText (look at `generator.js`)
 
+#### On macOS: Quick Look app extensions
+
+This repo ships a modern macOS Quick Look host app with embedded Preview and Thumbnail extensions, which is the supported replacement for the removed legacy `.qlgenerator` plugin model on macOS 15+.
+
+Build it with:
+```sh
+cmake -S . -B build
+cmake --build build --target tivars_quicklook_app
+```
+
+That produces `build/TIVarsQuickLook.app`, containing:
+- `TIVarsQuickLookPreview.appex`
+- `TIVarsQuickLookThumbnail.appex`
+
+Install the app bundle for the current user with:
+```sh
+mkdir -p ~/Applications
+cp -R build/TIVarsQuickLook.app ~/Applications/
+qlmanage -r
+```
+
+The CMake build ad hoc-signs the app and both extensions automatically when `codesign` is available.
+
+The Preview extension returns rich HTML previews for parsed variable/flash metadata and readable content when available. The Thumbnail extension renders custom badges/cards keyed off the detected TI file type.
+
+If macOS does not pick the extensions up immediately, useful diagnostics are:
+```sh
+pluginkit -m -A -D -p com.apple.quicklook.preview
+pluginkit -m -A -D -p com.apple.quicklook.thumbnail
+```
+
 ### Vartype handlers implementation: current status
 
 | Vartype                   | data->string | string->data |

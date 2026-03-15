@@ -43,6 +43,7 @@ moc_*.cpp
 *~
 \#*\#
 cmake-build-*/
+build/
 out/
 
 # Windows and Mac crap
@@ -62,3 +63,4 @@ Thumbs.db
 .vscode/
 
 testData/*new.8*
+
