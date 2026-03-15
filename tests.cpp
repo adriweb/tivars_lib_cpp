@@ -1022,7 +1022,7 @@ End)";
     "typeName": "CellSheetAppVar",
     "name": "CELLS",
     "displayHelp": false,
-    "displayEquationPreview": true,
+    "displayEquEvalInPreview": true,
     "number": 7,
     "payloadHex": "AABBCCDD"
 })");
@@ -1030,9 +1030,20 @@ End)";
         assert(cellSheetJSON["typeName"] == "CellSheetAppVar");
         assert(cellSheetJSON["name"] == "CELLS");
         assert(cellSheetJSON["displayHelp"] == false);
-        assert(cellSheetJSON["displayEquationPreview"] == true);
+        assert(cellSheetJSON["displayEquEvalInPreview"] == true);
         assert(cellSheetJSON["number"] == 7);
         assert(cellSheetJSON["payloadHex"] == "AABBCCDD");
+    }
+
+    {
+        TIVarFile cellSheet = TIVarFile::loadFromFile("testData/TICSfile.8xv");
+        const json cellSheetJSON = json::parse(cellSheet.getReadableContent());
+        assert(cellSheetJSON["typeName"] == "CellSheetStateAppVar");
+        assert(cellSheetJSON["name"] == "S01");
+        assert(cellSheetJSON["displayHelp"] == true);
+        assert(cellSheetJSON["displayEquEvalInPreview"] == false);
+        assert(cellSheetJSON["number"] == 0);
+        assert(cellSheetJSON["payloadHex"] == "");
     }
 
     {
