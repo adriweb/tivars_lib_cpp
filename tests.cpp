@@ -39,6 +39,16 @@ static bool compare_token_posinfo(const TH_Tokenized::token_posinfo& tp1, const 
     return tp1.column == tp2.column && tp1.line == tp2.line && tp1.len == tp2.len;
 }
 
+static void assert_roundtrip_from_readable(TIVarFile& original, const options_t& readableOptions = options_t{})
+{
+    assert(original.hasMultipleEntries() == false);
+
+    const auto& entry = original.getVarEntries()[0];
+    TIVarFile recreated = TIVarFile::createNew(entry._type, entry_name_to_string(entry._type, entry.varname), original.getCalcModel());
+    recreated.setContentFromString(original.getReadableContent(readableOptions));
+    assert(recreated.getRawContent() == original.getRawContent());
+}
+
 int main(int argc, char** argv)
 {
     (void)argc;
@@ -541,6 +551,7 @@ int main(int argc, char** argv)
         const std::string groupObjectPath = groupObject.saveVarToFile("/tmp", "GROUPOBJ");
         TIVarFile reloadedGroupObject = TIVarFile::loadFromFile(groupObjectPath);
         assert(reloadedGroupObject.getReadableContent() == groupObject.getReadableContent());
+        assert(reloadedGroupObject.getRawContent() == groupObject.getRawContent());
         assert(remove(groupObjectPath.c_str()) == 0);
 
         TIVarFile artifi82 = TIVarFile::loadFromFile("testData/ARTIFI82.8cg");
@@ -564,17 +575,20 @@ int main(int argc, char** argv)
     {
         TIVarFile testString = TIVarFile::loadFromFile("testData/String.8xs");
         assert(testString.getReadableContent() == "Hello World");
+        assert_roundtrip_from_readable(testString);
     }
 
     {
         TIVarFile testPrgmQuotes = TIVarFile::loadFromFile("testData/testPrgmQuotes.8xp");
         cout << "testPrgmQuotes.getReadableContent() : " << testPrgmQuotes.getReadableContent() << endl;
         assert(testPrgmQuotes.getReadableContent() == "Pause \"2 SECS\",2");
+        assert_roundtrip_from_readable(testPrgmQuotes);
     }
 
     {
         TIVarFile testEquation = TIVarFile::loadFromFile("testData/Equation_Y1T.8xy");
         assert(testEquation.getReadableContent() == "3sin(T)+4");
+        assert_roundtrip_from_readable(testEquation);
     }
 
     {
@@ -582,6 +596,7 @@ int main(int argc, char** argv)
         assert(testReal.getRawContent() == data_t({0x80,0x81,0x42,0x13,0x37,0x00,0x00,0x00,0x00}));
         assert(testReal.getRawContentHexStr() == "808142133700000000");
         assert(testReal.getReadableContent() == "-42.1337");
+        assert_roundtrip_from_readable(testReal);
         testReal.setContentFromString("5");
         cout << "testReal.getReadableContent() : " << testReal.getReadableContent() << endl;
         assert(testReal.getRawContent() == data_t({0x00,0x80,0x50,0x00,0x00,0x00,0x00,0x00,0x00}));
@@ -758,6 +773,7 @@ End)";
         string newPrgmcontent = newPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
 
         assert(testPrgmcontent == newPrgmcontent);
+        assert(newPrgm.getRawContent() == testPrgm.getRawContent());
         newPrgm.saveVarToFile("testData", "Program_new");
 
         cout << endl << "testPrgmcontent : " << endl << testPrgmcontent << endl;
@@ -814,6 +830,7 @@ End)";
 
     {
         TIVarFile testRealList = TIVarFile::loadFromFile("testData/RealList.8xl");
+        assert_roundtrip_from_readable(testRealList);
         cout << "Before: " << testRealList.getReadableContent() << "\n   Now: ";
         testRealList.setContentFromString("{9, 0, .5, -6e-8}");
         cout << testRealList.getReadableContent() << "\n";
@@ -830,6 +847,7 @@ End)";
 
     {
         TIVarFile testStandardMatrix = TIVarFile::loadFromFile("testData/Matrix_3x3_standard.8xm");
+        assert_roundtrip_from_readable(testStandardMatrix);
         cout << "Before: " << testStandardMatrix.getReadableContent() << "\n   Now: ";
         testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7,-8,-9]]");
         testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7.5,-8,-9][1,2,3][4,5,6][-0.002,-8,-9]]");
@@ -873,18 +891,22 @@ End)";
         TIVarFile testComplex = TIVarFile::loadFromFile("testData/Complex.8xc"); // -5 + 2i
         cout << "Before: " << testComplex.getReadableContent() << "\n   Now: ";
         assert(testComplex.getReadableContent() == "-5+2i");
+        assert_roundtrip_from_readable(testComplex);
         TIVarFile newComplex = TIVarFile::createNew("Complex", "C");
         newComplex.setContentFromString("-5+2i");
-        assert(newComplex.getRawContent() == newComplex.getRawContent());
+        assert(newComplex.getRawContent() == testComplex.getRawContent());
         newComplex.setContentFromString("2.5+0.001i");
+        assert_roundtrip_from_readable(newComplex);
         cout << "After: " << newComplex.getReadableContent() << endl;
         testComplex.saveVarToFile("testData", "Complex_new");
     }
 
     {
         TIVarFile testComplexList = TIVarFile::loadFromFile("testData/ComplexList.8xl");
+        assert_roundtrip_from_readable(testComplexList);
         cout << "Before: " << testComplexList.getReadableContent() << "\n   Now: ";
         testComplexList.setContentFromString("{9+2i, 0i, .5, -0.5+6e-8i}");
+        assert_roundtrip_from_readable(testComplexList);
         cout << testComplexList.getReadableContent() << "\n";
         testComplexList.saveVarToFile("testData", "ComplexList_new");
     }
@@ -893,10 +915,12 @@ End)";
         TIVarFile testExact_RealRadical = TIVarFile::loadFromFile("testData/Exact_RealRadical.8xn");
         assert((testExact_RealRadical.getCalcModel().getFlags() & hasExactMath) != 0);
         assert(testExact_RealRadical.getCalcModel().supportsType(testExact_RealRadical.getVarEntries()[0]._type));
+        assert_roundtrip_from_readable(testExact_RealRadical);
         cout << "Before: " << testExact_RealRadical.getReadableContent() << endl;
         assert(testExact_RealRadical.getReadableContent() == "(41*√(789)+14*√(654))/259");
         TIVarFile newExact_RealRadical = TIVarFile::createNew("ExactRealRadical", "A", "83PCE");
         newExact_RealRadical.setContentFromString("(41*√(789)+14*√(654))/259");
+        assert_roundtrip_from_readable(newExact_RealRadical);
         assert(testExact_RealRadical.getRawContent() == newExact_RealRadical.getRawContent());
         assert(newExact_RealRadical.getVarEntries()[0].version == 0x10);
     }
@@ -907,6 +931,7 @@ End)";
         assert(testExactComplexFrac.getReadableContent() == "1/5-2/5i");
         TIVarFile newExactComplexFrac = TIVarFile::createNew("ExactComplexFrac", "A", "83PCE");
         newExactComplexFrac.setContentFromString("1/5-2/5i");
+        assert_roundtrip_from_readable(newExactComplexFrac);
         assert(testExactComplexFrac.getRawContent() == newExactComplexFrac.getRawContent());
         assert(newExactComplexFrac.getVarEntries()[0].version == 0x0B);
     }
@@ -1090,6 +1115,7 @@ End)";
         assert(cellSheetJSON["displayEquEvalInPreview"] == false);
         assert(cellSheetJSON["number"] == 0);
         assert(cellSheetJSON["payloadHex"] == "");
+        assert_roundtrip_from_readable(cellSheet);
     }
 
     {
@@ -1239,6 +1265,7 @@ End)";
         assert(pythonMetadata["metadataRecordCount"] == 0);
         assert(pythonMetadata["code"] == "import sys\nprint(sys.version)\n");
         assert(pythonMetadata["rawDataHex"] == "5059434400696D706F7274207379730A7072696E74287379732E76657273696F6E290A");
+        assert_roundtrip_from_readable(pythonFromTest2, {{"metadata", true}});
     }
 
     {
@@ -1308,6 +1335,7 @@ End)";
         TIVarFile reloadedBackup = TIVarFile::loadFromFile(backupPath);
         assert(reloadedBackup.getVarEntries()[0]._type.getName() == "Backup");
         assert(reloadedBackup.getReadableContent() == backupVar.getReadableContent());
+        assert(reloadedBackup.getRawContent() == backupVar.getRawContent());
         assert(remove(backupPath.c_str()) == 0);
     }
 
@@ -1648,44 +1676,44 @@ End)";
         assert(namedGroup.saveVarToFile("/tmp", "") == namedGroupPath);
         assert(remove(namedGroupPath.c_str()) == 0);
 
-        TIVarFile defaultPicture = TIVarFile::loadFromFile("testData/BartSimpson.8xi");
-        const std::string defaultPicturePath = expected_save_path(defaultPicture, "8xi");
-        assert(defaultPicture.saveVarToFile("/tmp", "") == defaultPicturePath);
+        TIVarFile newPicture = TIVarFile::loadFromFile("testData/BartSimpson.8xi");
+        const std::string defaultPicturePath = expected_save_path(newPicture, "8xi");
+        assert(newPicture.saveVarToFile("/tmp", "") == defaultPicturePath);
         assert(remove(defaultPicturePath.c_str()) == 0);
 
         TIVarFile sourceImage = TIVarFile::loadFromFile("testData/Image1.8ca");
-        TIVarFile defaultImage = TIVarFile::createNew("Image", "Image0", "83PCE");
-        defaultImage.setContentFromString(R"({
+        TIVarFile newImage = TIVarFile::createNew("Image", "Image0", "83PCE");
+        newImage.setContentFromString(R"({
     "typeName": "Image",
     "rawDataHex": ")"s + raw_to_hex(sourceImage.getRawContent()) + R"("
 })");
-        const std::string defaultImagePath = expected_save_path(defaultImage, "8ca");
-        assert(defaultImage.saveVarToFile("/tmp", "") == defaultImagePath);
+        const std::string defaultImagePath = expected_save_path(newImage, "8ca");
+        assert(newImage.saveVarToFile("/tmp", "") == defaultImagePath);
         assert(remove(defaultImagePath.c_str()) == 0);
 
-        TIVarFile defaultGdb = TIVarFile::createNew("GraphDataBase", "GDB1", "83PCE");
-        defaultGdb.setContentFromString(TIVarFile::loadFromFile("testData/GraphDataBase_Func.8xd").getReadableContent());
-        const std::string defaultGdbPath = expected_save_path(defaultGdb, "8xd");
-        assert(defaultGdb.saveVarToFile("/tmp", "") == defaultGdbPath);
+        TIVarFile newGDB = TIVarFile::createNew("GraphDataBase", "GDB1", "83PCE");
+        TIVarFile sourceGDB = TIVarFile::loadFromFile("testData/GraphDataBase_Func.8xd");
+        newGDB.setContentFromString(sourceGDB.getReadableContent());
+        const std::string defaultGdbPath = expected_save_path(newGDB, "8xd");
+        assert(newGDB.getRawContent() == sourceGDB.getRawContent());
+        assert(newGDB.saveVarToFile("/tmp", "") == defaultGdbPath);
         assert(remove(defaultGdbPath.c_str()) == 0);
 
-        TIVarFile defaultWindow = TIVarFile::createNew("WindowSettings");
-        defaultWindow.setContentFromString(TIVarFile::loadFromFile("testData/Window.8xw").getReadableContent());
-        const std::string defaultWindowPath = expected_save_path(defaultWindow, "8xw");
-        assert(defaultWindow.saveVarToFile("/tmp", "") == defaultWindowPath);
+        TIVarFile newWindowSettings = TIVarFile::createNew("WindowSettings");
+        TIVarFile oldWindowSettings = TIVarFile::loadFromFile("testData/Window.8xw");
+        newWindowSettings.setContentFromString(oldWindowSettings.getReadableContent());
+        const std::string defaultWindowPath = expected_save_path(newWindowSettings, "8xw");
+        assert(newWindowSettings.getRawContent() == oldWindowSettings.getRawContent());
+        assert(newWindowSettings.saveVarToFile("/tmp", "") == defaultWindowPath);
         assert(remove(defaultWindowPath.c_str()) == 0);
 
-        TIVarFile defaultRecall = TIVarFile::createNew("RecallWindow");
-        defaultRecall.setContentFromString(TIVarFile::loadFromFile("testData/RecallWindow.8xz").getReadableContent());
-        const std::string defaultRecallPath = expected_save_path(defaultRecall, "8xz");
-        assert(defaultRecall.saveVarToFile("/tmp", "") == defaultRecallPath);
+        TIVarFile newRecallWin = TIVarFile::createNew("RecallWindow");
+        TIVarFile sourceRecallWin = TIVarFile::loadFromFile("testData/RecallWindow.8xz");
+        newRecallWin.setContentFromString(sourceRecallWin.getReadableContent());
+        const std::string defaultRecallPath = expected_save_path(newRecallWin, "8xz");
+        assert(newRecallWin.getRawContent() == sourceRecallWin.getRawContent());
+        assert(newRecallWin.saveVarToFile("/tmp", "") == defaultRecallPath);
         assert(remove(defaultRecallPath.c_str()) == 0);
-
-        TIVarFile defaultTable = TIVarFile::createNew("TableRange");
-        defaultTable.setContentFromString(TIVarFile::loadFromFile("testData/TableRange.8xt").getReadableContent());
-        const std::string defaultTablePath = expected_save_path(defaultTable, "8xt");
-        assert(defaultTable.saveVarToFile("/tmp", "") == defaultTablePath);
-        assert(remove(defaultTablePath.c_str()) == 0);
 
         TIVarFile protectedProgram = TIVarFile::loadFromFile("testData/ProtectedProgram.8xp");
         assert(protectedProgram.getVarEntries()[0]._type.getName() == "ProtectedProgram");
@@ -1702,22 +1730,23 @@ End)";
         const std::string longProtectedPath = "/tmp/"s + longProtectedName + ".8xp";
         assert(longProtectedProgram.saveVarToFile("/tmp", "") == longProtectedPath);
         assert(remove(longProtectedPath.c_str()) == 0);
-    }
 
-    {
+        TIVarFile newTableRng1 = TIVarFile::createNew("TableRange");
         TIVarFile tableRange = TIVarFile::loadFromFile("testData/TableRange.8xt");
+        newTableRng1.setContentFromString(tableRange.getReadableContent());
+        const std::string defaultTablePath = expected_save_path(newTableRng1, "8xt");
+        assert(newTableRng1.getRawContent() == tableRange.getRawContent());
+        assert(newTableRng1.saveVarToFile("/tmp", "") == defaultTablePath);
+        assert(remove(defaultTablePath.c_str()) == 0);
         const json tableRangeJSON = json::parse(tableRange.getReadableContent());
         assert(tableRangeJSON["TblMin"] == 0);
         assert(tableRangeJSON["DeltaTbl"] == 1);
 
-        TIVarFile newTableRange = TIVarFile::createNew("TableRange");
+        TIVarFile newTableRng2 = TIVarFile::createNew("TableRange");
         const uint8_t expectedName[8] = {'T', 'b', 'l', 'S', 'e', 't'};
-        assert(std::equal(newTableRange.getVarEntries()[0].varname, newTableRange.getVarEntries()[0].varname + 8, expectedName));
-        newTableRange.setContentFromString(R"({
-    "TblMin": 0,
-    "DeltaTbl": 1
-})");
-        assert(newTableRange.getRawContent() == tableRange.getRawContent());
+        assert(std::equal(newTableRng2.getVarEntries()[0].varname, newTableRng2.getVarEntries()[0].varname + 8, expectedName));
+        newTableRng2.setContentFromString(tableRange.getReadableContent());
+        assert(newTableRng2.getRawContent() == tableRange.getRawContent());
     }
 
     {
