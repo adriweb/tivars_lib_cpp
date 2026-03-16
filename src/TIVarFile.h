@@ -62,6 +62,7 @@ namespace tivars
 
         const var_header_t& getHeader() const { return header; }
         const std::vector<var_entry_t>& getVarEntries() const { return entries; }
+        const TIModel& getCalcModel() const { return calcModel; }
         uint16_t getInstanceChecksum() const { return computedChecksum; }
         bool hasMultipleEntries() const { return entries.size() > 1; }
 

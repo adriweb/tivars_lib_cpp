@@ -891,6 +891,8 @@ End)";
 
     {
         TIVarFile testExact_RealRadical = TIVarFile::loadFromFile("testData/Exact_RealRadical.8xn");
+        assert((testExact_RealRadical.getCalcModel().getFlags() & hasExactMath) != 0);
+        assert(testExact_RealRadical.getCalcModel().supportsType(testExact_RealRadical.getVarEntries()[0]._type));
         cout << "Before: " << testExact_RealRadical.getReadableContent() << endl;
         assert(testExact_RealRadical.getReadableContent() == "(41*√(789)+14*√(654))/259");
         TIVarFile newExact_RealRadical = TIVarFile::createNew("ExactRealRadical", "A", "83PCE");
@@ -1228,6 +1230,8 @@ End)";
         TIVarFile pythonFromTest2 = TIVarFile::loadFromFile("testData/python_HELLO.8xv");
         cout << "pythonFromTest2.getReadableContent() : " << pythonFromTest2.getReadableContent() << endl;
         assert(pythonFromTest2.getReadableContent() == "import sys\nprint(sys.version)\n");
+        assert((pythonFromTest2.getCalcModel().getFlags() & hasPython) != 0);
+        assert(pythonFromTest2.getCalcModel().supportsType(pythonFromTest2.getVarEntries()[0]._type));
 
         const json pythonMetadata = json::parse(pythonFromTest2.getReadableContent({{"metadata", true}}));
         assert(pythonMetadata["typeName"] == "PythonAppVar");

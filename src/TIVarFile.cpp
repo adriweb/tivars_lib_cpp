@@ -17,6 +17,8 @@
 #include <sstream>
 #include <cstring>
 #include <cctype>
+#include <ranges>
+#include <unordered_set>
 
 #include "TIVarTypes.h"
 
@@ -36,6 +38,87 @@ namespace tivars
         bool is_backup_entry(const TIVarFile::var_entry_t& entry)
         {
             return entry.typeID == backupTypeId && entry._type.getName() == "Backup";
+        }
+
+        int count_bits(uint32_t value)
+        {
+            int count = 0;
+            while (value != 0)
+            {
+                count += static_cast<int>(value & 1U);
+                value >>= 1U;
+            }
+            return count;
+        }
+
+        uint32_t infer_required_model_flags(const std::vector<TIVarFile::var_entry_t>& entries)
+        {
+            uint32_t requiredFlags = 0;
+            for (const auto& entry : entries)
+            {
+                const std::string& typeName = entry._type.getName();
+                if (typeName.rfind("Exact", 0) == 0 || (entry.version & ~MASK_USES_RTC) == VER_CE_EXACTONLY)
+                {
+                    requiredFlags |= hasExactMath;
+                }
+                if (typeName.rfind("Python", 0) == 0)
+                {
+                    requiredFlags |= hasPython;
+                }
+            }
+            return requiredFlags;
+        }
+
+        bool model_supports_all_entries(const TIModel& model, const std::vector<TIVarFile::var_entry_t>& entries)
+        {
+            return std::ranges::all_of(entries, [&model](const auto& entry) { return model.supportsType(entry._type); });
+        }
+
+        TIModel inferLoadedModel(const TIModel& currentModel, const std::vector<TIVarFile::var_entry_t>& entries)
+        {
+            if (entries.empty())
+            {
+                return currentModel;
+            }
+
+            const uint32_t specialFlagsMask = hasExactMath | hasPython;
+            const uint32_t requiredFlags = infer_required_model_flags(entries);
+            const auto is_candidate = [&](const TIModel& model, bool enforceProductId)
+            {
+                return model.getSig() == currentModel.getSig()
+                    && (!enforceProductId || currentModel.getProductId() == 0 || model.getProductId() == currentModel.getProductId())
+                    && (model.getFlags() & requiredFlags) == requiredFlags
+                    && model_supports_all_entries(model, entries);
+            };
+
+            TIModel bestModel = currentModel;
+            const bool currentModelIsCandidate = is_candidate(currentModel, true);
+            bool found = currentModelIsCandidate;
+            int bestExtraFlags = found ? count_bits(currentModel.getFlags() & specialFlagsMask & ~requiredFlags) : 0;
+            int bestOrderId = found ? currentModel.getOrderId() : 0;
+            const bool enforceProductId = currentModelIsCandidate;
+
+            std::unordered_set<std::string> seenNames;
+            for (const auto& model : TIModels::all() | std::views::values)
+            {
+                if (!seenNames.insert(model.getName()).second || !is_candidate(model, enforceProductId))
+                {
+                    continue;
+                }
+
+                const int extraFlags = count_bits(model.getFlags() & specialFlagsMask & ~requiredFlags);
+                if (!found
+                 || extraFlags < bestExtraFlags
+                 || (extraFlags == bestExtraFlags && model.getOrderId() < bestOrderId))
+                {
+                    bestModel = model;
+                    bestExtraFlags = extraFlags;
+                    bestOrderId = model.getOrderId();
+                    found = true;
+                }
+            }
+
+            return found ? bestModel : currentModel;
         }
 
         std::string uppercase_ascii(std::string s)
@@ -398,7 +481,7 @@ namespace tivars
         std::ranges::copy(comment, this->header.comment);
         this->header.entries_len  = this->get_two_bytes_swapped();
 
-        // the calcModel may later get updated with a more precise one
+        // the calcModel may later get updated with a more precise one, see TIVarFile::interLoadedModel
         if (TIModels::isValidPID(header.ownerPID))
             this->calcModel = TIModels::fromPID(header.ownerPID);
         else if (TIModels::isValidSignature(signature))
@@ -468,6 +551,8 @@ namespace tivars
 
             this->entries.push_back(entry);
         }
+
+        this->calcModel = inferLoadedModel(this->calcModel, this->entries);
     }
 
 
@@ -969,6 +1054,7 @@ namespace tivars
                     .function("setContentFromData"       , select_overload<void(const data_t& data)>(&tivars::TIVarFile::setContentFromData))
                     .function("setContentFromString"     , select_overload<void(const std::string&, const options_t&)>(&tivars::TIVarFile::setContentFromString))
                     .function("setContentFromString"     , select_overload<void(const std::string&)>(&tivars::TIVarFile::setContentFromString))
+                    .function("getCalcModel"             , &tivars::TIVarFile::getCalcModel)
                     .function("setCalcModel"             , &tivars::TIVarFile::setCalcModel)
                     .function("setVarName"               , select_overload<void(const std::string&)>(&tivars::TIVarFile::setVarName))
                     .function("setArchived"              , select_overload<void(bool)>(&tivars::TIVarFile::setArchived))
