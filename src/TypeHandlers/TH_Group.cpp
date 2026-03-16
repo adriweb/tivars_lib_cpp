@@ -438,14 +438,14 @@ namespace tivars::TypeHandlers
         return json{{"entries", entries}}.dump(4);
     }
 
-    uint8_t TH_Group::getMinVersionFromData(const data_t& data)
+    TIVarFileMinVersionByte TH_Group::getMinVersionFromData(const data_t& data)
     {
         if (data.size() < minimumDataByteCount)
         {
-            return 0;
+            return VER_NONE;
         }
 
-        uint8_t version = 0;
+        TIVarFileMinVersionByte version = VER_NONE;
         size_t offset = minimumDataByteCount;
         while (offset < data.size())
         {
@@ -458,7 +458,7 @@ namespace tivars::TypeHandlers
             offset++; // Unused
             if (data[offset] > version)
             {
-                version = data[offset];
+                version = (TIVarFileMinVersionByte)data[offset];
             }
             offset++;
 

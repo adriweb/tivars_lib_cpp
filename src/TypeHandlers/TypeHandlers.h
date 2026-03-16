@@ -13,13 +13,32 @@
 namespace tivars
 {
     class TIVarFile;
+
+    // See https://wikiti.brandonw.net/index.php?title=83Plus:OS:Variable_Versions
+    enum TIVarFileMinVersionByte : uint8_t
+    {
+        VER_NONE         = 0x00,
+        VER_83P_ALL      = 0x01,
+        VER_83P_115      = 0x02,
+        VER_83P_116      = 0x03,
+        VER_84P_ALL      = 0x04,
+        VER_84P_230      = 0x05,
+        VER_84P_253MP    = 0x06,
+        VER_84P_255MP    = 0x07,
+        VER_84CSE_ALL    = 0x0A,
+        VER_CE_ALL       = 0x0B,
+        VER_CE_530       = 0x0C,
+        VER_CE_EXACTONLY = 0x10,
+        VER_INVALID      = 0xFF,
+        MASK_USES_RTC    = 0b100000, // bit 5
+    };
 }
 
 namespace tivars::TypeHandlers
 {
 #define th()    static data_t      makeDataFromString(const std::string& str, const options_t& options = options_t(), const TIVarFile* _ctx = nullptr); \
                 static std::string makeStringFromData(const data_t& data,     const options_t& options = options_t(), const TIVarFile* _ctx = nullptr); \
-                static uint8_t     getMinVersionFromData(const data_t& data);
+                static TIVarFileMinVersionByte getMinVersionFromData(const data_t& data);
 
     class DummyHandler
     {

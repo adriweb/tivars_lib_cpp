@@ -7,6 +7,7 @@
 
 #include "TypeHandlers.h"
 #include "../tivarslib_utils.h"
+#include "../TIVarFile.h"
 
 #include <stdexcept>
 
@@ -114,18 +115,18 @@ namespace tivars::TypeHandlers
         return str;
     }
 
-    uint8_t TH_Matrix::getMinVersionFromData(const data_t& data)
+    TIVarFileMinVersionByte TH_Matrix::getMinVersionFromData(const data_t& data)
     {
-        uint8_t version = 0;
+        TIVarFileMinVersionByte version = VER_NONE;
         for (size_t offset = 2; offset < data.size(); offset += 9) {
             const uint8_t internalType = data[offset] & 0x3F;
             if (internalType > 0x1B) { // exact complex frac
-                version = 0x10;
+                version = VER_CE_EXACTONLY;
                 break;
             } else if (internalType == 0x1B) { // exact complex frac
-                if (version < 0x0B) version = 0x0B;
+                if (version < VER_CE_ALL) version = VER_CE_ALL;
             } else if (internalType == 0x18 || internalType == 0x19) { // real/mixed frac
-                if (version < 0x06) version = 0x06;
+                if (version < VER_84P_253MP) version = VER_84P_253MP;
             }
         }
         return version;

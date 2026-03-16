@@ -483,9 +483,9 @@ namespace tivars::TypeHandlers
         return readableScript;
     }
 
-    uint8_t STH_PythonAppVar::getMinVersionFromData(const data_t& data)
+    TIVarFileMinVersionByte STH_PythonAppVar::getMinVersionFromData(const data_t& data)
     {
         (void)data;
-        return 0;
+        return VER_NONE;
     }
 }

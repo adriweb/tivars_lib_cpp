@@ -65,9 +65,9 @@ namespace tivars::TypeHandlers
         return typeStr + name + ":" + std::to_string(offset) + ":" + detokenized;
     }
 
-    uint8_t TH_TempEqu::getMinVersionFromData(const data_t& data)
+    TIVarFileMinVersionByte TH_TempEqu::getMinVersionFromData(const data_t& data)
     {
         (void)data;
-        return 0;
+        return VER_NONE;
     }
 }

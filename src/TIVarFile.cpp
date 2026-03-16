@@ -450,7 +450,7 @@ namespace tivars
                 {
                     fprintf(stderr, "Something is wrong with your file... The var entry meta length indicates is has flash-related fields, but the signature doesn't match...\n");
                 }
-                entry.version      = this->get_raw_byte();
+                entry.version      = (TIVarFileMinVersionByte)this->get_raw_byte();
                 entry.archivedFlag = this->get_raw_byte();
             }
             else if (entry.meta_length != varEntryOldLength)
@@ -569,14 +569,14 @@ namespace tivars
                                          + backup.data2.size()
                                          + backup.data3.size()
                                          + backup.data4.size();
-                entry.version = 0;
+                entry.version = VER_NONE;
                 entry.archivedFlag = 0;
             }
             else
             {
                 entry.data_length2 = entry.data_length = (uint16_t) entry.data.size();
                 this->header.entries_len += sizeof(var_entry_t::data_length) + sizeof(var_entry_t::data_length2) + entry.meta_length + entry.data_length;
-                entry.version = (this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? std::get<2>(entry._type.getHandlers())(entry.data) : 0;
+                entry.version = (this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? std::get<2>(entry._type.getHandlers())(entry.data) : VER_NONE;
             }
         }
         this->computedChecksum = this->computeChecksumFromInstanceData();

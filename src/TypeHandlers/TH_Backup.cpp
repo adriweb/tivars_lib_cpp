@@ -194,9 +194,9 @@ namespace tivars::TypeHandlers
         return j.dump(4);
     }
 
-    uint8_t TH_Backup::getMinVersionFromData(const data_t& data)
+    TIVarFileMinVersionByte TH_Backup::getMinVersionFromData(const data_t& data)
     {
         (void)data;
-        return 0;
+        return VER_NONE;
     }
 }

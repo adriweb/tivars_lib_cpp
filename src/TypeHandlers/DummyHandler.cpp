@@ -28,7 +28,7 @@ namespace tivars::TypeHandlers
         throw std::runtime_error("This type is not supported / implemented (yet?)");
     }
 
-    uint8_t DummyHandler::getMinVersionFromData(const data_t& data)
+    TIVarFileMinVersionByte DummyHandler::getMinVersionFromData(const data_t& data)
     {
         (void)data;
         throw std::runtime_error("This type is not supported / implemented (yet?)");

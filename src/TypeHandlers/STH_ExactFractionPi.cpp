@@ -101,10 +101,10 @@ namespace tivars::TypeHandlers
         return dec2frac(stod(STH_FP::makeStringFromData(data, options)), "π");
     }
 
-    uint8_t STH_ExactFractionPi::getMinVersionFromData(const data_t& data)
+    TIVarFileMinVersionByte STH_ExactFractionPi::getMinVersionFromData(const data_t& data)
     {
         // handled in TH_GenericXXX
         (void)data;
-        return 0;
+        return VER_NONE;
     }
 }

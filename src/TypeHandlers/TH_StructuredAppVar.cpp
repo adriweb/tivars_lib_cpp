@@ -1113,9 +1113,9 @@ namespace tivars::TypeHandlers
         throw std::invalid_argument("Unsupported structured AppVar subtype");
     }
 
-    uint8_t TH_StructuredAppVar::getMinVersionFromData(const data_t& data)
+    TIVarFileMinVersionByte TH_StructuredAppVar::getMinVersionFromData(const data_t& data)
     {
         (void)data;
-        return 0;
+        return VER_NONE;
     }
 }

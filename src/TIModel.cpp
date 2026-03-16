@@ -40,7 +40,7 @@ namespace tivars
             class_<tivars::TIModel>("TIModel")
                     .constructor<>()
                     .constructor<const char*>()
-                    .constructor<int, const std::string&, uint32_t, const std::string&, uint8_t>()
+                    .constructor<int, const std::string&, uint32_t, const std::string&, uint8_t, tivars::TIVarFileMinVersionByte>()
 
                     .function("getOrderId"  , &tivars::TIModel::getOrderId)
                     .function("getProductId", &tivars::TIModel::getProductId)

@@ -150,12 +150,12 @@ namespace tivars::TypeHandlers
         return j.dump(4);
     }
 
-    uint8_t TH_Picture::getMinVersionFromData(const data_t& data)
+    TIVarFileMinVersionByte TH_Picture::getMinVersionFromData(const data_t& data)
     {
         if (data.size() == colorPictureDataByteCount)
         {
-            return 0x0A;
+            return VER_84CSE_ALL;
         }
-        return 0x00;
+        return VER_NONE;
     }
 }

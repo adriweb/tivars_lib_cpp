@@ -44,7 +44,7 @@ namespace tivars
         static bool isValidSignature(const std::string& sig);
 
     private:
-        static void insertModel(int orderID, uint32_t flags, const std::string& name, const std::string& sig, uint8_t productId);
+        static void insertModel(int orderID, uint32_t flags, const std::string& name, const std::string& sig, uint8_t productId, TIVarFileMinVersionByte minVersion);
 
     };
 

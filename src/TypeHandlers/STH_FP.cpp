@@ -165,10 +165,10 @@ namespace tivars::TypeHandlers
         return std::string(result);
     }
 
-    uint8_t STH_FP::getMinVersionFromData(const data_t& data)
+    TIVarFileMinVersionByte STH_FP::getMinVersionFromData(const data_t& data)
     {
         // handled in TH_GenericXXX
         (void)data;
-        return 0;
+        return VER_NONE;
     }
 }

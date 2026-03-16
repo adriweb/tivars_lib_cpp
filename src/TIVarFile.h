@@ -37,7 +37,7 @@ namespace tivars
             uint16_t data_length   = 0;
             uint8_t  typeID        = 0;
             uint8_t  varname[8]    = {};
-            uint8_t  version       = 0; // present only if calcFlags >= TIFeatureFlags::hasFlash
+            TIVarFileMinVersionByte version = VER_NONE; // present only if calcFlags >= TIFeatureFlags::hasFlash
             uint8_t  archivedFlag  = 0; // present only if calcFlags >= TIFeatureFlags::hasFlash
             uint16_t data_length2 = 0; // same as data_length
             data_t data;

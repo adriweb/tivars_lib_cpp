@@ -6,6 +6,7 @@
  */
 
 #include "TypeHandlers.h"
+#include "../TIVarFile.h"
 
 #include <algorithm>
 #include <array>
@@ -230,15 +231,15 @@ namespace tivars::TypeHandlers
         return str;
     }
 
-    uint8_t TH_GenericComplex::getMinVersionFromData(const data_t& data)
+    TIVarFileMinVersionByte TH_GenericComplex::getMinVersionFromData(const data_t& data)
     {
         const uint8_t maxInternalType = std::max<uint8_t>(static_cast<uint8_t>(data[0] & 0x1F), static_cast<uint8_t>(data[bytesPerMember] & 0x1F));
         if (maxInternalType == 0x0C) { // Complex
-            return 0x00;
+            return VER_NONE;
         } else if (maxInternalType == 0x1B) { // Fraction
-            return 0x0B;
+            return VER_CE_ALL;
         } else {
-            return 0x10;
+            return VER_CE_EXACTONLY;
         }
     }
 }

@@ -211,6 +211,48 @@ int main(int argc, char** argv)
     }
 
     {
+        assert(TIModels::fromName("84+CE").getMinVersion() == VER_CE_ALL);
+        assert(TIModels::fromName("84+CEPy").getMinVersion() == VER_CE_530);
+        assert(TIModels::fromName("83PCE").getMinVersion() == VER_CE_ALL);
+        assert(TIModels::fromName("83PCEEP").getMinVersion() == VER_CE_530);
+        assert(TIModels::fromName("82AEP").getMinVersion() == VER_CE_530);
+    }
+
+    {
+        assert(TH_GenericReal::getMinVersionFromData(data_t{0x00}) == VER_NONE);
+        assert(TH_GenericReal::getMinVersionFromData(data_t{0x18}) == VER_84P_253MP);
+        assert(TH_GenericReal::getMinVersionFromData(data_t{0x1C}) == VER_CE_EXACTONLY);
+
+        data_t complexData(18, 0x00);
+        complexData[0] = 0x0C;
+        complexData[9] = 0x0C;
+        assert(TH_GenericComplex::getMinVersionFromData(complexData) == VER_NONE);
+        complexData[0] = 0x1B;
+        complexData[9] = 0x0C;
+        assert(TH_GenericComplex::getMinVersionFromData(complexData) == VER_CE_ALL);
+        complexData[0] = 0x1E;
+        complexData[9] = 0x0C;
+        assert(TH_GenericComplex::getMinVersionFromData(complexData) == VER_CE_EXACTONLY);
+
+        const auto makeCollectionData = [](uint8_t internalType)
+        {
+            data_t data(11, 0x00);
+            data[2] = internalType;
+            return data;
+        };
+
+        assert(TH_GenericList::getMinVersionFromData(makeCollectionData(0x0C)) == VER_NONE);
+        assert(TH_GenericList::getMinVersionFromData(makeCollectionData(0x18)) == VER_84P_253MP);
+        assert(TH_GenericList::getMinVersionFromData(makeCollectionData(0x1B)) == VER_CE_ALL);
+        assert(TH_GenericList::getMinVersionFromData(makeCollectionData(0x1C)) == VER_CE_EXACTONLY);
+
+        assert(TH_Matrix::getMinVersionFromData(makeCollectionData(0x0C)) == VER_NONE);
+        assert(TH_Matrix::getMinVersionFromData(makeCollectionData(0x18)) == VER_84P_253MP);
+        assert(TH_Matrix::getMinVersionFromData(makeCollectionData(0x1B)) == VER_CE_ALL);
+        assert(TH_Matrix::getMinVersionFromData(makeCollectionData(0x1C)) == VER_CE_EXACTONLY);
+    }
+
+    {
         TIVarFile toksPrgm = TIVarFile::loadFromFile("testData/ALLTOKS.8Xp");
         cout << toksPrgm.getReadableContent() << "\n" << endl;
     }
@@ -265,51 +307,51 @@ int main(int argc, char** argv)
         // See https://wikiti.brandonw.net/index.php?title=83Plus:OS:Variable_Versions
         TIVarFile testPrgmStr1 = TIVarFile::createNew("Program", "asdf");
         const auto& ver = testPrgmStr1.getVarEntries()[0].version;
-        assert(ver == 0x00);
+        assert(ver == VER_NONE);
         testPrgmStr1.setContentFromString("Disp 41+1");
-        assert((ver & ~0x20) == 0x00);
+        assert((ver & ~0x20) == VER_NONE);
         testPrgmStr1.setContentFromString("Archive A");
-        assert((ver & ~0x20) == 0x01);
+        assert((ver & ~0x20) == VER_83P_ALL);
         testPrgmStr1.setContentFromString("GarbageCollect");
-        assert((ver & ~0x20) == 0x01);
+        assert((ver & ~0x20) == VER_83P_ALL);
         testPrgmStr1.setContentFromString("Disp 42%");
-        assert((ver & ~0x20) == 0x02);
+        assert((ver & ~0x20) == VER_83P_115);
         testPrgmStr1.setContentFromString("~A");
-        assert((ver & ~0x20) == 0x02);
+        assert((ver & ~0x20) == VER_83P_115);
         testPrgmStr1.setContentFromString("Disp \"…\"");
-        assert((ver & ~0x20) == 0x03);
+        assert((ver & ~0x20) == VER_83P_116);
         testPrgmStr1.setContentFromString("Disp \"⌸\"");
-        assert((ver & ~0x20) == 0x03);
+        assert((ver & ~0x20) == VER_83P_116);
         testPrgmStr1.setContentFromString("setDate(A,B,C)");
-        assert((ver & ~0x20) == 0x04);
+        assert((ver & ~0x20) == VER_84P_ALL);
         testPrgmStr1.setContentFromString("ExecLib \"A\"");
-        assert((ver & ~0x20) == 0x04);
+        assert((ver & ~0x20) == VER_84P_ALL);
         testPrgmStr1.setContentFromString("Manual-Fit ");
-        assert((ver & ~0x20) == 0x05);
+        assert((ver & ~0x20) == VER_84P_230);
         testPrgmStr1.setContentFromString("ZQuadrant1");
-        assert((ver & ~0x20) == 0x06);
+        assert((ver & ~0x20) == VER_84P_253MP);
         testPrgmStr1.setContentFromString("FRAC");
-        assert((ver & ~0x20) == 0x06);
+        assert((ver & ~0x20) == VER_84P_253MP);
         testPrgmStr1.setContentFromString("STATWIZARD ON");
-        assert((ver & ~0x20) == 0x07);
+        assert((ver & ~0x20) == VER_84P_255MP);
         testPrgmStr1.setContentFromString("STATWIZARD OFF");
-        assert((ver & ~0x20) == 0x07);
+        assert((ver & ~0x20) == VER_84P_255MP);
         testPrgmStr1.setContentFromString("BLUE");
-        assert((ver & ~0x20) == 0x0A);
+        assert((ver & ~0x20) == VER_84CSE_ALL);
         testPrgmStr1.setContentFromString("Dot-Thin");
-        assert((ver & ~0x20) == 0x0A);
+        assert((ver & ~0x20) == VER_84CSE_ALL);
         testPrgmStr1.setContentFromString("TraceStep");
-        assert((ver & ~0x20) == 0x00); // 63** token ranges are not considered by a calculator when it generates the version.
+        assert((ver & ~0x20) == VER_NONE); // 63** token ranges are not considered by a calculator when it generates the version.
         testPrgmStr1.setContentFromString("Asm84CEPrgm:C9");
-        assert((ver & ~0x20) == 0x0B);
+        assert((ver & ~0x20) == VER_CE_ALL);
         testPrgmStr1.setContentFromString("Disp eval(Str1");
-        assert((ver & ~0x20) == 0x0B); // 0Bh is used for all of TI-84 Plus CE OS 5.0 through 5.2, despite tokens being added between them.
+        assert((ver & ~0x20) == VER_CE_ALL); // 0Bh is used for all of TI-84 Plus CE OS 5.0 through 5.2, despite tokens being added between them.
         testPrgmStr1.setContentFromString("Quartiles Setting…");
-        assert((ver & ~0x20) == 0x0B);
+        assert((ver & ~0x20) == VER_CE_ALL);
         testPrgmStr1.setContentFromString("Execute Program");
-        assert((ver & ~0x20) == 0x0C);
+        assert((ver & ~0x20) == VER_CE_530);
         testPrgmStr1.setContentFromString("piecewise(");
-        assert((ver & ~0x20) == 0x0C);
+        assert((ver & ~0x20) == VER_CE_530);
     }
 
     {

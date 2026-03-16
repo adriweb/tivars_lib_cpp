@@ -22,8 +22,8 @@ namespace tivars
         TIModel(const std::string& name);
         TIModel(const char* name) { *this = TIModel{std::string{name}}; };
 
-        TIModel(int orderId, const std::string& name, uint32_t flags, const std::string& sig, uint8_t productId)
-        : orderID(orderId), name(name), flags(flags), sig(sig), productId(productId)
+        TIModel(int orderId, const std::string& name, uint32_t flags, const std::string& sig, uint8_t productId, TIVarFileMinVersionByte minVersion)
+        : orderID(orderId), name(name), flags(flags), sig(sig), productId(productId), minVersion(minVersion)
         {}
 
         ~TIModel() = default;
@@ -34,6 +34,7 @@ namespace tivars
         std::string getName() const { return this->name; }
         uint32_t getFlags() const { return this->flags; }
         std::string getSig() const { return this->sig; }
+        TIVarFileMinVersionByte getMinVersion() const { return this->minVersion; }
 
         bool supportsType(const TIVarType& type) const;
 
@@ -43,6 +44,7 @@ namespace tivars
         uint32_t flags   = 0;
         std::string sig  = "";
         uint8_t productId = 0;
+        TIVarFileMinVersionByte minVersion = VER_NONE;
 
     };
 

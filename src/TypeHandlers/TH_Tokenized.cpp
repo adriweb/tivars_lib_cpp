@@ -555,7 +555,7 @@ namespace tivars::TypeHandlers
         return str;
     }
 
-    uint8_t TH_Tokenized::getMinVersionFromData(const data_t& data)
+    TIVarFileMinVersionByte TH_Tokenized::getMinVersionFromData(const data_t& data)
     {
         const size_t dataSize = data.size();
         if (dataSize < 2)
@@ -582,31 +582,31 @@ namespace tivars::TypeHandlers
                 }
             }
         }
-        uint8_t version = usesRTC ? 0x20 : 0x00;
+        uint8_t version = usesRTC ? (VER_NONE | MASK_USES_RTC) : VER_NONE;
         if (maxBB > 0xF5 || maxEF > 0xA6) {
-            version = 0xFF;
+            version = VER_INVALID;
         } else if (maxEF > 0x98) {
-            version |= 0x0C;
+            version |= VER_CE_530;
         } else if (maxEF > 0x75) {
-            version |= 0x0B;
+            version |= VER_CE_ALL;
         } else if (maxEF > 0x40) {
-            version |= 0x0A;
+            version |= VER_84CSE_ALL;
         } else if (maxEF > 0x3E) {
-            version |= 0x07;
+            version |= VER_84P_255MP;
         } else if (maxEF > 0x16) {
-            version |= 0x06;
+            version |= VER_84P_253MP;
         } else if (maxEF > 0x12) {
-            version |= 0x05;
+            version |= VER_84P_230;
         } else if (maxEF > -1) {
-            version |= 0x04;
+            version |= VER_84P_ALL;
         } else if (maxBB > 0xDA) {
-            version |= 0x03;
+            version |= VER_83P_116;
         } else if (maxBB > 0xCE) {
-            version |= 0x02;
+            version |= VER_83P_115;
         } else if (maxBB > 0x67) {
-            version |= 0x01;
+            version |= VER_83P_ALL;
         }
-        return version;
+        return (TIVarFileMinVersionByte)version;
     }
 
     std::string TH_Tokenized::reindentCodeString(const std::string& str_orig, const options_t& options)
