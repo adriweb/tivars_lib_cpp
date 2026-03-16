@@ -29,6 +29,7 @@ namespace tivars
         VER_CE_ALL       = 0x0B,
         VER_CE_530       = 0x0C,
         VER_CE_EXACTONLY = 0x10,
+        VER_CE_PYTHONMOD = 0x11,
         VER_INVALID      = 0xFF,
         MASK_USES_RTC    = 0b100000, // bit 5
     };

@@ -1115,7 +1115,11 @@ namespace tivars::TypeHandlers
 
     TIVarFileMinVersionByte TH_StructuredAppVar::getMinVersionFromData(const data_t& data)
     {
-        (void)data;
+        if (detectStructuredAppVarTypeName(data) == "PythonModuleAppVar")
+        {
+            return VER_CE_PYTHONMOD;
+        }
+
         return VER_NONE;
     }
 }

@@ -1015,12 +1015,29 @@ End)";
         assert(pythonModuleJSON["version"] == 2);
         assert(pythonModuleJSON["menuDefinitions"] == "#MENULABEL Demo\n#MENUITEM sin|sin(\n");
         assert(pythonModuleJSON["compiledDataHex"] == "4D500300");
+        assert(pythonModule.getVarEntries()[0].version == VER_CE_PYTHONMOD);
+        assert(TH_StructuredAppVar::getMinVersionFromData(pythonModule.getRawContent()) == VER_CE_PYTHONMOD);
 
         const std::string modulePath = pythonModule.saveVarToFile("/tmp", "PYMOD");
         TIVarFile reloadedModule = TIVarFile::loadFromFile(modulePath);
         assert(reloadedModule.getVarEntries()[0]._type.getName() == "PythonModuleAppVar");
+        assert(reloadedModule.getVarEntries()[0].version == VER_CE_PYTHONMOD);
         assert(reloadedModule.getRawContent() == pythonModule.getRawContent());
         assert(remove(modulePath.c_str()) == 0);
+    }
+
+    {
+        TIVarFile realPythonModule = TIVarFile::loadFromFile("testData/TISTEMFR.8xv");
+        assert(realPythonModule.getVarEntries()[0]._type.getName() == "PythonModuleAppVar");
+        assert(realPythonModule.getVarEntries()[0].version == VER_CE_PYTHONMOD);
+        assert((realPythonModule.getCalcModel().getFlags() & hasPython) != 0);
+        assert(realPythonModule.getCalcModel().supportsType(realPythonModule.getVarEntries()[0]._type));
+
+        const json realPythonModuleJSON = json::parse(realPythonModule.getReadableContent());
+        assert(realPythonModuleJSON["typeName"] == "PythonModuleAppVar");
+        assert(realPythonModuleJSON["subtype"] == "PythonModule");
+        assert(realPythonModuleJSON["menuDefinitions"].get<std::string>().find("MENULABEL") != std::string::npos);
+        assert_roundtrip_from_readable(realPythonModule);
     }
 
     {

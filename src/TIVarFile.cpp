@@ -57,11 +57,12 @@ namespace tivars
             for (const auto& entry : entries)
             {
                 const std::string& typeName = entry._type.getName();
-                if (typeName.rfind("Exact", 0) == 0 || (entry.version & ~MASK_USES_RTC) == VER_CE_EXACTONLY)
+                const TIVarFileMinVersionByte maskedVersion = (TIVarFileMinVersionByte)(entry.version & ~MASK_USES_RTC);
+                if (maskedVersion == VER_CE_EXACTONLY || typeName.rfind("Exact", 0) == 0)
                 {
                     requiredFlags |= hasExactMath;
                 }
-                if (typeName.rfind("Python", 0) == 0)
+                if (maskedVersion == VER_CE_PYTHONMOD || typeName.rfind("Python", 0) == 0)
                 {
                     requiredFlags |= hasPython;
                 }
