@@ -11,6 +11,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <array>
 
 #include "CommonTypes.h"
 #include "TIModel.h"
@@ -64,6 +65,9 @@ std::string trimZeros(const std::string& str);
 
 std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes, size_t size = 8);
 std::string sanitize_for_host_filename(const std::string& name);
+std::array<uint8_t, 3> rgb565_to_rgb888(uint16_t value);
+std::string make_bmp_data_url(uint32_t width, uint32_t height, const data_t& rgbPixels);
+std::string make_bmp_data_url_rgba(uint32_t width, uint32_t height, const data_t& rgbaPixels);
 
 }
 

@@ -15,6 +15,58 @@ using namespace std::string_literals;
 namespace tivars
 {
 
+namespace
+{
+    void append_le16(data_t& out, uint16_t value)
+    {
+        out.push_back(static_cast<uint8_t>(value & 0xFF));
+        out.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
+    }
+
+    void append_le32(data_t& out, uint32_t value)
+    {
+        out.push_back(static_cast<uint8_t>(value & 0xFF));
+        out.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
+        out.push_back(static_cast<uint8_t>((value >> 16) & 0xFF));
+        out.push_back(static_cast<uint8_t>((value >> 24) & 0xFF));
+    }
+
+    std::string base64_encode(const data_t& data)
+    {
+        static const char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+        std::string out;
+        out.reserve(((data.size() + 2) / 3) * 4);
+
+        size_t i = 0;
+        while (i + 2 < data.size())
+        {
+            const uint32_t chunk = (static_cast<uint32_t>(data[i]) << 16)
+                                 | (static_cast<uint32_t>(data[i + 1]) << 8)
+                                 | static_cast<uint32_t>(data[i + 2]);
+            out.push_back(alphabet[(chunk >> 18) & 0x3F]);
+            out.push_back(alphabet[(chunk >> 12) & 0x3F]);
+            out.push_back(alphabet[(chunk >> 6) & 0x3F]);
+            out.push_back(alphabet[chunk & 0x3F]);
+            i += 3;
+        }
+
+        if (i < data.size())
+        {
+            const uint32_t a = static_cast<uint32_t>(data[i]);
+            const uint32_t b = i + 1 < data.size() ? static_cast<uint32_t>(data[i + 1]) : 0U;
+            const uint32_t chunk = (a << 16) | (b << 8);
+
+            out.push_back(alphabet[(chunk >> 18) & 0x3F]);
+            out.push_back(alphabet[(chunk >> 12) & 0x3F]);
+            out.push_back(i + 1 < data.size() ? alphabet[(chunk >> 6) & 0x3F] : '=');
+            out.push_back('=');
+        }
+
+        return out;
+    }
+}
+
 unsigned char hexdec(const std::string& str)
 {
     return (unsigned char) stoul(str, nullptr, 16);
@@ -487,6 +539,161 @@ std::string sanitize_for_host_filename(const std::string& name)
     replace_all(sanitized, "/", "_");
 
     return sanitized;
+}
+
+std::array<uint8_t, 3> rgb565_to_rgb888(uint16_t value)
+{
+    const uint8_t red5 = static_cast<uint8_t>((value >> 11) & 0x1F);
+    const uint8_t green6 = static_cast<uint8_t>((value >> 5) & 0x3F);
+    const uint8_t blue5 = static_cast<uint8_t>(value & 0x1F);
+
+    return {
+        static_cast<uint8_t>((red5 * 255 + 15) / 31),
+        static_cast<uint8_t>((green6 * 255 + 31) / 63),
+        static_cast<uint8_t>((blue5 * 255 + 15) / 31),
+    };
+}
+
+std::string make_bmp_data_url_rgba(uint32_t width, uint32_t height, const data_t& rgbaPixels)
+{
+    if (width == 0 || height == 0)
+    {
+        return "";
+    }
+
+    const size_t expectedPixelBytes = static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
+    data_t normalized(expectedPixelBytes, 0x00);
+    const size_t copyLen = std::min(expectedPixelBytes, rgbaPixels.size());
+    std::copy(rgbaPixels.begin(), rgbaPixels.begin() + static_cast<ptrdiff_t>(copyLen), normalized.begin());
+
+    for (size_t i = 3; i < normalized.size(); i += 4)
+    {
+        if (i >= copyLen)
+        {
+            normalized[i] = 0xFF;
+        }
+    }
+
+    const uint32_t rowStride = width * 4U;
+    const uint32_t pixelArraySize = rowStride * height;
+    const uint32_t fileHeaderSize = 14;
+    const uint32_t dibHeaderSize = 124;
+    const uint32_t pixelOffset = fileHeaderSize + dibHeaderSize;
+    const uint32_t fileSize = pixelOffset + pixelArraySize;
+
+    data_t bmp;
+    bmp.reserve(fileSize);
+    bmp.push_back('B');
+    bmp.push_back('M');
+    append_le32(bmp, fileSize);
+    append_le16(bmp, 0);
+    append_le16(bmp, 0);
+    append_le32(bmp, pixelOffset);
+
+    append_le32(bmp, dibHeaderSize);
+    append_le32(bmp, width);
+    append_le32(bmp, height);
+    append_le16(bmp, 1);
+    append_le16(bmp, 32);
+    append_le32(bmp, 3);
+    append_le32(bmp, pixelArraySize);
+    append_le32(bmp, 2835);
+    append_le32(bmp, 2835);
+    append_le32(bmp, 0);
+    append_le32(bmp, 0);
+    append_le32(bmp, 0x00FF0000);
+    append_le32(bmp, 0x0000FF00);
+    append_le32(bmp, 0x000000FF);
+    append_le32(bmp, 0xFF000000);
+    append_le32(bmp, 0x73524742); // LCS_sRGB
+
+    for (int i = 0; i < 9; i++)
+    {
+        append_le32(bmp, 0);
+    }
+    append_le32(bmp, 0);
+    append_le32(bmp, 0);
+    append_le32(bmp, 0);
+    append_le32(bmp, 0); // intent
+    append_le32(bmp, 0); // profile data offset
+    append_le32(bmp, 0); // profile size
+    append_le32(bmp, 0); // reserved
+
+    for (uint32_t row = 0; row < height; row++)
+    {
+        const uint32_t srcY = height - 1 - row;
+        const size_t rowStart = static_cast<size_t>(srcY) * static_cast<size_t>(width) * 4;
+        for (uint32_t x = 0; x < width; x++)
+        {
+            const size_t src = rowStart + static_cast<size_t>(x) * 4;
+            bmp.push_back(normalized[src + 2]);
+            bmp.push_back(normalized[src + 1]);
+            bmp.push_back(normalized[src]);
+            bmp.push_back(normalized[src + 3]);
+        }
+    }
+
+    return "data:image/bmp;base64," + base64_encode(bmp);
+}
+
+std::string make_bmp_data_url(uint32_t width, uint32_t height, const data_t& rgbPixels)
+{
+    if (width == 0 || height == 0)
+    {
+        return "";
+    }
+
+    const size_t expectedPixelBytes = static_cast<size_t>(width) * static_cast<size_t>(height) * 3;
+    data_t normalized(expectedPixelBytes, 0xFF);
+    const size_t copyLen = std::min(expectedPixelBytes, rgbPixels.size());
+    std::copy(rgbPixels.begin(), rgbPixels.begin() + static_cast<ptrdiff_t>(copyLen), normalized.begin());
+
+    const uint32_t rowStride = (width * 3U + 3U) & ~3U;
+    const uint32_t pixelArraySize = rowStride * height;
+    const uint32_t fileHeaderSize = 14;
+    const uint32_t dibHeaderSize = 40;
+    const uint32_t pixelOffset = fileHeaderSize + dibHeaderSize;
+    const uint32_t fileSize = pixelOffset + pixelArraySize;
+
+    data_t bmp;
+    bmp.reserve(fileSize);
+    bmp.push_back('B');
+    bmp.push_back('M');
+    append_le32(bmp, fileSize);
+    append_le16(bmp, 0);
+    append_le16(bmp, 0);
+    append_le32(bmp, pixelOffset);
+
+    append_le32(bmp, dibHeaderSize);
+    append_le32(bmp, width);
+    append_le32(bmp, height);
+    append_le16(bmp, 1);
+    append_le16(bmp, 24);
+    append_le32(bmp, 0);
+    append_le32(bmp, pixelArraySize);
+    append_le32(bmp, 2835);
+    append_le32(bmp, 2835);
+    append_le32(bmp, 0);
+    append_le32(bmp, 0);
+
+    for (uint32_t row = 0; row < height; row++)
+    {
+        const uint32_t srcY = height - 1 - row;
+        const size_t rowStart = static_cast<size_t>(srcY) * static_cast<size_t>(width) * 3;
+        for (uint32_t x = 0; x < width; x++)
+        {
+            const size_t src = rowStart + static_cast<size_t>(x) * 3;
+            bmp.push_back(normalized[src + 2]);
+            bmp.push_back(normalized[src + 1]);
+            bmp.push_back(normalized[src]);
+        }
+        while ((bmp.size() - pixelOffset) % rowStride != 0)
+        {
+            bmp.push_back(0x00);
+        }
+    }
+
+    return "data:image/bmp;base64," + base64_encode(bmp);
 }
 
 }

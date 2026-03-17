@@ -16,6 +16,7 @@
 #include <array>
 #include <cctype>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 
 using namespace std::string_literals;
@@ -221,6 +222,21 @@ namespace tivars::TypeHandlers
             return result;
         }
 
+        size_t python_image_pixel_count(uint32_t width, uint32_t height)
+        {
+            if (width == 0 || height == 0)
+            {
+                return 0;
+            }
+
+            if (static_cast<size_t>(height) > std::numeric_limits<size_t>::max() / static_cast<size_t>(width))
+            {
+                throw std::invalid_argument("PythonImageAppVar dimensions are too large");
+            }
+
+            return static_cast<size_t>(width) * static_cast<size_t>(height);
+        }
+
         data_t parse_hex_string(const std::string& str, const char* fieldName)
         {
             if (str.size() % 2 != 0)
@@ -243,6 +259,81 @@ namespace tivars::TypeHandlers
                 out.push_back(hexdec(str.substr(i, 2)));
             }
             return out;
+        }
+
+        data_t decode_python_image_rle(uint32_t width, uint32_t height, const data_t& imageData)
+        {
+            const size_t expectedPixels = python_image_pixel_count(width, height);
+            data_t decoded;
+            decoded.reserve(expectedPixels);
+
+            size_t pos = 0;
+            while (pos < imageData.size() && decoded.size() < expectedPixels)
+            {
+                const uint8_t control = imageData[pos++];
+                if ((control & 0x80) != 0)
+                {
+                    if (pos >= imageData.size())
+                    {
+                        throw std::invalid_argument("Invalid PythonImageAppVar RLE stream");
+                    }
+
+                    const uint8_t paletteIndex = imageData[pos++];
+                    const size_t runLength = static_cast<size_t>(control & 0x7F) + 2;
+                    decoded.insert(decoded.end(), std::min(runLength, expectedPixels - decoded.size()), paletteIndex);
+                    continue;
+                }
+
+                size_t literalLength = static_cast<size_t>(control) + 1;
+                if (pos + literalLength > imageData.size())
+                {
+                    literalLength = imageData.size() - pos;
+                }
+                literalLength = std::min(literalLength, expectedPixels - decoded.size());
+                decoded.insert(decoded.end(), imageData.begin() + static_cast<ptrdiff_t>(pos), imageData.begin() + static_cast<ptrdiff_t>(pos + literalLength));
+                pos += literalLength;
+            }
+
+            // Some img2calc-generated files omit a final literal flush. Pad the missing pixels
+            // with palette index 0 to match the existing preview behavior for short image data.
+            decoded.resize(expectedPixels, 0);
+            return decoded;
+        }
+
+        data_t make_python_image_preview_rgba(uint32_t width,
+                                              uint32_t height,
+                                              bool hasAlpha,
+                                              uint8_t transparentIndex,
+                                              const std::vector<uint16_t>& paletteEntries,
+                                              const data_t& imageIndices)
+        {
+            data_t rgba(python_image_pixel_count(width, height) * 4, 0x00);
+
+            for (uint32_t y = 0; y < height; y++)
+            {
+                for (uint32_t x = 0; x < width; x++)
+                {
+                    const size_t pixelIndex = static_cast<size_t>(y) * static_cast<size_t>(width) + x;
+                    const uint8_t paletteIndex = pixelIndex < imageIndices.size() ? imageIndices[pixelIndex] : 0;
+                    const size_t dst = pixelIndex * 4;
+
+                    if (hasAlpha && paletteIndex == transparentIndex)
+                    {
+                        continue;
+                    }
+
+                    if (paletteIndex < paletteEntries.size())
+                    {
+                        const auto color = rgb565_to_rgb888(paletteEntries[paletteIndex]);
+                        rgba[dst] = color[0];
+                        rgba[dst + 1] = color[1];
+                        rgba[dst + 2] = color[2];
+                        rgba[dst + 3] = 0xFF;
+                    }
+                }
+            }
+
+            return rgba;
         }
 
         void append_le16(data_t& data, uint16_t value)
@@ -776,11 +867,18 @@ namespace tivars::TypeHandlers
                 entryCount = 256;
             }
 
+            std::vector<uint16_t> paletteEntries;
+            paletteEntries.reserve(entryCount);
             json entries = json::array();
             for (uint16_t i = 0; i < entryCount; i++)
             {
-                entries.push_back(read_le16(payload, pos, "palette entry"));
+                const uint16_t entry = read_le16(payload, pos, "palette entry");
+                paletteEntries.push_back(entry);
+                entries.push_back(entry);
             }
+
+            const data_t imageData(payload.begin() + static_cast<ptrdiff_t>(pos), payload.end());
+            const data_t decodedImageData = decode_python_image_rle(width, height, imageData);
 
             return json{
                 {"typeName", "PythonImageAppVar"},
@@ -795,8 +893,9 @@ namespace tivars::TypeHandlers
                     {"transparentIndex", transparentIndex},
                     {"entries", entries}
                 }},
-                {"imageDataLength", payload.size() - pos},
-                {"imageDataHex", to_hex_string(data_t(payload.begin() + static_cast<ptrdiff_t>(pos), payload.end()))},
+                {"imageDataLength", imageData.size()},
+                {"imageDataHex", to_hex_string(imageData)},
+                {"previewImageDataUrl", make_bmp_data_url_rgba(width, height, make_python_image_preview_rgba(width, height, hasAlpha != 0, transparentIndex, paletteEntries, decodedImageData))},
                 {"rawDataHex", to_hex_string(payload)}
             };
         }

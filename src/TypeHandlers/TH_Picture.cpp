@@ -19,6 +19,25 @@ namespace tivars::TypeHandlers
 {
     namespace
     {
+        constexpr std::array<std::array<uint8_t, 3>, 16> colorPicturePalette = {{
+            {{255, 255, 255}},
+            {{0, 0, 255}},
+            {{255, 0, 0}},
+            {{0, 0, 0}},
+            {{255, 0, 255}},
+            {{0, 160, 0}},
+            {{255, 165, 0}},
+            {{165, 96, 42}},
+            {{0, 0, 128}},
+            {{96, 192, 255}},
+            {{255, 255, 0}},
+            {{255, 255, 255}},
+            {{216, 216, 216}},
+            {{176, 176, 176}},
+            {{128, 128, 128}},
+            {{72, 72, 72}},
+        }};
+
         uint16_t read_le16(const data_t& data)
         {
             if (data.size() < 2)
@@ -50,6 +69,91 @@ namespace tivars::TypeHandlers
                 data.push_back(hexdec(str.substr(i, 2)));
             }
             return data;
+        }
+
+        data_t make_mono_picture_preview_rgb(const data_t& data)
+        {
+            data_t rgb;
+            rgb.reserve(TH_Picture::monoPictureWidth * TH_Picture::monoPictureHeight * 3);
+
+            const size_t rowByteCount = TH_Picture::monoPictureWidth / 8;
+            for (size_t y = 0; y < TH_Picture::monoPictureHeight; y++)
+            {
+                const size_t rowStart = TH_Picture::minimumDataByteCount + y * rowByteCount;
+                for (size_t byteIdx = 0; byteIdx < rowByteCount; byteIdx++)
+                {
+                    const uint8_t packed = rowStart + byteIdx < data.size() ? data[rowStart + byteIdx] : 0;
+                    for (int bit = 7; bit >= 0; bit--)
+                    {
+                        const bool isBlack = ((packed >> bit) & 1U) != 0;
+                        const uint8_t channel = isBlack ? 0x00 : 0xFF;
+                        rgb.push_back(channel);
+                        rgb.push_back(channel);
+                        rgb.push_back(channel);
+                    }
+                }
+            }
+
+            return rgb;
+        }
+
+        data_t make_color_picture_preview_rgb(const data_t& data)
+        {
+            data_t rgb;
+            rgb.reserve(TH_Picture::colorPictureWidth * TH_Picture::colorPictureHeight * 3);
+
+            const size_t rowByteCount = TH_Picture::colorPictureWidth / 2;
+            for (size_t y = 0; y < TH_Picture::colorPictureHeight; y++)
+            {
+                const size_t rowStart = TH_Picture::minimumDataByteCount + y * rowByteCount;
+                for (size_t byteIdx = 0; byteIdx < rowByteCount; byteIdx++)
+                {
+                    const uint8_t packed = rowStart + byteIdx < data.size() ? data[rowStart + byteIdx] : 0;
+                    for (const uint8_t index : { static_cast<uint8_t>((packed >> 4) & 0x0F), static_cast<uint8_t>(packed & 0x0F) })
+                    {
+                        const auto& color = colorPicturePalette[index];
+                        rgb.push_back(color[0]);
+                        rgb.push_back(color[1]);
+                        rgb.push_back(color[2]);
+                    }
+                }
+            }
+
+            return rgb;
+        }
+
+        data_t make_image_preview_rgb(const data_t& data)
+        {
+            data_t rgb(static_cast<size_t>(TH_Picture::imageWidth) * TH_Picture::imageHeight * 3, 0x00);
+            const size_t rowStride = TH_Picture::imageWidth * 2 + TH_Picture::minimumDataByteCount;
+            const size_t pixelStart = TH_Picture::minimumDataByteCount + 1;
+
+            for (size_t storedRow = 0; storedRow < TH_Picture::imageHeight; storedRow++)
+            {
+                const size_t rowStart = pixelStart + storedRow * rowStride;
+                if (rowStart >= data.size())
+                {
+                    break;
+                }
+
+                const size_t y = TH_Picture::imageHeight - 1 - storedRow;
+                for (size_t x = 0; x < TH_Picture::imageWidth; x++)
+                {
+                    const size_t src = rowStart + x * 2;
+                    if (src + 1 >= data.size())
+                    {
+                        break;
+                    }
+
+                    const auto color = rgb565_to_rgb888(static_cast<uint16_t>(data[src]) | (static_cast<uint16_t>(data[src + 1]) << 8));
+                    const size_t dst = (y * TH_Picture::imageWidth + x) * 3;
+                    rgb[dst] = color[0];
+                    rgb[dst + 1] = color[1];
+                    rgb[dst + 2] = color[2];
+                }
+            }
+
+            return rgb;
         }
     }
 
@@ -105,6 +209,7 @@ namespace tivars::TypeHandlers
                     {"dataWidth", monoPictureWidth / 8},
                     {"dataHeight", monoPictureHeight},
                 };
+                j["previewImageDataUrl"] = make_bmp_data_url(monoPictureWidth, monoPictureHeight, make_mono_picture_preview_rgb(data));
                 break;
 
             case colorPictureDataByteCount:
@@ -121,6 +226,7 @@ namespace tivars::TypeHandlers
                     {"dataWidth", colorPictureWidth / 2},
                     {"dataHeight", colorPictureHeight},
                 };
+                j["previewImageDataUrl"] = make_bmp_data_url(colorPictureWidth, colorPictureHeight, make_color_picture_preview_rgb(data));
                 break;
 
             case imageDataByteCount:
@@ -141,6 +247,7 @@ namespace tivars::TypeHandlers
                     {"dataWidth", 2 * imageWidth + minimumDataByteCount},
                     {"dataHeight", imageHeight},
                 };
+                j["previewImageDataUrl"] = make_bmp_data_url(imageWidth, imageHeight, make_image_preview_rgb(data));
                 break;
 
             default:

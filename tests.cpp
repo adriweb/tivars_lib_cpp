@@ -13,6 +13,7 @@
 #include <sstream>
 #include <cstdio>
 #include <cmath>
+#include <array>
 
 #ifndef _WIN32
     #include <sys/stat.h>
@@ -47,6 +48,95 @@ static void assert_roundtrip_from_readable(TIVarFile& original, const options_t&
     TIVarFile recreated = TIVarFile::createNew(entry._type, entry_name_to_string(entry._type, entry.varname), original.getCalcModel());
     recreated.setContentFromString(original.getReadableContent(readableOptions));
     assert(recreated.getRawContent() == original.getRawContent());
+}
+
+static data_t decode_base64(const std::string& encoded)
+{
+    const auto base64_value = [](char c) -> int
+    {
+        if (c >= 'A' && c <= 'Z') return c - 'A';
+        if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+        if (c >= '0' && c <= '9') return c - '0' + 52;
+        if (c == '+') return 62;
+        if (c == '/') return 63;
+        return -1;
+    };
+
+    data_t decoded;
+    int val = 0;
+    int bits = -8;
+    for (char c : encoded)
+    {
+        if (c == '=')
+        {
+            break;
+        }
+
+        const int v = base64_value(c);
+        if (v < 0)
+        {
+            continue;
+        }
+
+        val = (val << 6) | v;
+        bits += 6;
+        if (bits >= 0)
+        {
+            decoded.push_back(static_cast<uint8_t>((val >> bits) & 0xFF));
+            bits -= 8;
+        }
+    }
+
+    return decoded;
+}
+
+static uint32_t read_le32_at(const data_t& data, size_t offset)
+{
+    assert(offset + 3 < data.size());
+    return static_cast<uint32_t>(data[offset])
+         | (static_cast<uint32_t>(data[offset + 1]) << 8)
+         | (static_cast<uint32_t>(data[offset + 2]) << 16)
+         | (static_cast<uint32_t>(data[offset + 3]) << 24);
+}
+
+static void assert_preview_bmp_data_url(const std::string& url, uint32_t width, uint32_t height)
+{
+    const std::string prefix = "data:image/bmp;base64,";
+    assert(url.rfind(prefix, 0) == 0);
+
+    const data_t bmp = decode_base64(url.substr(prefix.size()));
+    assert(bmp.size() >= 54);
+    assert(bmp[0] == 'B' && bmp[1] == 'M');
+    const uint32_t dibHeaderSize = read_le32_at(bmp, 14);
+    assert(dibHeaderSize == 40 || dibHeaderSize == 124);
+    assert(read_le32_at(bmp, 18) == width);
+    assert(read_le32_at(bmp, 22) == height);
+}
+
+static std::array<uint8_t, 4> read_preview_bmp_pixel_rgba(const std::string& url, uint32_t x, uint32_t y)
+{
+    const std::string prefix = "data:image/bmp;base64,";
+    assert(url.rfind(prefix, 0) == 0);
+
+    const data_t bmp = decode_base64(url.substr(prefix.size()));
+    assert(bmp.size() >= 54);
+
+    const uint32_t width = read_le32_at(bmp, 18);
+    const uint32_t height = read_le32_at(bmp, 22);
+    const uint32_t pixelOffset = read_le32_at(bmp, 10);
+    const uint16_t bitsPerPixel = static_cast<uint16_t>(bmp[28]) | (static_cast<uint16_t>(bmp[29]) << 8);
+    const uint32_t rowStride = bitsPerPixel == 32 ? width * 4U : ((width * 3U + 3U) & ~3U);
+    assert(x < width);
+    assert(y < height);
+    assert(pixelOffset + rowStride * height <= bmp.size());
+
+    const uint32_t row = height - 1 - y;
+    const size_t offset = static_cast<size_t>(pixelOffset) + static_cast<size_t>(row) * rowStride + static_cast<size_t>(x) * (bitsPerPixel == 32 ? 4U : 3U);
+    if (bitsPerPixel == 32)
+    {
+        return {bmp[offset + 2], bmp[offset + 1], bmp[offset], bmp[offset + 3]};
+    }
+    return {bmp[offset + 2], bmp[offset + 1], bmp[offset], 0xFF};
 }
 
 int main(int argc, char** argv)
@@ -1051,7 +1141,7 @@ End)";
         "transparentIndex": 1,
         "entries": [31, 63488, 2016]
     },
-    "imageDataHex": "01020304"
+    "imageDataHex": "fe01"
 })");
         const json pythonImageJSON = json::parse(pythonImage.getReadableContent());
         assert(pythonImageJSON["typeName"] == "PythonImageAppVar");
@@ -1060,8 +1150,11 @@ End)";
         assert(pythonImageJSON["palette"]["entryCount"] == 3);
         assert(pythonImageJSON["palette"]["hasAlpha"] == true);
         assert(pythonImageJSON["palette"]["entries"][1] == 63488);
-        assert(pythonImageJSON["imageDataLength"] == 4);
-        assert(pythonImageJSON["imageDataHex"] == "01020304");
+        assert(pythonImageJSON["imageDataLength"] == 2);
+        assert(pythonImageJSON["imageDataHex"] == "FE01");
+        assert_preview_bmp_data_url(pythonImageJSON["previewImageDataUrl"], 16, 8);
+        assert((read_preview_bmp_pixel_rgba(pythonImageJSON["previewImageDataUrl"], 0, 0) == std::array<uint8_t, 4>{0x00, 0x00, 0x00, 0x00}));
+        assert((read_preview_bmp_pixel_rgba(pythonImageJSON["previewImageDataUrl"], 8, 0) == std::array<uint8_t, 4>{0x00, 0x00, 0x00, 0x00}));
 
         const std::string imagePath = pythonImage.saveVarToFile("/tmp", "PYIMG");
         TIVarFile reloadedImage = TIVarFile::loadFromFile(imagePath);
@@ -1071,16 +1164,46 @@ End)";
 
         TIVarFile realPythonImage = TIVarFile::loadFromFile("testData/TESTIM8C.8xv");
         assert(realPythonImage.getVarEntries()[0]._type.getName() == "PythonImageAppVar");
+        assert((realPythonImage.getCalcModel().getFlags() & hasPython) != 0);
         const json realPythonImageJSON = json::parse(realPythonImage.getReadableContent());
         assert(realPythonImageJSON["width"] == 154);
         assert(realPythonImageJSON["height"] == 42);
         assert(realPythonImageJSON["palette"]["marker"] == 1);
         assert(realPythonImageJSON["palette"]["entryCount"] == realPythonImageJSON["palette"]["entries"].size());
         assert(realPythonImageJSON["imageDataLength"] > 0);
+        assert_preview_bmp_data_url(realPythonImageJSON["previewImageDataUrl"], 154, 42);
+        assert((read_preview_bmp_pixel_rgba(realPythonImageJSON["previewImageDataUrl"], 0, 0) == std::array<uint8_t, 4>{222, 61, 74, 0xFF}));
+        assert((read_preview_bmp_pixel_rgba(realPythonImageJSON["previewImageDataUrl"], 20, 10) == std::array<uint8_t, 4>{66, 65, 66, 0xFF}));
+        assert((read_preview_bmp_pixel_rgba(realPythonImageJSON["previewImageDataUrl"], 100, 20) == std::array<uint8_t, 4>{255, 251, 247, 0xFF}));
 
         TIVarFile rebuiltRealImage = TIVarFile::createNew("PythonImageAppVar", "TESTIM8C", "83PCE");
         rebuiltRealImage.setContentFromString(realPythonImage.getReadableContent());
         assert(rebuiltRealImage.getRawContent() == realPythonImage.getRawContent());
+
+        TIVarFile girlNoAlphaImage = TIVarFile::loadFromFile("testData/GIRL_150_noalpha.8xv");
+        assert(girlNoAlphaImage.getVarEntries()[0]._type.getName() == "PythonImageAppVar");
+        const json girlNoAlphaJSON = json::parse(girlNoAlphaImage.getReadableContent());
+        assert(girlNoAlphaJSON["width"] == 114);
+        assert(girlNoAlphaJSON["height"] == 150);
+        assert(girlNoAlphaJSON["palette"]["hasAlpha"] == false);
+        assert(girlNoAlphaJSON["palette"]["transparentIndex"] == 0);
+        assert_preview_bmp_data_url(girlNoAlphaJSON["previewImageDataUrl"], 114, 150);
+        assert((read_preview_bmp_pixel_rgba(girlNoAlphaJSON["previewImageDataUrl"], 20, 20) == std::array<uint8_t, 4>{255, 210, 0, 0xFF}));
+        assert((read_preview_bmp_pixel_rgba(girlNoAlphaJSON["previewImageDataUrl"], 50, 40) == std::array<uint8_t, 4>{255, 190, 165, 0xFF}));
+        assert_roundtrip_from_readable(girlNoAlphaImage);
+
+        TIVarFile girlAlphaImage = TIVarFile::loadFromFile("testData/GIRL_150_alpha.8xv");
+        assert(girlAlphaImage.getVarEntries()[0]._type.getName() == "PythonImageAppVar");
+        const json girlAlphaJSON = json::parse(girlAlphaImage.getReadableContent());
+        assert(girlAlphaJSON["width"] == 114);
+        assert(girlAlphaJSON["height"] == 150);
+        assert(girlAlphaJSON["palette"]["hasAlpha"] == true);
+        assert(girlAlphaJSON["palette"]["transparentIndex"] == 0);
+        assert_preview_bmp_data_url(girlAlphaJSON["previewImageDataUrl"], 114, 150);
+        assert((read_preview_bmp_pixel_rgba(girlAlphaJSON["previewImageDataUrl"], 0, 0) == std::array<uint8_t, 4>{0, 0, 0, 0}));
+        assert((read_preview_bmp_pixel_rgba(girlAlphaJSON["previewImageDataUrl"], 20, 20) == std::array<uint8_t, 4>{247, 210, 0, 0xFF}));
+        assert((read_preview_bmp_pixel_rgba(girlAlphaJSON["previewImageDataUrl"], 50, 40) == std::array<uint8_t, 4>{255, 202, 173, 0xFF}));
+        assert_roundtrip_from_readable(girlAlphaImage);
     }
 
     {
@@ -1554,6 +1677,7 @@ End)";
         assert(monoPictureJSON["dataLength"] == 758);
         assert(monoPictureJSON["storage"]["encoding"] == "L1");
         assert(monoPictureJSON["storage"]["pixelsPerByte"] == 8);
+        assert_preview_bmp_data_url(monoPictureJSON["previewImageDataUrl"], 96, 63);
 
         TIVarFile colorPicture = TIVarFile::loadFromFile("testData/Pic1.8ci");
         const json colorPictureJSON = json::parse(colorPicture.getReadableContent());
@@ -1566,6 +1690,7 @@ End)";
         assert(colorPictureJSON["storage"]["encoding"] == "RGBPalette");
         assert(colorPictureJSON["storage"]["paletteSize"] == 15);
         assert(colorPicture.getVarEntries()[0].version == 0x0A);
+        assert_preview_bmp_data_url(colorPictureJSON["previewImageDataUrl"], 266, 165);
 
         TIVarFile image = TIVarFile::loadFromFile("testData/Image1.8ca");
         const json imageJSON = json::parse(image.getReadableContent());
@@ -1578,6 +1703,7 @@ End)";
         assert(imageJSON["storage"]["encoding"] == "RGB565");
         assert(imageJSON["storage"]["imageMagic"] == "81");
         assert(imageJSON["storage"]["rowPaddingBytes"] == 2);
+        assert_preview_bmp_data_url(imageJSON["previewImageDataUrl"], 133, 83);
 
         TIVarFile recreatedMonoPicture = TIVarFile::createNew("Picture", "Pic1");
         recreatedMonoPicture.setContentFromString(R"({
