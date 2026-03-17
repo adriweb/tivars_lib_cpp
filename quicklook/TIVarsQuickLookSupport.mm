@@ -253,6 +253,69 @@ namespace
         }
     }
 
+    std::string preview_image_data_url_from_readable(const std::string& content)
+    {
+        try
+        {
+            const json parsed = json::parse(content);
+            if (parsed.is_object() && parsed.contains("previewImageDataUrl") && parsed.at("previewImageDataUrl").is_string())
+            {
+                return parsed.at("previewImageDataUrl").get<std::string>();
+            }
+        }
+        catch (const std::exception&)
+        {
+        }
+
+        return "";
+    }
+
+    NSImage* image_from_data_url(const std::string& dataUrl)
+    {
+        if (dataUrl.empty())
+        {
+            return nil;
+        }
+
+        const std::string::size_type commaPos = dataUrl.find(',');
+        if (commaPos == std::string::npos)
+        {
+            return nil;
+        }
+
+        NSString* base64String = nsstring_from_std(dataUrl.substr(commaPos + 1));
+        NSData* imageData = [[NSData alloc] initWithBase64EncodedString:base64String options:0];
+        return imageData == nil ? nil : [[NSImage alloc] initWithData:imageData];
+    }
+
+    NSRect aspect_fit_rect(NSSize imageSize, NSRect bounds)
+    {
+        if (imageSize.width <= 0.0 || imageSize.height <= 0.0 || bounds.size.width <= 0.0 || bounds.size.height <= 0.0)
+        {
+            return bounds;
+        }
+
+        const CGFloat scale = std::min(bounds.size.width / imageSize.width, bounds.size.height / imageSize.height);
+        const NSSize fittedSize = NSMakeSize(imageSize.width * scale, imageSize.height * scale);
+        return NSMakeRect(bounds.origin.x + (bounds.size.width - fittedSize.width) * 0.5,
+                          bounds.origin.y + (bounds.size.height - fittedSize.height) * 0.5,
+                          fittedSize.width,
+                          fittedSize.height);
+    }
+
+    void append_preview_image_section(std::ostringstream& html, const std::string& dataUrl)
+    {
+        if (dataUrl.empty())
+        {
+            return;
+        }
+
+        html << "<section class=\"panel image-panel\">"
+             << "<h3>Preview</h3>"
+             << "<div class=\"image-frame\"><img class=\"preview-image\" src=\"" << html_escape(dataUrl) << "\" alt=\"Preview image\"></div>"
+             << "</section>";
+    }
+
     std::string model_name_for_header(const tivars::TIVarFile::var_header_t& header)
     {
         if (header.ownerPID != tivars::TIVarFile::OWNER_PID_NONE && tivars::TIModels::isValidPID(header.ownerPID))
@@ -351,6 +414,9 @@ namespace
              << ".entry-size{font:700 12px/1 Menlo,Monaco,monospace;color:var(--accent);background:var(--accent-soft);padding:6px 10px;border-radius:999px;white-space:nowrap;}"
              << ".panel{margin-top:14px;padding-top:14px;border-top:1px solid #ece5d7;}"
              << ".panel h3{margin:0 0 10px 0;font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}"
+             << ".image-panel{display:block;}"
+             << ".image-frame{display:flex;justify-content:center;align-items:center;min-height:160px;background-color:#efe6d8;background-image:linear-gradient(45deg,rgba(255,255,255,0.55) 25%,transparent 25%,transparent 75%,rgba(255,255,255,0.55) 75%,rgba(255,255,255,0.55)),linear-gradient(45deg,rgba(255,255,255,0.55) 25%,transparent 25%,transparent 75%,rgba(255,255,255,0.55) 75%,rgba(255,255,255,0.55));background-position:0 0,12px 12px;background-size:24px 24px;border:1px solid #e3dacd;border-radius:14px;padding:12px;overflow:hidden;}"
+             << ".preview-image{display:block;max-width:100%;max-height:420px;object-fit:contain;border-radius:10px;box-shadow:0 10px 24px rgba(17,24,39,0.12);}"
              << "pre{margin:0;white-space:pre-wrap;word-break:break-word;font:13px/1.45 Menlo,Monaco,monospace;color:#10212c;background:#faf7f1;padding:14px 16px;border-radius:14px;border:1px solid #ede5d8;}"
              << "</style></head><body><main>"
              << "<section class=\"hero\">"
@@ -409,9 +475,11 @@ namespace
         for (size_t index = 0; index < previewCount; index++)
         {
             const auto& entry = entries[index];
+            std::string previewImageDataUrl;
             std::string readable;
             try
             {
+                previewImageDataUrl = preview_image_data_url_from_readable(file.getReadableContent(options_t{}, static_cast<uint16_t>(index)));
                 options_t options;
                 options["reindent"] = true;
                 options["prettify"] = true;
@@ -434,6 +502,7 @@ namespace
             append_meta_row(body, "Meta length", std::to_string(entry.meta_length));
             append_meta_row(body, "Data length", std::to_string(entry.data_length));
             body << "</div></section>";
+            append_preview_image_section(body, previewImageDataUrl);
             append_section(body, "Readable content", readable);
             body << "</article>";
         }
@@ -548,6 +617,7 @@ namespace
         std::string badge;
         std::string title;
         std::string subtitle;
+        std::string previewImageDataUrl;
         bool isFlash = false;
         bool isCorrupt = false;
     };
@@ -577,6 +647,10 @@ namespace
                 descriptor.badge = entries.empty() ? "Unknown var" : readable_entry_name(entries.front());
                 descriptor.title = entries.empty() ? descriptor.title : entries.front()._type.getName();
                 descriptor.subtitle = entries.empty() ? "Unknown content" : truncate_text(var.getReadableContent({{"prettify", true}}));
+                if (entries.size() == 1)
+                {
+                    descriptor.previewImageDataUrl = preview_image_data_url_from_readable(var.getReadableContent());
+                }
             }
         }
         catch (const std::exception&)
@@ -658,6 +732,60 @@ namespace
                                    code:1
                                userInfo:@{NSLocalizedDescriptionKey: description ?: @"Unknown Quick Look error"}];
     }
+
+    BOOL draw_image_thumbnail(const ThumbnailDescriptor& descriptor, CGSize contextSize)
+    {
+        NSImage* previewImage = image_from_data_url(descriptor.previewImageDataUrl);
+        if (previewImage == nil)
+        {
+            return NO;
+        }
+
+        const NSRect bounds = NSMakeRect(0.0, 0.0, contextSize.width, contextSize.height);
+        [[NSColor colorWithCalibratedRed:0.96 green:0.93 blue:0.88 alpha:1.0] setFill];
+        NSRectFill(bounds);
+
+        const CGFloat margin = std::max<CGFloat>(12.0, contextSize.width * 0.06);
+        const NSRect pageRect = NSInsetRect(bounds, margin, margin);
+        fill_rounded_rect(pageRect, 18.0, [NSColor colorWithCalibratedRed:0.99 green:0.98 blue:0.96 alpha:1.0]);
+        stroke_rounded_rect(pageRect, 18.0, 1.5, [NSColor colorWithCalibratedRed:0.84 green:0.81 blue:0.75 alpha:1.0]);
+
+        const CGFloat footerHeight = std::max<CGFloat>(34.0, pageRect.size.height * 0.18);
+        const NSRect imageBounds = NSInsetRect(NSMakeRect(pageRect.origin.x + 10.0,
+                                                          pageRect.origin.y + footerHeight + 10.0,
+                                                          pageRect.size.width - 20.0,
+                                                          pageRect.size.height - footerHeight - 20.0), 4.0, 4.0);
+
+        fill_rounded_rect(imageBounds, 12.0, [NSColor colorWithCalibratedRed:0.95 green:0.93 blue:0.89 alpha:1.0]);
+        stroke_rounded_rect(imageBounds, 12.0, 1.0, [NSColor colorWithCalibratedRed:0.87 green:0.83 blue:0.77 alpha:1.0]);
+
+        const NSRect fittedRect = aspect_fit_rect(previewImage.size, NSInsetRect(imageBounds, 8.0, 8.0));
+        [previewImage drawInRect:fittedRect];
+
+        const NSRect footerRect = NSMakeRect(pageRect.origin.x,
+                                             pageRect.origin.y,
+                                             pageRect.size.width,
+                                             footerHeight);
+        fill_rounded_rect(footerRect, 18.0, [NSColor colorWithCalibratedRed:0.10 green:0.18 blue:0.26 alpha:0.92]);
+
+        draw_centered_string(nsstring_from_std(descriptor.title),
+                             NSMakeRect(footerRect.origin.x + 10.0,
+                                        footerRect.origin.y + footerRect.size.height * 0.38,
+                                        footerRect.size.width - 20.0,
+                                        footerRect.size.height * 0.34),
+                             [NSFont systemFontOfSize:std::max<CGFloat>(11.0, pageRect.size.width * 0.07) weight:NSFontWeightBold],
+                             [NSColor whiteColor]);
+
+        draw_centered_string(nsstring_from_std(descriptor.subtitle),
+                             NSMakeRect(footerRect.origin.x + 12.0,
+                                        footerRect.origin.y + footerRect.size.height * 0.10,
+                                        footerRect.size.width - 24.0,
+                                        footerRect.size.height * 0.24),
+                             [NSFont systemFontOfSize:std::max<CGFloat>(9.0, pageRect.size.width * 0.042) weight:NSFontWeightMedium],
+                             [NSColor colorWithCalibratedWhite:0.88 alpha:1.0]);
+
+        return YES;
+    }
 }
 
 @implementation TIVarsQuickLookSupport
@@ -716,6 +844,11 @@ namespace
             *error = make_error(@"No active graphics context for thumbnail drawing.");
         }
         return NO;
+    }
+
+    if (!descriptor.previewImageDataUrl.empty() && draw_image_thumbnail(descriptor, contextSize))
+    {
+        return YES;
     }
 
     const NSRect bounds = NSMakeRect(0.0, 0.0, contextSize.width, contextSize.height);
