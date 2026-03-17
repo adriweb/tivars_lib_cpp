@@ -130,8 +130,10 @@ namespace tivars::TypeHandlers
         APPVAR_SUBTYPE_CELSHEET_STATE,
         APPVAR_SUBTYPE_CABRIJR,
         APPVAR_SUBTYPE_NOTEFOLIO,
+        APPVAR_SUBTYPE_NONE = 0xFF,
     };
 
+    StructuredAppVarSubtype detectStructuredAppVarSubtype(const data_t& data);
     std::string detectStructuredAppVarTypeName(const data_t& data);
 
     class TH_StructuredAppVar : public TH_GenericAppVar

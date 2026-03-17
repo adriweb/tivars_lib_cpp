@@ -85,6 +85,32 @@ namespace tivars::TypeHandlers
             throw std::invalid_argument("Unknown structured AppVar type name: " + typeName);
         }
 
+        const char* type_name_from_subtype(StructuredAppVarSubtype subtype)
+        {
+            switch (subtype)
+            {
+                case APPVAR_SUBTYPE_PYTHON_MODULE:
+                    return "PythonModuleAppVar";
+                case APPVAR_SUBTYPE_PYTHON_IMAGE:
+                    return "PythonImageAppVar";
+                case APPVAR_SUBTYPE_STUDY_CARDS:
+                    return "StudyCardsAppVar";
+                case APPVAR_SUBTYPE_STUDY_CARDS_SETTINGS:
+                    return "StudyCardsSetgsAppVar";
+                case APPVAR_SUBTYPE_CELSHEET:
+                    return "CellSheetAppVar";
+                case APPVAR_SUBTYPE_CELSHEET_STATE:
+                    return "CellSheetStateAppVar";
+                case APPVAR_SUBTYPE_CABRIJR:
+                    return "CabriJrAppVar";
+                case APPVAR_SUBTYPE_NOTEFOLIO:
+                    return "NotefolioAppVar";
+                case APPVAR_SUBTYPE_NONE:
+                    break;
+            }
+            throw std::invalid_argument("Unknown structured AppVar subtype");
+        }
+
         bool has_prefix(const data_t& data, const char* magic)
         {
             return data.size() >= appVarSizePrefixByteCount + magicByteCount
@@ -371,12 +397,12 @@ namespace tivars::TypeHandlers
 
         StructuredAppVarSubtype subtype_from_data_or_throw(const data_t& data)
         {
-            const std::string typeName = detectStructuredAppVarTypeName(data);
-            if (typeName == "AppVar" || typeName == "PythonAppVar")
+            const StructuredAppVarSubtype subtype = detectStructuredAppVarSubtype(data);
+            if (subtype == APPVAR_SUBTYPE_NONE)
             {
                 throw std::invalid_argument("Unsupported structured AppVar payload");
             }
-            return subtype_from_type_name(typeName);
+            return subtype;
         }
 
         data_t payload_from_json_or_raw(const json& j, StructuredAppVarSubtype subtype)
@@ -691,6 +717,8 @@ namespace tivars::TypeHandlers
                     }
                     return payload;
                 }
+                case APPVAR_SUBTYPE_NONE:
+                    throw std::invalid_argument("Unsupported structured AppVar subtype");
             }
 
             throw std::invalid_argument("Unsupported structured AppVar subtype");
@@ -1024,44 +1052,56 @@ namespace tivars::TypeHandlers
         }
     }
 
+    StructuredAppVarSubtype detectStructuredAppVarSubtype(const data_t& data)
+    {
+        if (has_prefix(data, PYTHON_MODULE_MAGIC))
+        {
+            return APPVAR_SUBTYPE_PYTHON_MODULE;
+        }
+        if (has_prefix(data, PYTHON_IMAGE_MAGIC))
+        {
+            return APPVAR_SUBTYPE_PYTHON_IMAGE;
+        }
+        if (has_prefix(data, CABRIJR_MAGIC))
+        {
+            return APPVAR_SUBTYPE_CABRIJR;
+        }
+        if (has_prefix(data, STUDY_CARDS_MAGIC))
+        {
+            return APPVAR_SUBTYPE_STUDY_CARDS;
+        }
+        if (has_prefix(data, STUDY_CARDS_SETTINGS_MAGIC))
+        {
+            return APPVAR_SUBTYPE_STUDY_CARDS_SETTINGS;
+        }
+        if (has_prefix(data, CELSHEET_MAGIC))
+        {
+            return APPVAR_SUBTYPE_CELSHEET;
+        }
+        if (has_prefix(data, CELSHEET_STATE_MAGIC))
+        {
+            return APPVAR_SUBTYPE_CELSHEET_STATE;
+        }
+        if (has_prefix(data, NOTEFOLIO_MAGIC))
+        {
+            return APPVAR_SUBTYPE_NOTEFOLIO;
+        }
+        return APPVAR_SUBTYPE_NONE;
+    }
+
     std::string detectStructuredAppVarTypeName(const data_t& data)
     {
         if (has_prefix(data, STH_PythonAppVar::ID_CODE) || has_prefix(data, STH_PythonAppVar::ID_SCRIPT))
         {
             return "PythonAppVar";
         }
-        if (has_prefix(data, PYTHON_MODULE_MAGIC))
+
+        const StructuredAppVarSubtype subtype = detectStructuredAppVarSubtype(data);
+        if (subtype != APPVAR_SUBTYPE_NONE)
         {
-            return "PythonModuleAppVar";
+            return type_name_from_subtype(subtype);
         }
-        if (has_prefix(data, PYTHON_IMAGE_MAGIC))
-        {
-            return "PythonImageAppVar";
-        }
-        if (has_prefix(data, CABRIJR_MAGIC))
-        {
-            return "CabriJrAppVar";
-        }
-        if (has_prefix(data, STUDY_CARDS_MAGIC))
-        {
-            return "StudyCardsAppVar";
-        }
-        if (has_prefix(data, STUDY_CARDS_SETTINGS_MAGIC))
-        {
-            return "StudyCardsSetgsAppVar";
-        }
-        if (has_prefix(data, CELSHEET_MAGIC))
-        {
-            return "CellSheetAppVar";
-        }
-        if (has_prefix(data, CELSHEET_STATE_MAGIC))
-        {
-            return "CellSheetStateAppVar";
-        }
-        if (has_prefix(data, NOTEFOLIO_MAGIC))
-        {
-            return "NotefolioAppVar";
-        }
+
         return "AppVar";
     }
 
@@ -1108,6 +1148,8 @@ namespace tivars::TypeHandlers
                 return parse_cabrijr_appvar(payload).dump(4);
             case APPVAR_SUBTYPE_NOTEFOLIO:
                 return parse_notefolio_appvar(payload).dump(4);
+            case APPVAR_SUBTYPE_NONE:
+                break;
         }
 
         throw std::invalid_argument("Unsupported structured AppVar subtype");
@@ -1115,11 +1157,12 @@ namespace tivars::TypeHandlers
 
     TIVarFileMinVersionByte TH_StructuredAppVar::getMinVersionFromData(const data_t& data)
     {
-        if (detectStructuredAppVarTypeName(data) == "PythonModuleAppVar")
+        switch (detectStructuredAppVarSubtype(data))
         {
-            return VER_CE_PYTHONMOD;
+            case APPVAR_SUBTYPE_PYTHON_MODULE:
+                return VER_CE_PYTHONMOD;
+            default:
+                return VER_NONE;
         }
-
-        return VER_NONE;
     }
 }
