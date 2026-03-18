@@ -232,9 +232,9 @@ namespace
                 const size_t omittedChars = str.size() - 256;
                 value = str.substr(0, 256) + "... [preview truncated, " + std::to_string(omittedChars) + " more characters]";
             }
-            else if ((key == "rawDataHex" || key == "calcDataHex" || key == "dataHex") && str.size() > 128)
+            else if ((key == "rawDataHex" || key == "calcDataHex" || key == "dataHex") && str.size() > 256)
             {
-                value = str.substr(0, 128) + "... [preview truncated, " + std::to_string(str.size() / 2) + " bytes total]";
+                value = str.substr(0, 256) + "... [preview truncated, " + std::to_string(str.size() / 2) + " bytes total]";
             }
         }
     }
@@ -268,6 +268,18 @@ namespace
         }
 
         return "";
+    }
+
+    std::string sanitized_var_readable_preview(const tivars::TIVarFile& file, uint16_t index)
+    {
+        try
+        {
+            return sanitize_readable_preview(file.getReadableContent({{"prettify", true}, {"reindent", true}}, index));
+        }
+        catch (const std::exception&)
+        {
+            return sanitize_readable_preview(file.getReadableContent({}, index));
+        }
     }
 
     NSImage* image_from_data_url(const std::string& dataUrl)
@@ -480,10 +492,7 @@ namespace
             try
             {
                 previewImageDataUrl = preview_image_data_url_from_readable(file.getReadableContent(options_t{}, static_cast<uint16_t>(index)));
-                options_t options;
-                options["reindent"] = true;
-                options["prettify"] = true;
-                readable = sanitize_readable_preview(file.getReadableContent(options, static_cast<uint16_t>(index)));
+                readable = sanitized_var_readable_preview(file, static_cast<uint16_t>(index));
             }
             catch (const std::exception& error)
             {
@@ -563,13 +572,16 @@ namespace
             append_meta_row(body, "Checksum", header.hasChecksum ? "Present" : "Missing");
             body << "</div></section>";
 
-            if (header.binaryFlag == tivars::TIFlashFile::rawBinaryDataFlag && !header.calcData.empty())
+            try
             {
-                append_section(body, "Raw data excerpt", data_to_hex_snippet(header.calcData, kMaxFlashExcerptBytes));
+                append_section(body, "Readable content", sanitize_readable_preview(file.getReadableContent(static_cast<uint16_t>(index))));
             }
-            else if (!header.calcData.empty() && header.calcData.size() <= 4096)
+            catch (const std::exception& error)
             {
-                append_section(body, "Readable content", sanitize_readable_preview(file.getReadableContent(index)));
+                if (!header.calcData.empty())
+                {
+                    append_section(body, "Readable content", std::string("Preview unavailable: ") + error.what() + "\n\nRaw bytes:\n" + data_to_hex_snippet(header.calcData, kMaxFlashExcerptBytes));
+                }
             }
 
             body << "</article>";

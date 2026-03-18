@@ -11,6 +11,7 @@
 
 #include "TIFlashFile.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -97,25 +98,28 @@ namespace tivars
                 case 0x0A2: return "Validation key";
                 case 0x0B0: return "Default language";
                 case 0x0C0: return "Exam mode status";
-                case 0x800: return "Master";
-                case 0x801: return "Signing key";
+                case 0x800:
+                case 0x810: return "Master";
+                case 0x801:
+                case 0x811: return "Signing key";
                 case 0x802: return "Revision";
-                case 0x803: return "Build";
-                case 0x804: return "Name";
+                case 0x812: return "Version";
+                case 0x803:
+                case 0x813: return "Build";
+                case 0x804:
+                case 0x814: return "Name";
                 case 0x805: return "Expiration date";
                 case 0x806: return "Overuse count";
-                case 0x807: return "Final";
+                case 0x807:
+                case 0x817: return "Final";
                 case 0x808: return "Page count";
                 case 0x809: return "Disable TI splash";
-                case 0x80A: return "Max hardware revision";
-                case 0x80C: return "Lowest basecode";
-                case 0x810: return "Master";
-                case 0x811: return "Signing key";
-                case 0x812: return "Version";
-                case 0x813: return "Build";
-                case 0x814: return "Name";
-                case 0x817: return "Final";
-                case 0x81A: return "Max hardware";
+                case 0x80A:
+                case 0x81A: return "Max hardware revision";
+                case 0x80C:
+                case 0x81C: return "Fuse/HW compatibility";
+                case 0x80D:
+                case 0x80E: return "Lowest basecode?";
                 default:
                 {
                     std::ostringstream out;
@@ -144,6 +148,21 @@ namespace tivars
             char buffer[32] = {};
             std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S UTC", &tm);
             return buffer;
+        }
+
+        std::string format_timestamp_from_1997_epoch(uint32_t seconds)
+        {
+            std::tm epoch{};
+            epoch.tm_year = 1997 - 1900;
+            epoch.tm_mon = 0;
+            epoch.tm_mday = 1;
+            epoch.tm_isdst = 0;
+#ifdef _WIN32
+            const std::time_t base = _mkgmtime(&epoch);
+#else
+            const std::time_t base = timegm(&epoch);
+#endif
+            return format_unix_timestamp(static_cast<uint32_t>(base + seconds));
         }
 
         data_t decode_hex_string(const std::string& hex)
@@ -221,6 +240,40 @@ namespace tivars
                 value += "." + std::to_string(build);
             }
             return value;
+        }
+
+        std::string trim_nul_ascii(const data_t& data)
+        {
+            std::string value(data.begin(), data.end());
+            if (const size_t nulPos = value.find('\0'); nulPos != std::string::npos)
+            {
+                value.erase(nulPos);
+            }
+            return value;
+        }
+
+        uint32_t read_le_integer_variable_width(const data_t& data)
+        {
+            uint32_t value = 0;
+            for (size_t i = 0; i < data.size() && i < sizeof(value); i++)
+            {
+                value |= static_cast<uint32_t>(data[i]) << (i * 8);
+            }
+            return value;
+        }
+
+        const char* flash_hardware_revision_name(uint8_t value)
+        {
+            switch (value)
+            {
+                case 0x00: return "TI-83 Plus";
+                case 0x01: return "TI-83 Plus Silver Edition";
+                case 0x02: return "TI-84 Plus";
+                case 0x03: return "TI-84 Plus Silver Edition";
+                case 0x05: return "TI-84 Plus C Silver Edition";
+                case 0x07: return "TI-83 Premium CE / TI-84 Plus CE";
+                default: return nullptr;
+            }
         }
 
         json parse_certificate_version(const json& fields)
@@ -381,7 +434,7 @@ namespace tivars
         json parse_extended_flash_field(const data_t& data, size_t start, size_t size)
         {
             json out = {
-                {"rawDataHex", to_hex_string(data, start, size)}
+            {"rawDataHex", (size <= 256) ? to_hex_string(data, start, size) : "..."}
             };
 
             if (size >= 3 && std::string(data.begin() + static_cast<ptrdiff_t>(start), data.begin() + static_cast<ptrdiff_t>(start + 3)) == "eZ8")
@@ -415,23 +468,17 @@ namespace tivars
                         }
                     }
 
-                    json relocations = json::array();
+                    size_t relocationTableEntries = 0;
                     const size_t relocationStart = infoStart + 39;
                     const size_t relocationEnd = std::min(start + size, start + static_cast<size_t>(mainOffset));
                     for (size_t pos = relocationStart; pos + 5 < relocationEnd; pos += 6)
                     {
-                        const uint32_t hole = read_le24(data, pos);
-                        const uint32_t address = read_le24(data, pos + 3);
-                        relocations.push_back({
-                            {"hole", hole},
-                            {"base", (address >> 22) != 0 ? "Data Base" : "Code Base"},
-                            {"offset", address & 0x3FFFFF}
-                        });
+                        relocationTableEntries++;
                     }
-                    out["relocationTable"] = relocations;
+                    out["relocationTableEntries"] = relocationTableEntries;
                     if (mainOffset <= size)
                     {
-                        out["bodyHex"] = to_hex_string(data, start + mainOffset, size - mainOffset);
+                        out["bodyHex"] = (size - mainOffset <= 256) ? to_hex_string(data, start + mainOffset, size - mainOffset) : "...";
                     }
                 }
             }
@@ -496,6 +543,12 @@ namespace tivars
             if ((fieldId == 0x800 || fieldId == 0x810 || fieldId == 0x032) && payloadSize > 0)
             {
                 j["fields"] = parse_flash_fields(data, pos, pos + payloadSize);
+                if (fieldId == 0x032 && payloadSize >= 6 && read_be16(data, pos) == 0x0904)
+                {
+                    const uint32_t timestamp = read_be32(data, pos + 2);
+                    j["timestamp"] = timestamp;
+                    j["timestampUtc"] = format_timestamp_from_1997_epoch(timestamp);
+                }
             }
             else if (fieldId == 0x817 && payloadSize > 0)
             {
@@ -505,11 +558,92 @@ namespace tivars
             {
                 const uint32_t timestamp = read_be32(data, pos);
                 j["timestamp"] = timestamp;
-                j["timestampUtc"] = format_unix_timestamp(timestamp);
+                j["timestampUtc"] = format_timestamp_from_1997_epoch(timestamp);
             }
             else if (payloadSize > 0)
             {
-                j["rawDataHex"] = to_hex_string(data, pos, payloadSize);
+                const data_t payload(data.begin() + static_cast<ptrdiff_t>(pos), data.begin() + static_cast<ptrdiff_t>(pos + payloadSize));
+                j["rawDataHex"] = (payloadSize <= 256 && fieldId != 0x000) ? to_hex_string(payload) : "...";
+                switch (fieldId)
+                {
+                    case 0x801:
+                    case 0x811:
+                        if (payload.size() >= 2)
+                        {
+                            j["keyId"] = read_be16(payload, 0);
+                            j["keyIdHex"] = flash_field_hex(static_cast<uint16_t>(j["keyId"].get<int>()));
+                        }
+                        break;
+
+                    case 0x802:
+                    case 0x812:
+                    {
+                        const std::string value = trim_nul_ascii(payload);
+                        const bool isPrintableAscii = !value.empty() && std::all_of(value.begin(), value.end(), [](unsigned char c)
+                        {
+                            return c >= 0x20 && c <= 0x7E;
+                        });
+                        j["value"] = isPrintableAscii ? value : to_hex_string(payload);
+                        break;
+                    }
+
+                    case 0x803:
+                    case 0x813:
+                    case 0x806:
+                    case 0x808:
+                        j["value"] = read_le_integer_variable_width(payload);
+                        break;
+
+                    case 0x804:
+                    case 0x814:
+                        j["value"] = trim_nul_ascii(payload);
+                        break;
+
+                    case 0x805:
+                        if (payload.size() == 4)
+                        {
+                            const uint32_t timestamp = read_be32(payload, 0);
+                            j["timestamp"] = timestamp;
+                            j["timestampUtc"] = format_unix_timestamp(timestamp);
+                        }
+                        break;
+
+                    case 0x809:
+                        if (!payload.empty())
+                        {
+                            j["value"] = payload[0] != 0;
+                        }
+                        break;
+
+                    case 0x80A:
+                    case 0x81A:
+                        if (!payload.empty())
+                        {
+                            j["value"] = payload[0];
+                            if (const char* name = flash_hardware_revision_name(payload[0]); name != nullptr)
+                            {
+                                j["valueName"] = name;
+                            }
+                        }
+                        break;
+
+                    case 0x80C:
+                    case 0x81C:
+                        if (payload.size() >= 2)
+                        {
+                            j["fuseMask"] = payload[0];
+                            j["requiredFuseValue"] = payload[1];
+                            j["valueName"] = to_hex_string(payload) == "0101" ? "83PCE" : (to_hex_string(payload) == "0100" ? "84+CE" : "Unknown");
+                        }
+                        else
+                        {
+                            j["value"] = read_le_integer_variable_width(payload);
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
             }
 
             return {j, pos + payloadSize - fieldStart};
@@ -648,7 +782,7 @@ namespace tivars
 
         if (header.binaryFlag == rawBinaryDataFlag)
         {
-            j["calcDataHex"] = toHex(header.calcData);
+            j["calcDataHex"] = (header.calcData.size() <= 256) ? toHex(header.calcData) : "...";
             try
             {
                 j["fields"] = parse_flash_fields(header.calcData, 0, header.calcData.size());

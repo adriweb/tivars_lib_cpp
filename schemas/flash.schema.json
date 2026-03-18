@@ -7,6 +7,12 @@
       "type": "string",
       "pattern": "^[0-9A-Fa-f]*$"
     },
+    "hexStringOrEllipsis": {
+      "oneOf": [
+        { "$ref": "#/definitions/hexString" },
+        { "type": "string", "const": "..." }
+      ]
+    },
     "device": {
       "type": "object",
       "properties": {
@@ -36,7 +42,7 @@
           "pattern": "^[0-9A-Fa-f]{2}$"
         },
         "dataHex": {
-          "$ref": "#/definitions/hexString"
+          "$ref": "#/definitions/hexStringOrEllipsis"
         }
       },
       "required": ["address", "blockType", "dataHex"],
@@ -51,7 +57,19 @@
         "payloadSize": { "type": "integer" },
         "headerSize": { "type": "integer" },
         "offset": { "type": "integer" },
-        "rawDataHex": { "$ref": "#/definitions/hexString" },
+        "rawDataHex": { "$ref": "#/definitions/hexStringOrEllipsis" },
+        "value": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "boolean" },
+            { "type": "string" }
+          ]
+        },
+        "valueName": { "type": "string" },
+        "keyId": { "type": "integer" },
+        "keyIdHex": { "type": "string" },
+        "fuseMask": { "type": "integer" },
+        "requiredFuseValue": { "type": "integer" },
         "timestamp": { "type": "integer" },
         "timestampUtc": { "type": "string" },
         "fields": {
@@ -90,7 +108,7 @@
       "type": "object",
       "properties": {
         "rawDataHex": {
-          "$ref": "#/definitions/hexString"
+          "$ref": "#/definitions/hexStringOrEllipsis"
         },
         "format": {
           "type": "string",
@@ -141,14 +159,12 @@
         "copyright": {
           "type": "string"
         },
-        "relocationTable": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/flashRelocation"
-          }
+        "relocationTableEntries": {
+          "type": "integer",
+          "minimum": 0
         },
         "bodyHex": {
-          "$ref": "#/definitions/hexString"
+          "$ref": "#/definitions/hexStringOrEllipsis"
         }
       },
       "required": ["rawDataHex", "format"],
@@ -217,7 +233,7 @@
       "type": "boolean"
     },
     "calcDataHex": {
-      "$ref": "#/definitions/hexString"
+      "$ref": "#/definitions/hexStringOrEllipsis"
     },
     "license": {
       "type": "string"

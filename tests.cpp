@@ -139,6 +139,32 @@ static std::array<uint8_t, 4> read_preview_bmp_pixel_rgba(const std::string& url
     return {bmp[offset + 2], bmp[offset + 1], bmp[offset], 0xFF};
 }
 
+static const json* find_flash_field_by_id(const json& fields, int id)
+{
+    if (!fields.is_array())
+    {
+        return nullptr;
+    }
+
+    for (const json& field : fields)
+    {
+        if (field.is_object() && field.value("id", -1) == id)
+        {
+            return &field;
+        }
+
+        if (field.is_object() && field.contains("fields"))
+        {
+            if (const json* nested = find_flash_field_by_id(field["fields"], id); nested != nullptr)
+            {
+                return nested;
+            }
+        }
+    }
+
+    return nullptr;
+}
+
 int main(int argc, char** argv)
 {
     (void)argc;
@@ -157,7 +183,6 @@ int main(int argc, char** argv)
     assert(TIVarType{"ExactRealPi"}.getId() == 32);
 
     {
-        /*
         TIFlashFile flashOs = TIFlashFile::loadFromFile("testData/TI-84_Plus_CE-Python-OS-5.8.0.0022.8eu");
         assert(flashOs.hasMultipleHeaders() == false);
         const json flashOsJSON = json::parse(flashOs.getReadableContent());
@@ -192,7 +217,42 @@ int main(int argc, char** argv)
         assert(flashOsJSON["certificateVersion"]["patch"] == 0);
         assert(flashOsJSON["certificateVersion"]["build"] == 22);
         assert(flashOsJSON["certificateVersion"]["string"] == "5.8.0.22");
-        */
+    }
+
+    {
+        TIFlashFile flashOs = TIFlashFile::loadFromFile("testData/TI-83_Premium_CE-OS-5.8.4.0058.8pu");
+        assert(flashOs.hasMultipleHeaders() == false);
+        const json flashOsJSON = json::parse(flashOs.getReadableContent());
+        assert(flashOsJSON["typeName"] == "OperatingSystem");
+        assert(flashOsJSON["name"] == "basecode");
+        assert(flashOsJSON["revision"] == "5.8");
+        assert(flashOsJSON["revisionMajor"] == 5);
+        assert(flashOsJSON["revisionMinor"] == 8);
+        assert(flashOsJSON["binaryFlag"] == 0);
+        assert(flashOsJSON["objectType"] == 0);
+        assert(flashOsJSON["date"][0] == 25);
+        assert(flashOsJSON["date"][1] == 7);
+        assert(flashOsJSON["date"][2] == 2025);
+        assert(flashOsJSON["devices"][0]["deviceType"] == 0x73);
+        assert(flashOsJSON["devices"][0]["typeId"] == 0x23);
+        assert(flashOsJSON["productId"] == 0x13);
+        assert(flashOsJSON["calcDataSize"] == 662018);
+        assert(flashOsJSON.contains("fields"));
+        assert(flashOsJSON["fields"].is_array());
+        assert(flashOsJSON["fields"].size() >= 2);
+        assert(flashOsJSON["fields"][0]["idHex"] == "800");
+        assert(flashOsJSON["fields"][0]["name"] == "Master");
+        assert(flashOsJSON["fields"][0].contains("fields"));
+        assert(flashOsJSON["fields"][0]["fields"][1]["idHex"] == "802");
+        assert(flashOsJSON["fields"][0]["fields"][1]["name"] == "Revision");
+        assert(flashOsJSON["fields"][0]["fields"][1]["rawDataHex"] == "05");
+        assert(flashOsJSON["fields"][1]["idHex"] == "023");
+        assert(flashOsJSON["fields"][1]["name"] == "CE signature");
+        assert(flashOsJSON["certificateVersion"]["major"] == 5);
+        assert(flashOsJSON["certificateVersion"]["minor"] == 8);
+        assert(flashOsJSON["certificateVersion"]["patch"] == 4);
+        assert(flashOsJSON["certificateVersion"]["build"] == 58);
+        assert(flashOsJSON["certificateVersion"]["string"] == "5.8.4.58");
 
         TIFlashFile flashApp = TIFlashFile::loadFromFile("testData/smartpad.8xk");
         const json flashAppJSON = json::parse(flashApp.getReadableContent());
@@ -208,9 +268,42 @@ int main(int argc, char** argv)
         assert(flashAppJSON["blocks"][0]["blockType"] == "02");
         assert(flashAppJSON["blocks"][0]["dataHex"] == "0000");
 
-        TIFlashFile recreatedFlashApp = TIFlashFile::createNew(TIVarType{"FlashApp"}, "SmartPad", TIModel{"84+"});
-        recreatedFlashApp.setContentFromString(flashApp.getReadableContent());
-        assert(recreatedFlashApp.makeBinData() == flashApp.makeBinData());
+        TIFlashFile flashAppCE = TIFlashFile::loadFromFile("testData/SmartPad.8ek");
+        const json flashAppCEJSON = json::parse(flashAppCE.getReadableContent());
+        assert(flashAppCEJSON["typeName"] == "FlashApp");
+        assert(flashAppCEJSON["name"] == "SmartPad");
+        assert(flashAppCEJSON["revision"] == "5.3");
+        assert(flashAppCEJSON["revisionMajor"] == 5);
+        assert(flashAppCEJSON["revisionMinor"] == 3);
+        assert(flashAppCEJSON["binaryFlag"] == 0);
+        assert(flashAppCEJSON["objectType"] == 0);
+        assert(flashAppCEJSON["productId"] == 19);
+        assert(flashAppCEJSON.contains("fields"));
+        assert(!flashAppCEJSON.contains("fieldsError"));
+        assert(flashAppCEJSON["certificateVersion"]["major"] == 5);
+        assert(flashAppCEJSON["certificateVersion"]["minor"] == 3);
+        assert(flashAppCEJSON["certificateVersion"]["patch"] == 0);
+        assert(flashAppCEJSON["certificateVersion"]["build"] == 42);
+        assert(flashAppCEJSON["certificateVersion"]["source"] == "812");
+        assert(flashAppCEJSON["certificateVersion"]["string"] == "5.3.0.42");
+        assert(find_flash_field_by_id(flashAppCEJSON["fields"], 0x811) != nullptr);
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x811))["keyId"] == 0x130F);
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x811))["keyIdHex"] == "130F");
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x812))["value"] == "5.3.0.0042");
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x813))["value"] == 42);
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x814))["value"] == "SmartPad");
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x81A))["value"] == 0x07);
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x81A))["valueName"] == "TI-83 Premium CE / TI-84 Plus CE");
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x032))["timestamp"] == 648855953);
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x032))["timestampUtc"] == "2017-07-24 21:45:53 UTC");
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x090))["timestamp"] == 648855953);
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x090))["timestampUtc"] == "2017-07-24 21:45:53 UTC");
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x817))["extended"]["format"] == "eZ80");
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x817))["extended"]["name"] == "SmartPad");
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x817))["extended"]["mainOffset"] == 0x366);
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x817))["extended"]["entryPoint"] == 0x366);
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x817))["extended"]["copyright"] == "(c)  2006-2017   TEXAS   INSTRUMENTS ");
+        assert((*find_flash_field_by_id(flashAppCEJSON["fields"], 0x817))["extended"]["relocationTableEntries"] == 138);
 
         TIFlashFile multiFlash = TIFlashFile::createNew(TIVarType{"FlashApp"}, "APP", TIModel{"84+"});
         multiFlash.setContentFromString(R"({
@@ -286,7 +379,7 @@ int main(int argc, char** argv)
             {
                 assert(schemaJSON.contains("definitions"));
                 assert(schemaJSON["definitions"].contains("flashExtendedField"));
-                assert(schemaJSON["definitions"]["flashExtendedField"]["properties"].contains("relocationTable"));
+                assert(schemaJSON["definitions"]["flashExtendedField"]["properties"].contains("relocationTableEntries"));
                 assert(schemaJSON["definitions"]["flashExtendedField"]["properties"].contains("bodyHex"));
                 assert(schemaJSON["definitions"]["flashField"]["properties"]["extended"]["$ref"] == "#/definitions/flashExtendedField");
             }
