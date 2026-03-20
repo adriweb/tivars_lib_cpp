@@ -7,6 +7,7 @@
 
 #include "tivarslib_utils.h"
 #include <cstdlib>
+#include <iomanip>
 #include <sstream>
 #include <cmath>
 #include <cstring>
@@ -19,6 +20,8 @@ namespace tivars
 
 namespace
 {
+    constexpr long long dec2fracMaxDenominator = 100000;
+
     void append_le16(data_t& out, uint16_t value)
     {
         out.push_back(static_cast<uint8_t>(value & 0xFF));
@@ -66,6 +69,15 @@ namespace
         }
 
         return out;
+    }
+
+    std::string format_decimal_value(long double value)
+    {
+        std::ostringstream stream;
+        stream << std::setprecision(std::numeric_limits<long double>::digits10 + 1)
+               << std::defaultfloat
+               << value;
+        return stream.str();
     }
 }
 
@@ -291,6 +303,10 @@ std::string multiple(long long num, const std::string &var) {
 // Adapted from http://stackoverflow.com/a/32903747/378298
 std::string dec2frac(double num, const std::string& var, double err)
 {
+    const auto decimal_fallback = [&](long double value) {
+        return trimZeros(format_decimal_value(value)) + var;
+    };
+
     if (err <= 0.0 || err >= 1.0)
     {
         err = 0.001;
@@ -298,7 +314,7 @@ std::string dec2frac(double num, const std::string& var, double err)
 
     if (!std::isfinite(num))
     {
-        return trimZeros(std::to_string(num)) + var;
+        return trimZeros(format_decimal_value(num)) + var;
     }
 
     const int sign = ( num > 0 ) ? 1 : ( ( num < 0 ) ? -1 : 0 );
@@ -318,7 +334,7 @@ std::string dec2frac(double num, const std::string& var, double err)
     if (num >= static_cast<double>(std::numeric_limits<long long>::max())
      || num <= static_cast<double>(std::numeric_limits<long long>::lowest()))
     {
-        return trimZeros(std::to_string(sign * num)) + var;
+        return decimal_fallback(static_cast<long double>(sign) * static_cast<long double>(num));
     }
 
     const long long n = static_cast<long long>(std::floor(num));
@@ -342,17 +358,36 @@ std::string dec2frac(double num, const std::string& var, double err)
     long long upper_n = 1;
     long long upper_d = 1;
 
+    long long max_denominator = dec2fracMaxDenominator;
+    const long double err_denominator_bound = std::ceil(1.0L / static_cast<long double>(err));
+    if (std::isfinite(err_denominator_bound))
+    {
+        max_denominator = std::min<long long>(max_denominator, std::max<long long>(1, static_cast<long long>(err_denominator_bound)));
+    }
+
+    size_t iterations = 0;
+    const size_t max_iterations = static_cast<size_t>(max_denominator) * 2;
+
     while (true)
     {
+        if (++iterations > max_iterations)
+        {
+            return decimal_fallback(static_cast<long double>(sign) * (static_cast<long double>(n) + static_cast<long double>(num)));
+        }
+
         // The middle fraction is (lower_n + upper_n) / (lower_d + upper_d)
         if (lower_n > std::numeric_limits<long long>::max() - upper_n
          || lower_d > std::numeric_limits<long long>::max() - upper_d)
         {
-            return trimZeros(std::to_string(sign * (n + num))) + var;
+            return decimal_fallback(static_cast<long double>(sign) * (static_cast<long double>(n) + static_cast<long double>(num)));
         }
 
         const long long middle_n = lower_n + upper_n;
         const long long middle_d = lower_d + upper_d;
+        if (middle_d > max_denominator)
+        {
+            return decimal_fallback(static_cast<long double>(sign) * (static_cast<long double>(n) + static_cast<long double>(num)));
+        }
 
         if (static_cast<long double>(middle_d) * static_cast<long double>(num + err) < static_cast<long double>(middle_n))
         {
@@ -369,11 +404,11 @@ std::string dec2frac(double num, const std::string& var, double err)
             // Middle is our best fraction
             if (n != 0 && middle_d > std::numeric_limits<long long>::max() / std::llabs(n))
             {
-                return trimZeros(std::to_string(sign * (n + num))) + var;
+                return decimal_fallback(static_cast<long double>(sign) * (static_cast<long double>(n) + static_cast<long double>(num)));
             }
             if (sign != 0 && std::llabs(n * middle_d + middle_n) > std::numeric_limits<long long>::max() / std::llabs(sign))
             {
-                return trimZeros(std::to_string(sign * (n + num))) + var;
+                return decimal_fallback(static_cast<long double>(sign) * (static_cast<long double>(n) + static_cast<long double>(num)));
             }
             return multiple((n * middle_d + middle_n) * sign, var) + "/" + std::to_string(middle_d);
         }
@@ -382,7 +417,25 @@ std::string dec2frac(double num, const std::string& var, double err)
 
 std::string trimZeros(const std::string& str)
 {
-    return std::to_string(std::stoi(str));
+    try
+    {
+        const long double value = std::stold(str);
+        if (!std::isfinite(value))
+        {
+            return str;
+        }
+
+        std::string out = format_decimal_value(value);
+        if (out == "-0")
+        {
+            return "0";
+        }
+        return out;
+    }
+    catch (const std::exception&)
+    {
+        return str;
+    }
 }
 
 std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes, size_t size)

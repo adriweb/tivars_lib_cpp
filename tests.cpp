@@ -189,6 +189,8 @@ int main(int argc, char** argv)
     /* Tests */
 
     assert(TIVarType{"ExactRealPi"}.getId() == 32);
+    assert(dec2frac(0.25) == "1/4");
+    assert(dec2frac(1.0 / 100001.0, "", 1e-12) != "0");
 
     {
         TIFlashFile flashOs = TIFlashFile::loadFromFile("testData/TI-84_Plus_CE-Python-OS-5.8.0.0022.8eu");
