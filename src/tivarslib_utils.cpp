@@ -6,9 +6,11 @@
  */
 
 #include "tivarslib_utils.h"
+#include <cstdlib>
 #include <sstream>
 #include <cmath>
 #include <cstring>
+#include <limits>
 
 using namespace std::string_literals;
 
@@ -267,7 +269,12 @@ std::string str_pad(const std::string& str, unsigned long pad_length, const std:
     return o;
 }
 
-std::string multiple(int num, const std::string &var) {
+std::string multiple(int num, const std::string &var)
+{
+    return multiple(static_cast<long long>(num), var);
+}
+
+std::string multiple(long long num, const std::string &var) {
     const std::string unit = var.empty() ? "1" : var;
     switch (num) {
         case 0:
@@ -289,6 +296,11 @@ std::string dec2frac(double num, const std::string& var, double err)
         err = 0.001;
     }
 
+    if (!std::isfinite(num))
+    {
+        return trimZeros(std::to_string(num)) + var;
+    }
+
     const int sign = ( num > 0 ) ? 1 : ( ( num < 0 ) ? -1 : 0 );
 
     if (sign == -1)
@@ -300,9 +312,16 @@ std::string dec2frac(double num, const std::string& var, double err)
     {
         // err is the maximum relative err; convert to absolute
         err *= num;
+        err = std::max(err, std::numeric_limits<double>::epsilon());
     }
 
-    const int n = (int) std::floor(num);
+    if (num >= static_cast<double>(std::numeric_limits<long long>::max())
+     || num <= static_cast<double>(std::numeric_limits<long long>::lowest()))
+    {
+        return trimZeros(std::to_string(sign * num)) + var;
+    }
+
+    const long long n = static_cast<long long>(std::floor(num));
     num -= n;
 
     if (num < err)
@@ -316,32 +335,46 @@ std::string dec2frac(double num, const std::string& var, double err)
     }
 
     // The lower fraction is 0/1
-    int lower_n = 0;
-    int lower_d = 1;
+    long long lower_n = 0;
+    long long lower_d = 1;
 
     // The upper fraction is 1/1
-    int upper_n = 1;
-    int upper_d = 1;
+    long long upper_n = 1;
+    long long upper_d = 1;
 
     while (true)
     {
         // The middle fraction is (lower_n + upper_n) / (lower_d + upper_d)
-        const int middle_n = lower_n + upper_n;
-        const int middle_d = lower_d + upper_d;
+        if (lower_n > std::numeric_limits<long long>::max() - upper_n
+         || lower_d > std::numeric_limits<long long>::max() - upper_d)
+        {
+            return trimZeros(std::to_string(sign * (n + num))) + var;
+        }
 
-        if (middle_d * (num + err) < middle_n)
+        const long long middle_n = lower_n + upper_n;
+        const long long middle_d = lower_d + upper_d;
+
+        if (static_cast<long double>(middle_d) * static_cast<long double>(num + err) < static_cast<long double>(middle_n))
         {
             // real + err < middle : middle is our new upper
             upper_n = middle_n;
             upper_d = middle_d;
         }
-        else if (middle_n < (num - err) * middle_d)
+        else if (static_cast<long double>(middle_n) < static_cast<long double>(num - err) * static_cast<long double>(middle_d))
         {
             // middle < real - err : middle is our new lower
             lower_n = middle_n;
             lower_d = middle_d;
         } else {
             // Middle is our best fraction
+            if (n != 0 && middle_d > std::numeric_limits<long long>::max() / std::llabs(n))
+            {
+                return trimZeros(std::to_string(sign * (n + num))) + var;
+            }
+            if (sign != 0 && std::llabs(n * middle_d + middle_n) > std::numeric_limits<long long>::max() / std::llabs(sign))
+            {
+                return trimZeros(std::to_string(sign * (n + num))) + var;
+            }
             return multiple((n * middle_d + middle_n) * sign, var) + "/" + std::to_string(middle_d);
         }
     }

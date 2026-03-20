@@ -58,6 +58,7 @@ bool file_exists(const std::string& path);
 std::string str_pad(const std::string& str, unsigned long pad_length, const std::string& pad_string = " ");
 
 std::string multiple(int num, const std::string& var);
+std::string multiple(long long num, const std::string& var);
 
 std::string dec2frac(double num, const std::string& var = "", double err = 0.001);
 

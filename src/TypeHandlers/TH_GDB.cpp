@@ -494,6 +494,16 @@ namespace tivars::TypeHandlers
             throw std::invalid_argument("Invalid data array. dataSizeActual-2 (" + std::to_string(dataSizeActual-2) + ") != dataSizeExpected (" + std::to_string(dataSizeExpected) + ")");
         }
 
+        const auto require_bytes = [&](size_t offset, size_t byteCount, const char* what)
+        {
+            if (offset > dataSizeActual || byteCount > dataSizeActual - offset)
+            {
+                throw std::invalid_argument(std::string("Invalid GDB data array while reading ") + what);
+            }
+        };
+
+        require_bytes(7, 6 * STH_FP::dataByteCount, "global window settings");
+
         GDB gdb = {
             .graphMode = getGraphModeFromRawValue(data[3]),
             .formatSettings = *((FormatSettings*)(&data[4])),
@@ -515,30 +525,36 @@ namespace tivars::TypeHandlers
         {
             for (auto& [_, settingValue] : specificData.settings)
             {
+                require_bytes(tmpOff, STH_FP::dataByteCount, "graph setting");
                 settingValue = STH_FP::makeStringFromData(data_t(data.begin() + tmpOff, data.begin() + tmpOff + STH_FP::dataByteCount));
                 tmpOff += STH_FP::dataByteCount;
             }
 
             for (auto& [_, style] : specificData.styles)
             {
+                require_bytes(tmpOff, 1, "graph style");
                 style = static_cast<GraphStyle>(data[tmpOff]);
                 tmpOff++;
             }
 
             for (auto& [_, equ] : specificData.equations)
             {
-                const uint16_t equLen = (data[tmpOff + 2] << 1) + data[tmpOff + 1];
+                require_bytes(tmpOff, 3, "equation header");
+                const uint16_t equLen = static_cast<uint16_t>((data[tmpOff + 1] & 0xFF) + ((data[tmpOff + 2] & 0xFF) << 8));
+                require_bytes(tmpOff + 3, equLen, "equation bytes");
                 equ.flags = *(FuncFlags*)(&(data[tmpOff]));
                 equ.expr = TH_Tokenized::makeStringFromData(data_t(data.begin() + tmpOff + 3, data.begin() + tmpOff + 3 + equLen), {{"fromRawBytes", true}});
                 tmpOff += sizeof(equLen) + sizeof(equ.flags) + equLen;
             }
 
-            if (std::memcmp(&data[tmpOff], magic84CAndLaterSectionMarker, strlen(magic84CAndLaterSectionMarker)) == 0)
+            const size_t markerLength = strlen(magic84CAndLaterSectionMarker);
+            if (tmpOff + markerLength <= dataSizeActual && std::memcmp(&data[tmpOff], magic84CAndLaterSectionMarker, markerLength) == 0)
             {
-                tmpOff += strlen(magic84CAndLaterSectionMarker);
+                tmpOff += static_cast<off_t>(markerLength);
                 gdb._has84CAndLaterData = true;
                 for (auto& [_, color] : specificData.colors)
                 {
+                    require_bytes(tmpOff, 1, "graph color");
                     color = static_cast<OSColor>(data[tmpOff]);
                     tmpOff++;
                 }
@@ -556,6 +572,7 @@ namespace tivars::TypeHandlers
 
         if (gdb._has84CAndLaterData)
         {
+            require_bytes(tmpOff, 5, "84C global settings");
             gdb.global84CSettings.gridColor = static_cast<OSColor>(data[tmpOff++]);
             gdb.global84CSettings.axesColor = static_cast<OSColor>(data[tmpOff++]);
             gdb.global84CSettings.globalLineStyle = static_cast<GlobalLineStyle>(data[tmpOff++]);

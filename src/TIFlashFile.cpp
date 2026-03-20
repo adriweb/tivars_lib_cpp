@@ -31,13 +31,23 @@ namespace tivars
 
     namespace
     {
+        void ensure_bytes_available(const data_t& data, size_t offset, size_t byteCount, const char* what)
+        {
+            if (offset > data.size() || byteCount > data.size() - offset)
+            {
+                throw std::runtime_error(std::string("Unexpected end of flash data while reading ") + what);
+            }
+        }
+
         uint16_t read_be16(const data_t& data, size_t offset)
         {
+            ensure_bytes_available(data, offset, 2, "big-endian 16-bit value");
             return static_cast<uint16_t>((data[offset] << 8) | data[offset + 1]);
         }
 
         uint32_t read_be32(const data_t& data, size_t offset)
         {
+            ensure_bytes_available(data, offset, 4, "big-endian 32-bit value");
             return (static_cast<uint32_t>(data[offset]) << 24)
                  | (static_cast<uint32_t>(data[offset + 1]) << 16)
                  | (static_cast<uint32_t>(data[offset + 2]) << 8)
@@ -46,6 +56,7 @@ namespace tivars
 
         uint32_t read_le32(const data_t& data, size_t offset)
         {
+            ensure_bytes_available(data, offset, 4, "little-endian 32-bit value");
             return static_cast<uint32_t>(data[offset])
                  | (static_cast<uint32_t>(data[offset + 1]) << 8)
                  | (static_cast<uint32_t>(data[offset + 2]) << 16)
@@ -54,6 +65,7 @@ namespace tivars
 
         uint32_t read_le24(const data_t& data, size_t offset)
         {
+            ensure_bytes_available(data, offset, 3, "little-endian 24-bit value");
             return static_cast<uint32_t>(data[offset])
                  | (static_cast<uint32_t>(data[offset + 1]) << 8)
                  | (static_cast<uint32_t>(data[offset + 2]) << 16);
@@ -1032,6 +1044,7 @@ namespace tivars
         header.hasChecksum = (headerLength == headerByteCountWithoutChecksum + dataSize + checksumByteCount);
         if (header.hasChecksum)
         {
+            ensure_bytes_available(bytes, pos, checksumByteCount, "flash checksum");
             const uint16_t fileChecksum = static_cast<uint16_t>(bytes[pos] | (bytes[pos + 1] << 8));
             const uint16_t computedChecksum = computeChecksum(header.calcData);
             if (fileChecksum != computedChecksum)
@@ -1067,13 +1080,19 @@ namespace tivars
             return headerLengthWithoutChecksum;
         }
 
+        const size_t headerLengthWithChecksum = headerLengthWithoutChecksum + checksumByteCount;
+        if (offset + headerLengthWithChecksum > bytes.size())
+        {
+            throw std::runtime_error("Unexpected end of flash file");
+        }
+
         if (offset + headerLengthWithoutChecksum + magicByteCount <= bytes.size()
          && std::equal(magicStr, magicStr + magicByteCount, bytes.begin() + static_cast<long>(offset + headerLengthWithoutChecksum)))
         {
             return headerLengthWithoutChecksum;
         }
 
-        return headerLengthWithoutChecksum + checksumByteCount;
+        return headerLengthWithChecksum;
     }
 
     data_t TIFlashFile::makeHeaderBytes(const flash_header_t& header)

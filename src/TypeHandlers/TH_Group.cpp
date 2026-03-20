@@ -348,6 +348,10 @@ namespace tivars::TypeHandlers
                     offset += 2;
                     archivedFlag = data[offset++];
                     const uint8_t nameLength = data[offset++];
+                    if (nameLength > rawName.size())
+                    {
+                        throw std::invalid_argument("Invalid GroupObject variable name length");
+                    }
                     if (offset + nameLength > data.size())
                     {
                         throw std::invalid_argument("Unexpected end of GroupObject variable name");
@@ -367,7 +371,11 @@ namespace tivars::TypeHandlers
                     offset += 2;
                     archivedFlag = data[offset++];
                     const uint8_t nameLength = data[offset++];
-                    if (nameLength == 0 || offset + nameLength > data.size())
+                    if (nameLength == 0 || nameLength - 1 > rawName.size())
+                    {
+                        throw std::invalid_argument("Invalid GroupObject list name length");
+                    }
+                    if (offset + nameLength > data.size())
                     {
                         throw std::invalid_argument("Unexpected end of GroupObject list name");
                     }

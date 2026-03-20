@@ -99,6 +99,14 @@ static uint32_t read_le32_at(const data_t& data, size_t offset)
          | (static_cast<uint32_t>(data[offset + 3]) << 24);
 }
 
+static void write_binary_file(const std::string& path, const data_t& data)
+{
+    std::ofstream file(path, std::ios::binary);
+    assert(file.good());
+    file.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
+    assert(file.good());
+}
+
 static void assert_preview_bmp_data_url(const std::string& url, uint32_t width, uint32_t height)
 {
     const std::string prefix = "data:image/bmp;base64,";
@@ -341,6 +349,23 @@ int main(int argc, char** argv)
         assert(reloadedMultiFlash.getHeaders().size() == 2);
         assert(reloadedMultiFlash.makeBinData() == multiFlash.makeBinData());
         assert(remove(multiFlashPath.c_str()) == 0);
+
+        TIFlashFile truncatedFlash = TIFlashFile::createNew(TIVarType{"FlashApp"}, "CUT", TIModel{"84+"});
+        data_t truncatedFlashBytes = truncatedFlash.makeBinData();
+        truncatedFlashBytes.pop_back();
+        const std::string truncatedFlashPath = "/tmp/tivars_lib_cpp_truncated_flash.8xk";
+        write_binary_file(truncatedFlashPath, truncatedFlashBytes);
+        bool truncatedFlashRejected = false;
+        try
+        {
+            (void)TIFlashFile::loadFromFile(truncatedFlashPath);
+        }
+        catch (const std::runtime_error&)
+        {
+            truncatedFlashRejected = true;
+        }
+        assert(truncatedFlashRejected);
+        assert(remove(truncatedFlashPath.c_str()) == 0);
     }
 
     {

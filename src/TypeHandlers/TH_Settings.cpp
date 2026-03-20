@@ -8,6 +8,8 @@
 #include "TypeHandlers.h"
 #include "../json.hpp"
 
+#include <cmath>
+#include <limits>
 #include <stdexcept>
 
 using namespace std::string_literals;
@@ -53,11 +55,29 @@ namespace tivars::TypeHandlers
             throw std::invalid_argument("Expected a JSON string or number for a settings value");
         }
 
+        json integer_string_to_json_value(const std::string& value)
+        {
+            const long double parsed = std::stold(value);
+            if (!std::isfinite(parsed))
+            {
+                return value;
+            }
+
+            const long double truncated = std::trunc(parsed);
+            if (truncated < static_cast<long double>(std::numeric_limits<long long>::min())
+                || truncated > static_cast<long double>(std::numeric_limits<long long>::max()))
+            {
+                return value;
+            }
+
+            return static_cast<long long>(truncated);
+        }
+
         json real_string_to_json_value(const std::string& value, bool integer)
         {
             if (integer)
             {
-                return static_cast<int>(std::stod(value));
+                return integer_string_to_json_value(value);
             }
 
             if (value.find_first_of("eE") == std::string::npos && value.length() <= 6)
@@ -156,8 +176,8 @@ namespace tivars::TypeHandlers
         }
 
         json settings;
-        settings["TblMin"] = static_cast<int>(std::stod(TH_GenericReal::makeStringFromData(data_t(data.begin() + tableRangeHeaderByteCount, data.begin() + tableRangeHeaderByteCount + realDataByteCount))));
-        settings["DeltaTbl"] = static_cast<int>(std::stod(TH_GenericReal::makeStringFromData(data_t(data.begin() + tableRangeHeaderByteCount + realDataByteCount, data.begin() + tableRangeHeaderByteCount + 2 * realDataByteCount))));
+        settings["TblMin"] = integer_string_to_json_value(TH_GenericReal::makeStringFromData(data_t(data.begin() + tableRangeHeaderByteCount, data.begin() + tableRangeHeaderByteCount + realDataByteCount)));
+        settings["DeltaTbl"] = integer_string_to_json_value(TH_GenericReal::makeStringFromData(data_t(data.begin() + tableRangeHeaderByteCount + realDataByteCount, data.begin() + tableRangeHeaderByteCount + 2 * realDataByteCount)));
         return settings.dump(4);
     }
 

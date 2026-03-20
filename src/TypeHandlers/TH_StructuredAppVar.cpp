@@ -48,6 +48,7 @@ namespace tivars::TypeHandlers
         constexpr size_t notefolioReservedByteCount = 4;
         constexpr size_t notefolioNameByteCount = 8;
         constexpr size_t notefolioHeaderUnknownByteCount = 6;
+        constexpr size_t pythonImagePreviewMaxPixels = 1024 * 1024;
 
         StructuredAppVarSubtype subtype_from_type_name(const std::string& typeName)
         {
@@ -878,9 +879,9 @@ namespace tivars::TypeHandlers
             }
 
             const data_t imageData(payload.begin() + static_cast<ptrdiff_t>(pos), payload.end());
-            const data_t decodedImageData = decode_python_image_rle(width, height, imageData);
+            const size_t pixelCount = python_image_pixel_count(width, height);
 
-            return json{
+            json out = {
                 {"typeName", "PythonImageAppVar"},
                 {"subtype", "PythonImage"},
                 {"magic", PYTHON_IMAGE_MAGIC},
@@ -895,9 +896,17 @@ namespace tivars::TypeHandlers
                 }},
                 {"imageDataLength", imageData.size()},
                 {"imageDataHex", to_hex_string(imageData)},
-                {"previewImageDataUrl", make_bmp_data_url_rgba(width, height, make_python_image_preview_rgba(width, height, hasAlpha != 0, transparentIndex, paletteEntries, decodedImageData))},
+                {"previewImageDataUrl", nullptr},
                 {"rawDataHex", to_hex_string(payload)}
             };
+
+            if (pixelCount <= pythonImagePreviewMaxPixels)
+            {
+                const data_t decodedImageData = decode_python_image_rle(width, height, imageData);
+                out["previewImageDataUrl"] = make_bmp_data_url_rgba(width, height, make_python_image_preview_rgba(width, height, hasAlpha != 0, transparentIndex, paletteEntries, decodedImageData));
+            }
+
+            return out;
         }
 
         json parse_study_cards_appvar(const data_t& payload)
