@@ -43,8 +43,12 @@ moc_*.cpp
 *~
 \#*\#
 cmake-build-*/
+build-fuzz/
 build/
 out/
+fuzz/logs/
+fuzz/artifacts/
+fuzz/corpus/
 
 # Windows and Mac crap
 Thumbs.db
@@ -63,4 +67,3 @@ Thumbs.db
 .vscode/
 
 testData/*new.8*
-

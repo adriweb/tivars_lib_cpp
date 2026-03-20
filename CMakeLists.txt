@@ -1,5 +1,25 @@
 cmake_minimum_required(VERSION 3.5)
 
+if(DEFINED TIVARS_ENABLE_FUZZING)
+    set(TIVARS_ENABLE_FUZZING "${TIVARS_ENABLE_FUZZING}" CACHE BOOL "Build libFuzzer targets" FORCE)
+endif()
+
+if(APPLE AND DEFINED TIVARS_ENABLE_FUZZING AND TIVARS_ENABLE_FUZZING)
+    set(TIVARS_HOMEBREW_LLVM_PREFIXES
+            /opt/homebrew/opt/llvm
+            /usr/local/opt/llvm
+    )
+
+    foreach(TIVARS_LLVM_PREFIX IN LISTS TIVARS_HOMEBREW_LLVM_PREFIXES)
+        if(EXISTS "${TIVARS_LLVM_PREFIX}/bin/clang" AND EXISTS "${TIVARS_LLVM_PREFIX}/bin/clang++")
+            set(CMAKE_C_COMPILER "${TIVARS_LLVM_PREFIX}/bin/clang" CACHE FILEPATH "C compiler" FORCE)
+            set(CMAKE_CXX_COMPILER "${TIVARS_LLVM_PREFIX}/bin/clang++" CACHE FILEPATH "C++ compiler" FORCE)
+            message(STATUS "Using Homebrew LLVM for fuzzing: ${TIVARS_LLVM_PREFIX}")
+            break()
+        endif()
+    endforeach()
+endif()
+
 project(tivars_lib_cpp
         VERSION     1.3.0
         LANGUAGES   CXX)
@@ -19,6 +39,8 @@ endif()
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(TIVARS_ENABLE_FUZZING "Build libFuzzer targets" OFF)
+
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8 ")
 else()
@@ -33,8 +55,38 @@ if(NOT WIN32)
     set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined")
 endif()
 
+if(TIVARS_ENABLE_FUZZING)
+    if(MSVC OR NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "TIVARS_ENABLE_FUZZING requires Clang (with libFuzzer support)")
+    endif()
+endif()
+
 add_executable(tivars_lib_cpp_tests ${COMMON_SOURCE} tests.cpp)
 add_executable(tivars_lib_cpp_cli   ${COMMON_SOURCE} cli/cli.cpp)
+
+if(TIVARS_ENABLE_FUZZING)
+    set(TIVARS_FUZZ_CORPUS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus)
+
+    add_custom_target(tivars_fuzzer_seed_corpus
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${TIVARS_FUZZ_CORPUS_DIR}
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/testData ${TIVARS_FUZZ_CORPUS_DIR}
+            COMMENT "Seeding libFuzzer corpus from testData"
+    )
+
+    add_executable(tivars_lib_cpp_fuzzer ${COMMON_SOURCE} fuzz/tivars_file_fuzzer.cpp)
+    add_dependencies(tivars_lib_cpp_fuzzer tivars_fuzzer_seed_corpus)
+    target_compile_definitions(tivars_lib_cpp_fuzzer PRIVATE
+            FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1
+            TIVARS_PROGRAMS_TOKENS_CSV="${CMAKE_CURRENT_SOURCE_DIR}/programs_tokens.csv"
+    )
+    target_compile_options(tivars_lib_cpp_fuzzer PRIVATE
+            -O1
+            -g
+            -fno-omit-frame-pointer
+            -fsanitize=fuzzer-no-link,address,undefined
+    )
+    set_property(TARGET tivars_lib_cpp_fuzzer APPEND_STRING PROPERTY LINK_FLAGS " -fno-omit-frame-pointer -fsanitize=fuzzer,address,undefined")
+endif()
 
 if(APPLE)
     enable_language(OBJC)

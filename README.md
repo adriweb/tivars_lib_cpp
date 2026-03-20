@@ -76,6 +76,11 @@ pluginkit -m -A -D -p com.apple.quicklook.preview
 pluginkit -m -A -D -p com.apple.quicklook.thumbnail
 ```
 
+### Automated fuzzing
+
+A libFuzzer target is available through CMake and exercises both `TIVarFile` and `TIFlashFile` parsing, plus a small amount of post-parse processing and single-entry roundtripping.
+Check ./run_fuzz.sh for details.
+
 ### Vartype handlers implementation: current status
 
 | Vartype                   | data->string | string->data |
