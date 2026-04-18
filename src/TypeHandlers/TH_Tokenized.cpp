@@ -26,7 +26,7 @@
 #include <pugixml.hpp>
 
 using namespace std::string_literals;
-using json = nlohmann::json;
+using json = nlohmann::ordered_json;
 
 static size_t strlen_mb(const std::string& s)
 {

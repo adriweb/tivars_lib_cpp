@@ -33,7 +33,7 @@ using namespace std::string_literals;
 using namespace tivars;
 using namespace tivars::TypeHandlers;
 using TypeHandlers::TH_Tokenized;
-using json = nlohmann::json;
+using json = nlohmann::ordered_json;
 
 static bool compare_token_posinfo(const TH_Tokenized::token_posinfo& tp1, const TH_Tokenized::token_posinfo& tp2)
 {

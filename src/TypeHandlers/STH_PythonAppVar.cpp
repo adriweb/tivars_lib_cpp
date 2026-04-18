@@ -13,7 +13,7 @@
 #include <stdexcept>
 #include <cstring>
 
-using json = nlohmann::json;
+using json = nlohmann::ordered_json;
 
 namespace tivars::TypeHandlers
 {

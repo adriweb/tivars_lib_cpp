@@ -20,7 +20,7 @@
 #include <stdexcept>
 
 using namespace std::string_literals;
-using json = nlohmann::json;
+using json = nlohmann::ordered_json;
 
 namespace tivars::TypeHandlers
 {

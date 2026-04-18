@@ -23,7 +23,7 @@
 #include "json.hpp"
 #include "tivarslib_utils.h"
 
-using json = nlohmann::json;
+using json = nlohmann::ordered_json;
 
 namespace tivars
 {
