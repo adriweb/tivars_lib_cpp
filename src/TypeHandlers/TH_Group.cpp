@@ -386,7 +386,7 @@ namespace tivars::TypeHandlers
 
                 default:
                 {
-                    if (offset + fixedNameByteCount > data.size())
+                    if (offset + 3 + fixedNameByteCount > data.size())
                     {
                         throw std::invalid_argument("Unexpected end of GroupObject VAT data");
                     }
