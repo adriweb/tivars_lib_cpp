@@ -19,7 +19,6 @@
 #include <unordered_map>
 #include <iostream>
 #include <sstream>
-#include <regex>
 #include <fstream>
 #include <cstring>
 #include <array>

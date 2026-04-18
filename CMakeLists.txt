@@ -67,6 +67,7 @@ endif()
 
 add_executable(tivars_lib_cpp_tests ${COMMON_SOURCE} tests.cpp)
 add_executable(tivars_lib_cpp_cli   ${COMMON_SOURCE} cli/cli.cpp)
+target_compile_definitions(tivars_lib_cpp_cli PRIVATE CXXOPTS_NO_REGEX=1)
 
 if(TIVARS_ENABLE_FUZZING)
     set(TIVARS_FUZZ_CORPUS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus)
