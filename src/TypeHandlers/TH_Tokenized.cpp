@@ -354,16 +354,23 @@ namespace tivars::TypeHandlers
         const std::string trimmed = tivars::trim(str);
         if (!trimmed.empty() && trimmed.front() == '{')
         {
-            const json j = json::parse(trimmed);
-            if (j.contains("rawDataHex"))
+            try
             {
-                data_t payload = hex_to_bytes(j.at("rawDataHex").get<std::string>());
-                data_t data = {
-                    static_cast<uint8_t>(payload.size() & 0xFF),
-                    static_cast<uint8_t>((payload.size() >> 8) & 0xFF)
-                };
-                tivars::vector_append(data, payload);
-                return data;
+                const json j = json::parse(trimmed);
+                if (j.contains("rawDataHex"))
+                {
+                    data_t payload = hex_to_bytes(j.at("rawDataHex").get<std::string>());
+                    data_t data = {
+                        static_cast<uint8_t>(payload.size() & 0xFF),
+                        static_cast<uint8_t>((payload.size() >> 8) & 0xFF)
+                    };
+                    tivars::vector_append(data, payload);
+                    return data;
+                }
+            }
+            catch (const json::exception&)
+            {
+                // Ignore non-JSON input and fall back to regular tokenized parsing.
             }
         }
 
