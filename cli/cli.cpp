@@ -359,8 +359,16 @@ int main(int argc, char** argv)
             if ((string) e.what() == "No such file")
             {
                 cout << ipath << ": no such file or directory" << endl;
+                return 1;
             } else
-                throw e;
+            {
+                cout << "Error: " << e.what() << endl;
+                return 1;
+            }
+        } catch (const std::exception& e)
+        {
+            cout << "Error: " << e.what() << endl;
+            return 1;
         }
 
     } catch (cxxopts::OptionParseException& e)
