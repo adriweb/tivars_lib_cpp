@@ -69,6 +69,80 @@ static size_t token_boundary_separator_len_at(const std::string& s, size_t pos)
     return 0;
 }
 
+static size_t utf8_codepoint_len_at(const std::string& s, size_t pos)
+{
+    if (pos >= s.size())
+    {
+        return 0;
+    }
+
+    const uint8_t lead = static_cast<uint8_t>(s[pos]);
+    if ((lead & 0x80) == 0x00) return 1;
+    if ((lead & 0xE0) == 0xC0) return 2;
+    if ((lead & 0xF0) == 0xE0) return 3;
+    if ((lead & 0xF8) == 0xF0) return 4;
+    return 1;
+}
+
+static bool source_has_literal_at(const std::string& s, size_t pos, std::string_view literal)
+{
+    return pos + literal.size() <= s.size() && std::memcmp(&s[pos], literal.data(), literal.size()) == 0;
+}
+
+static size_t source_segment_len_until_boundary(const std::string& s, size_t pos)
+{
+    size_t cursor = pos;
+
+    while (cursor < s.size())
+    {
+        if (s[cursor] == '\\' || token_boundary_separator_len_at(s, cursor) > 0)
+        {
+            break;
+        }
+
+        cursor += utf8_codepoint_len_at(s, cursor);
+    }
+
+    return cursor - pos;
+}
+
+static bool parse_raw_token_escape_at(const std::string& s, size_t pos, size_t& consumedLen, uint16_t& tokenValue)
+{
+    if (pos + 4 <= s.size() && s[pos] == '\\' && s[pos + 1] == 'x' &&
+        std::isxdigit(static_cast<unsigned char>(s[pos + 2])) &&
+        std::isxdigit(static_cast<unsigned char>(s[pos + 3])))
+    {
+        tokenValue = static_cast<uint16_t>(tivars::hexdec(s.substr(pos + 2, 2)));
+        consumedLen = 4;
+        return true;
+    }
+
+    if (pos + 6 <= s.size() && s[pos] == '\\' && s[pos + 1] == 'u' &&
+        std::isxdigit(static_cast<unsigned char>(s[pos + 2])) &&
+        std::isxdigit(static_cast<unsigned char>(s[pos + 3])) &&
+        std::isxdigit(static_cast<unsigned char>(s[pos + 4])) &&
+        std::isxdigit(static_cast<unsigned char>(s[pos + 5])))
+    {
+        tokenValue = static_cast<uint16_t>((tivars::hexdec(s.substr(pos + 2, 2)) << 8) |
+                                           tivars::hexdec(s.substr(pos + 4, 2)));
+        consumedLen = 6;
+        return true;
+    }
+
+    return false;
+}
+
+static std::string format_raw_token_escape(uint16_t tokenValue)
+{
+    if (tokenValue <= 0xFF)
+    {
+        return "\\x" + tivars::dechex(static_cast<unsigned char>(tokenValue));
+    }
+
+    return "\\u" + tivars::dechex(static_cast<unsigned char>(tokenValue >> 8))
+           + tivars::dechex(static_cast<unsigned char>(tokenValue & 0xFF));
+}
+
 static void ltrim_program_whitespace(std::string& s)
 {
     size_t pos = 0;
@@ -405,6 +479,16 @@ namespace tivars::TypeHandlers
 
                 if (currChar == backslashStr)
                 {
+                    size_t escapeLen = 0;
+                    uint16_t escapedTokenValue = 0;
+                    if (parse_raw_token_escape_at(str, strCursorPos, escapeLen, escapedTokenValue))
+                    {
+                        onToken(str.substr(strCursorPos, escapeLen), escapedTokenValue);
+                        lastTokenBytes = escapedTokenValue;
+                        strCursorPos += escapeLen - 1;
+                        continue;
+                    }
+
                     if (strCursorPos + 1 < str.length() && str[strCursorPos + 1] == '\\' && tokens_NameToBytes.contains(backslashStr))
                     {
                         const uint16_t tokenValue = tokens_NameToBytes[backslashStr];
@@ -425,8 +509,7 @@ namespace tivars::TypeHandlers
                         isWithinString = !isWithinString;
                         inEvaluatedString = isWithinString && lastTokenBytes == 0xE7; // Send(
                     } else if (currChar == "\n" ||
-                        (strCursorPos < str.length() - strlen("→") && memcmp(&str[strCursorPos], "→", strlen("→")) == 0) ||
-                        (strCursorPos < str.length() - strlen("->") && memcmp(&str[strCursorPos], "->", strlen("->")) == 0))
+                        source_has_literal_at(str, strCursorPos, "→") || source_has_literal_at(str, strCursorPos, "->"))
                     {
                         isInCustomName = false;
                         isWithinString = false;
@@ -436,7 +519,8 @@ namespace tivars::TypeHandlers
                     }
                 }
 
-                const uint8_t maxTokSearchLen = std::min(str.length() - strCursorPos, (size_t)lengthOfLongestTokenName);
+                const size_t maxTokSearchLen = std::min(source_segment_len_until_boundary(str, strCursorPos),
+                                                        (size_t)lengthOfLongestTokenName);
                 const bool needMinMunch = isInCustomName || (isWithinString && !inEvaluatedString);
                 bool matched = false;
 
@@ -475,6 +559,24 @@ namespace tivars::TypeHandlers
                     onSkipped(currChar);
                 }
             }
+        }
+
+        static data_t tokenize_source_to_raw_bytes(const std::string& str, bool detect_strings = true)
+        {
+            data_t data;
+
+            scan_source_tokens(str, detect_strings,
+                               [&](const std::string&, uint16_t tokenValue)
+                               {
+                                   if (tokenValue > 0xFF)
+                                   {
+                                       data.push_back((uint8_t)(tokenValue >> 8));
+                                   }
+                                   data.push_back((uint8_t)(tokenValue & 0xFF));
+                               },
+                               [](const std::string&) {});
+
+            return data;
         }
 
         // Shared XML parsing routine used by both standard and Qt/CEmu builds
@@ -719,13 +821,14 @@ namespace tivars::TypeHandlers
             }
         }
 
-        uint16_t errCount = 0;
         std::string str;
+        data_t verifiedRawBytes;
         for (size_t i = fromRawBytes ? 0 : 2; i < dataSize; i++)
         {
             const uint8_t currentToken = data[i];
             uint8_t nextToken = (i < dataSize-1) ? data[i+1] : (uint8_t)-1;
             uint16_t bytesKey = currentToken;
+            data_t currentRawBytes = { currentToken };
             if (is_in_vector(firstByteOfTwoByteTokens, currentToken))
             {
                 if (nextToken == (uint8_t)-1)
@@ -735,19 +838,78 @@ namespace tivars::TypeHandlers
                 }
                 bytesKey = nextToken + (currentToken << 8);
                 i++;
+                currentRawBytes.push_back(nextToken);
             }
+
+            data_t expectedCandidateBytes = verifiedRawBytes;
+            tivars::vector_append(expectedCandidateBytes, currentRawBytes);
+
             if (tokens_BytesToName.contains(bytesKey))
             {
-                str += tokens_BytesToName[bytesKey][langIdx];
-            } else {
-                str += " [???] ";
-                errCount++;
-            }
-        }
+                const std::string tokStr = tokens_BytesToName[bytesKey][langIdx];
+                const std::string directCandidate = str + tokStr;
+                const data_t directActualBytes = tokenize_source_to_raw_bytes(directCandidate);
+                if (directActualBytes == expectedCandidateBytes)
+                {
+                    str = directCandidate;
+                    verifiedRawBytes = std::move(expectedCandidateBytes);
+                }
+                else
+                {
+                    const std::string escapedCandidate = str + "\\" + tokStr;
+                    const data_t escapedActualBytes = tokenize_source_to_raw_bytes(escapedCandidate);
+                    if (escapedActualBytes == expectedCandidateBytes)
+                    {
+                        str = escapedCandidate;
+                        verifiedRawBytes = std::move(expectedCandidateBytes);
+                    }
+                    else
+                    {
+                        const std::string rawEscape = format_raw_token_escape(bytesKey);
+                        const std::string rawEscapeCandidate = str + rawEscape;
+                        const data_t rawEscapeActualBytes = tokenize_source_to_raw_bytes(rawEscapeCandidate);
+                        const bool tokenItselfIsRoundtrippable = tokenize_source_to_raw_bytes(tokStr) == currentRawBytes;
 
-        if (errCount > 0)
-        {
-            std::cerr << "[Warning] " << errCount << " token(s) could not be detokenized (' [???] ' was used)!" << std::endl;
+                        if (!tokenItselfIsRoundtrippable)
+                        {
+                            std::cerr << "[Warning] Token 0x" << rawEscape.substr(2)
+                                      << " (" << tokStr << ") could not be detokenized in a roundtrippable way, using "
+                                      << rawEscape << " instead!" << std::endl;
+                        }
+                        else
+                        {
+                            std::cerr << "[Warning] Appending token 0x" << rawEscape.substr(2)
+                                      << " (" << tokStr << ") made the accumulated detokenized string non-roundtrippable, using "
+                                      << rawEscape << " instead!" << std::endl;
+                        }
+
+                        if (rawEscapeActualBytes != expectedCandidateBytes)
+                        {
+                            std::cerr << "[Warning] Internal error: raw escape " << rawEscape
+                                      << " did not roundtrip to the expected bytes!" << std::endl;
+                        }
+
+                        str = rawEscapeCandidate;
+                        verifiedRawBytes = std::move(expectedCandidateBytes);
+                    }
+                }
+            } else {
+                const std::string rawEscape = format_raw_token_escape(bytesKey);
+                const std::string rawEscapeCandidate = str + rawEscape;
+                const data_t rawEscapeActualBytes = tokenize_source_to_raw_bytes(rawEscapeCandidate);
+                if (rawEscapeActualBytes == expectedCandidateBytes)
+                {
+                    std::cerr << "[Warning] Unknown token 0x" << rawEscape.substr(2) << " detokenized as " << rawEscape << "!" << std::endl;
+                }
+                else
+                {
+                    std::cerr << "[Warning] Internal error: unknown token 0x" << rawEscape.substr(2)
+                              << " did not roundtrip through " << rawEscape << " as expected!" << std::endl;
+                }
+
+                str = rawEscapeCandidate;
+                verifiedRawBytes = std::move(expectedCandidateBytes);
+            }
         }
 
         if (options.contains("prettify") && options.at("prettify") == 1)
@@ -875,8 +1037,7 @@ namespace tivars::TypeHandlers
                 } else if (currChar == "\"") {
                     isWithinString = !isWithinString;
                 } else if (currChar == "\n" ||
-                    (strIdx < line.length()-strlen("→") && memcmp(&line[strIdx], "→", strlen("→")) == 0) ||
-                    (strIdx < line.length()-strlen("->") && memcmp(&line[strIdx], "->", strlen("->")) == 0))
+                    source_has_literal_at(line, strIdx, "→") || source_has_literal_at(line, strIdx, "->"))
                 {
                     isWithinString = false;
                 }
@@ -961,7 +1122,7 @@ namespace tivars::TypeHandlers
         {
             tokStr = tokens_BytesToName[bytesKey][langIdx];
         } else {
-            tokStr = " [???] ";
+            tokStr = format_raw_token_escape(bytesKey);
         }
         if (fromPrettified)
         {
@@ -984,7 +1145,7 @@ namespace tivars::TypeHandlers
         {
             tokStr = tokens_BytesToName[tokenBytes][LANG_EN];
         } else {
-            tokStr = " [???] ";
+            tokStr = format_raw_token_escape(tokenBytes);
         }
 
         tokStr = prettify_token_string(tokStr);
@@ -1051,7 +1212,7 @@ namespace tivars::TypeHandlers
             {
                 tokStr = tokens_BytesToName[bytesKey][langIdx];
             } else {
-                tokStr = " [???] ";
+                tokStr = format_raw_token_escape(bytesKey);
             }
             if (fromPrettified)
             {

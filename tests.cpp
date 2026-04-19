@@ -40,6 +40,27 @@ static bool compare_token_posinfo(const TH_Tokenized::token_posinfo& tp1, const 
     return tp1.column == tp2.column && tp1.line == tp2.line && tp1.len == tp2.len;
 }
 
+struct ScopedStderrCapture
+{
+    std::ostringstream buffer;
+    std::streambuf* previous = nullptr;
+
+    ScopedStderrCapture()
+    {
+        previous = std::cerr.rdbuf(buffer.rdbuf());
+    }
+
+    ~ScopedStderrCapture()
+    {
+        std::cerr.rdbuf(previous);
+    }
+
+    std::string str() const
+    {
+        return buffer.str();
+    }
+};
+
 static void assert_roundtrip_from_readable(TIVarFile& original, const options_t& readableOptions = options_t{})
 {
     assert(original.hasMultipleEntries() == false);
@@ -522,7 +543,47 @@ int main(int argc, char** argv)
 
     {
         TIVarFile toksPrgm = TIVarFile::loadFromFile("testData/ALLTOKS.8Xp");
-        cout << toksPrgm.getReadableContent() << "\n" << endl;
+        const std::string readable = toksPrgm.getReadableContent();
+        assert(readable.find("\\x2E") != std::string::npos);
+        assert(readable.find("[???]") == std::string::npos);
+        cout << readable << "\n" << endl;
+    }
+
+    {
+        ScopedStderrCapture goodTokenStderr;
+        assert(TH_Tokenized::makeStringFromData(data_t{0x2E}, {{"fromRawBytes", 1}}) == "CubicReg ");
+        assert(goodTokenStderr.str().empty());
+    }
+
+    {
+        ScopedStderrCapture prefixDivergenceStderr;
+        const std::string readable = TH_Tokenized::makeStringFromData(data_t{0x2A, 0x2B, 0x2C, 0x2D, 0x2E}, {{"fromRawBytes", 1}});
+        assert(readable == "\",𝑖!\\x2E");
+        assert(prefixDivergenceStderr.str().find("Appending token 0x2E (CubicReg ) made the accumulated detokenized string non-roundtrippable, using \\x2E instead!") != std::string::npos);
+        assert(TH_Tokenized::makeDataFromString(readable) == data_t({0x05, 0x00, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E}));
+    }
+
+    {
+        ScopedStderrCapture intrinsicBadTokenStderr;
+        const std::string readable = TH_Tokenized::makeStringFromData(data_t{0x5E, 0x80}, {{"fromRawBytes", 1}});
+        assert(readable == "\\u5E80");
+        assert(intrinsicBadTokenStderr.str().find("Token 0x5E80 (u) could not be detokenized in a roundtrippable way, using \\u5E80 instead!") != std::string::npos);
+        assert(TH_Tokenized::makeDataFromString(readable) == data_t({0x02, 0x00, 0x5E, 0x80}));
+    }
+
+    {
+        assert(TH_Tokenized::makeDataFromString(R"(\x2E)") == data_t({0x01, 0x00, 0x2E}));
+        assert(TH_Tokenized::makeDataFromString(R"(\\x2E)") == data_t({0x06, 0x00, 0xBB, 0xD7, 0xBB, 0xC8, 0x32, 0x45}));
+        assert(TH_Tokenized::makeDataFromString(R"(\\uF00D)") == data_t({0x08, 0x00, 0xBB, 0xD7, 0xBB, 0xC5, 0x46, 0x30, 0x30, 0x44}));
+        assert(TH_Tokenized::makeStringFromData(data_t({0xBB, 0xD7, 0xBB, 0xC8, 0x32, 0x45}), {{"fromRawBytes", 1}}) == R"(\\x2E)");
+        assert(TH_Tokenized::makeStringFromData(data_t({0xBB, 0xD7, 0xBB, 0xC5, 0x46, 0x30, 0x30, 0x44}), {{"fromRawBytes", 1}}) == R"(\\uF00D)");
+    }
+
+    {
+        ScopedStderrCapture unknownTokenStderr;
+        const std::string readable = TH_Tokenized::makeStringFromData(data_t{0xBB, 0xD0}, {{"fromRawBytes", 1}});
+        assert(readable == "\\uBBD0");
+        assert(unknownTokenStderr.str().find("Unknown token 0xBBD0 detokenized as \\uBBD0!") != std::string::npos);
     }
 
 #ifndef _WIN32
@@ -554,11 +615,12 @@ int main(int argc, char** argv)
         }
 
         testPrgmStr1.setContentFromString("\"42-\\>Str1:Str2:123");
-        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", true}})) == "\"42->Str1\nStr2\n123");
-        assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", true}})) == "\"42->Str1\nStr2\n123");
-        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", false}})) == "\"42->Str1:Str2:123");
-        assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", false}})) == "\"42->Str1:Str2:123");
-        assert(trim(testPrgmStr1.getReadableContent()) == "\"42->Str1:Str2:123");
+        const std::string readable = testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", true}});
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", true}})) == "\"42-\\>Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", true}})) == "\"42-\\>Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", false}})) == "\"42-\\>Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", false}})) == "\"42-\\>Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent()) == "\"42-\\>Str1:Str2:123");
 
         testPrgmStr1.setContentFromString("42->Str1:Str2:123");
         assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", true}})) == "42→Str1\nStr2\n123");
@@ -566,6 +628,34 @@ int main(int argc, char** argv)
         assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", false}})) == "42→Str1:Str2:123");
         assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", false}})) == "42→Str1:Str2:123");
         assert(trim(testPrgmStr1.getReadableContent()) == "42→Str1:Str2:123");
+    }
+
+    {
+        TIVarFile testPrgm = TIVarFile::createNew("Program", "asdf");
+
+        // all these are equivalent
+        for (const auto& str : { R"(A and B)", R"(A\ and B)", R"(A␟ and B)", R"(A  and B)", R"(A‌ and B)" })
+        {
+            testPrgm.setContentFromString(str);
+            string detok_fr = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
+            string detok_en = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_EN}});
+            string hex = testPrgm.getRawContentHexStr();
+            assert(hex == "0300""414042");
+            assert(detok_en == R"(A and B)");
+            assert(detok_fr == R"(A et B)");
+        }
+
+        // all these are equivalent
+        for (const auto& str : { R"(A \and B)", R"(A a\nd B)", R"(A an\d B)", R"(A and\ B)" })
+        {
+            testPrgm.setContentFromString(str);
+            string detok_fr = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
+            string detok_en = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_EN}});
+            string hex = testPrgm.getRawContentHexStr();
+            assert(hex == "0a00""4129bbb0bbbebbb32942");
+            assert(detok_en == R"(A and\ B)");
+            assert(detok_fr == R"(A and\ B)");
+        }
     }
 
     {
@@ -860,6 +950,24 @@ int main(int argc, char** argv)
         string detok_en = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_EN}});
         assert(detok_en == R"(Send("SET SOUND eval(A and prgmWHITE) TIME 2)");
         assert(detok_fr == R"(Envoi("SET SOUND eval(A et prgmWHITE) TIME 2)");
+
+        testPrgm.setContentFromString(R"(Send("A and prgmWHITE)");
+        detok_fr = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
+        detok_en = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_EN}});
+        assert(detok_en == R"(Send("A and prgmWHITE)");
+        assert(detok_fr == R"(Envoi("A et prgmWHITE)");
+
+        testPrgm.setContentFromString(R"(Send("A \and prgmWHITE)");
+        detok_fr = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
+        detok_en = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_EN}});
+        assert(detok_en == R"(Send("A and\ prgmWHITE)");
+        assert(detok_fr == R"(Envoi("A and\ prgmWHITE)");
+
+        testPrgm.setContentFromString(R"(Send("A and\ prgmWHITE)");
+        detok_fr = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
+        detok_en = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_EN}});
+        assert(detok_en == R"(Send("A and\ prgmWHITE)");
+        assert(detok_fr == R"(Envoi("A and\ prgmWHITE)");
     }
 
     {
