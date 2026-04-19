@@ -543,8 +543,29 @@ int main(int argc, char** argv)
 
     {
         TIVarFile testPrgmStr1 = TIVarFile::createNew("Program", "asdf");
-        testPrgmStr1.setContentFromString("\"42→Str1:Str2:123");
-        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", true}})) == "\"42→Str1\nStr2\n123");
+        for (const auto& str : { "\"42→Str1:Str2:123", "\"42->Str1:Str2:123" }) // those should tokenize as the same
+        {
+            testPrgmStr1.setContentFromString(str);
+            assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", true}})) == "\"42→Str1\nStr2\n123");
+            assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", true}})) == "\"42→Str1\nStr2\n123");
+            assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", false}})) == "\"42→Str1:Str2:123");
+            assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", false}})) == "\"42→Str1:Str2:123");
+            assert(trim(testPrgmStr1.getReadableContent()) == "\"42→Str1:Str2:123");
+        }
+
+        testPrgmStr1.setContentFromString("\"42-\\>Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", true}})) == "\"42->Str1\nStr2\n123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", true}})) == "\"42->Str1\nStr2\n123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", false}})) == "\"42->Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", false}})) == "\"42->Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent()) == "\"42->Str1:Str2:123");
+
+        testPrgmStr1.setContentFromString("42->Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", true}})) == "42→Str1\nStr2\n123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", true}})) == "42→Str1\nStr2\n123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", false}})) == "42→Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", false}})) == "42→Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent()) == "42→Str1:Str2:123");
     }
 
     {

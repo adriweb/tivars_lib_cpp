@@ -424,7 +424,10 @@ namespace tivars::TypeHandlers
                     } else if (currChar == "\"") {
                         isWithinString = !isWithinString;
                         inEvaluatedString = isWithinString && lastTokenBytes == 0xE7; // Send(
-                    } else if (currChar == "\n" || (strCursorPos < str.length() - strlen("→") && memcmp(&str[strCursorPos], "→", strlen("→")) == 0)) {
+                    } else if (currChar == "\n" ||
+                        (strCursorPos < str.length() - strlen("→") && memcmp(&str[strCursorPos], "→", strlen("→")) == 0) ||
+                        (strCursorPos < str.length() - strlen("->") && memcmp(&str[strCursorPos], "->", strlen("->")) == 0))
+                    {
                         isInCustomName = false;
                         isWithinString = false;
                         inEvaluatedString = false;
@@ -871,7 +874,10 @@ namespace tivars::TypeHandlers
                     break;
                 } else if (currChar == "\"") {
                     isWithinString = !isWithinString;
-                } else if (currChar == "\n" || (strIdx < line.length()-strlen("→") && memcmp(&line[strIdx], "→", strlen("→")) == 0)) {
+                } else if (currChar == "\n" ||
+                    (strIdx < line.length()-strlen("→") && memcmp(&line[strIdx], "→", strlen("→")) == 0) ||
+                    (strIdx < line.length()-strlen("->") && memcmp(&line[strIdx], "->", strlen("->")) == 0))
+                {
                     isWithinString = false;
                 }
             }
