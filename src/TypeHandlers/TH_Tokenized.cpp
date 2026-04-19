@@ -456,13 +456,24 @@ namespace tivars::TypeHandlers
         std::vector<uint8_t> firstByteOfTwoByteTokens;
         constexpr uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
 
-        template<typename OnToken, typename OnSkipped>
-        static void scan_source_tokens(const std::string& str, bool detect_strings, OnToken&& onToken, OnSkipped&& onSkipped)
+        struct TokenScanState
         {
             bool isInCustomName = false; // after a "prgm" or ʟ token
             bool isWithinString = false;
             bool inEvaluatedString = false; // CE OS 5.2 added string interpolation with eval() for TI-Innovator commands
             uint16_t lastTokenBytes = 0;
+        };
+
+        struct TokenScanCheckpoint
+        {
+            size_t strPos = 0;
+            size_t rawLen = 0;
+            TokenScanState state;
+        };
+
+        template<typename OnToken, typename OnSkipped>
+        static void scan_source_tokens_impl(const std::string& str, bool detect_strings, TokenScanState& state, OnToken&& onToken, OnSkipped&& onSkipped)
+        {
             static const std::string backslashStr = "\\";
 
             for (size_t strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
@@ -484,7 +495,7 @@ namespace tivars::TypeHandlers
                     if (parse_raw_token_escape_at(str, strCursorPos, escapeLen, escapedTokenValue))
                     {
                         onToken(str.substr(strCursorPos, escapeLen), escapedTokenValue);
-                        lastTokenBytes = escapedTokenValue;
+                        state.lastTokenBytes = escapedTokenValue;
                         strCursorPos += escapeLen - 1;
                         continue;
                     }
@@ -493,7 +504,7 @@ namespace tivars::TypeHandlers
                     {
                         const uint16_t tokenValue = tokens_NameToBytes[backslashStr];
                         onToken("\\\\", tokenValue);
-                        lastTokenBytes = tokenValue;
+                        state.lastTokenBytes = tokenValue;
                         strCursorPos++;
                     } else {
                         onSkipped(currChar);
@@ -503,25 +514,25 @@ namespace tivars::TypeHandlers
 
                 if (detect_strings)
                 {
-                    if ((lastTokenBytes == 0x5F || lastTokenBytes == 0xEB)) { // prgm and ʟ
-                        isInCustomName = true;
+                    if ((state.lastTokenBytes == 0x5F || state.lastTokenBytes == 0xEB)) { // prgm and ʟ
+                        state.isInCustomName = true;
                     } else if (currChar == "\"") {
-                        isWithinString = !isWithinString;
-                        inEvaluatedString = isWithinString && lastTokenBytes == 0xE7; // Send(
+                        state.isWithinString = !state.isWithinString;
+                        state.inEvaluatedString = state.isWithinString && state.lastTokenBytes == 0xE7; // Send(
                     } else if (currChar == "\n" ||
                         source_has_literal_at(str, strCursorPos, "→") || source_has_literal_at(str, strCursorPos, "->"))
                     {
-                        isInCustomName = false;
-                        isWithinString = false;
-                        inEvaluatedString = false;
-                    } else if (isInCustomName && !isalnum(currChar[0])) {
-                        isInCustomName = false;
+                        state.isInCustomName = false;
+                        state.isWithinString = false;
+                        state.inEvaluatedString = false;
+                    } else if (state.isInCustomName && !isalnum(currChar[0])) {
+                        state.isInCustomName = false;
                     }
                 }
 
                 const size_t maxTokSearchLen = std::min(source_segment_len_until_boundary(str, strCursorPos),
                                                         (size_t)lengthOfLongestTokenName);
-                const bool needMinMunch = isInCustomName || (isWithinString && !inEvaluatedString);
+                const bool needMinMunch = state.isInCustomName || (state.isWithinString && !state.inEvaluatedString);
                 bool matched = false;
 
                 /* needMinMunch => minimum token length, otherwise maximal munch */
@@ -532,13 +543,13 @@ namespace tivars::TypeHandlers
                     std::string currentSubString = str.substr(strCursorPos, currentLength);
 
                     // We want to use true-lowercase alpha tokens in this case.
-                    if ((isWithinString && !inEvaluatedString) && currentLength == 1 && std::islower(static_cast<unsigned char>(currentSubString[0])))
+                    if ((state.isWithinString && !state.inEvaluatedString) && currentLength == 1 && std::islower(static_cast<unsigned char>(currentSubString[0])))
                     {
                         // 0xBBB0 is 'a', etc. But we skip what would be 'l' at 0xBBBB which doesn't exist (prefix conflict)
                         const char letter = currentSubString[0];
                         uint16_t tokenValue = 0xBBB0 + (letter - 'a') + (letter >= 'l' ? 1 : 0);
                         onToken(currentSubString, tokenValue);
-                        lastTokenBytes = tokenValue;
+                        state.lastTokenBytes = tokenValue;
                         matched = true;
                         break;
                     }
@@ -548,7 +559,7 @@ namespace tivars::TypeHandlers
                         uint16_t tokenValue = tokens_NameToBytes[currentSubString];
                         onToken(currentSubString, tokenValue);
                         strCursorPos += currentLength - 1;
-                        lastTokenBytes = tokenValue;
+                        state.lastTokenBytes = tokenValue;
                         matched = true;
                         break;
                     }
@@ -561,22 +572,34 @@ namespace tivars::TypeHandlers
             }
         }
 
-        static data_t tokenize_source_to_raw_bytes(const std::string& str, bool detect_strings = true)
+        template<typename OnToken, typename OnSkipped>
+        static void scan_source_tokens(const std::string& str, bool detect_strings, OnToken&& onToken, OnSkipped&& onSkipped)
+        {
+            TokenScanState state{};
+            scan_source_tokens_impl(str, detect_strings, state, std::forward<OnToken>(onToken), std::forward<OnSkipped>(onSkipped));
+        }
+
+        static data_t tokenize_source_to_raw_bytes(const std::string& str, bool detect_strings, TokenScanState initialState)
         {
             data_t data;
 
-            scan_source_tokens(str, detect_strings,
-                               [&](const std::string&, uint16_t tokenValue)
-                               {
-                                   if (tokenValue > 0xFF)
-                                   {
-                                       data.push_back((uint8_t)(tokenValue >> 8));
-                                   }
-                                   data.push_back((uint8_t)(tokenValue & 0xFF));
-                               },
-                               [](const std::string&) {});
+            scan_source_tokens_impl(str, detect_strings, initialState,
+                                    [&](const std::string&, uint16_t tokenValue)
+                                    {
+                                        if (tokenValue > 0xFF)
+                                        {
+                                            data.push_back((uint8_t)(tokenValue >> 8));
+                                        }
+                                        data.push_back((uint8_t)(tokenValue & 0xFF));
+                                    },
+                                    [](const std::string&) {});
 
             return data;
+        }
+
+        static data_t tokenize_source_to_raw_bytes(const std::string& str, bool detect_strings = true)
+        {
+            return tokenize_source_to_raw_bytes(str, detect_strings, TokenScanState{});
         }
 
         // Shared XML parsing routine used by both standard and Qt/CEmu builds
@@ -823,6 +846,58 @@ namespace tivars::TypeHandlers
 
         std::string str;
         data_t verifiedRawBytes;
+        TokenScanState detokState{};
+        std::vector<TokenScanCheckpoint> detokCheckpoints = { {0, 0, detokState} };
+        const size_t detokValidationLookbehind = std::max<size_t>(lengthOfLongestTokenName, 6) + 1;
+
+        auto validate_detok_token = [&](const std::string& token, const data_t& tokenRawBytes)
+        {
+            const size_t tailMinPos = str.size() > detokValidationLookbehind ? str.size() - detokValidationLookbehind : 0;
+            auto checkpointIt = std::upper_bound(detokCheckpoints.begin(), detokCheckpoints.end(), tailMinPos,
+                                                 [](size_t pos, const TokenScanCheckpoint& checkpoint)
+                                                 {
+                                                     return pos < checkpoint.strPos;
+                                                 });
+            if (checkpointIt != detokCheckpoints.begin())
+            {
+                checkpointIt--;
+            }
+
+            std::string candidateSegment = str.substr(checkpointIt->strPos);
+            candidateSegment += token;
+
+            data_t expectedSegmentBytes(verifiedRawBytes.begin() + (long long)checkpointIt->rawLen, verifiedRawBytes.end());
+            tivars::vector_append(expectedSegmentBytes, tokenRawBytes);
+
+            const data_t actualBytes = tokenize_source_to_raw_bytes(candidateSegment, true, checkpointIt->state);
+            if (actualBytes == expectedSegmentBytes)
+            {
+                return true;
+            }
+
+            const std::string fullCandidate = str + token;
+            data_t expectedFullBytes = verifiedRawBytes;
+            tivars::vector_append(expectedFullBytes, tokenRawBytes);
+            return tokenize_source_to_raw_bytes(fullCandidate) == expectedFullBytes;
+        };
+
+        auto accept_detok_token = [&](const std::string& token, const data_t& tokenRawBytes)
+        {
+            str += token;
+            tivars::vector_append(verifiedRawBytes, tokenRawBytes);
+
+            const TokenScanState nextState = detokState;
+            const data_t actualTokenBytes = tokenize_source_to_raw_bytes(token, true, nextState);
+            if (actualTokenBytes != tokenRawBytes)
+            {
+                std::cerr << "[Warning] Internal error: accepted detokenized token \"" << token
+                          << "\" did not tokenize back to the expected bytes!" << std::endl;
+            }
+
+            detokState = nextState;
+            detokCheckpoints.push_back({str.size(), verifiedRawBytes.size(), detokState});
+        };
+
         for (size_t i = fromRawBytes ? 0 : 2; i < dataSize; i++)
         {
             const uint8_t currentToken = data[i];
@@ -841,33 +916,24 @@ namespace tivars::TypeHandlers
                 currentRawBytes.push_back(nextToken);
             }
 
-            data_t expectedCandidateBytes = verifiedRawBytes;
-            tivars::vector_append(expectedCandidateBytes, currentRawBytes);
-
             if (tokens_BytesToName.contains(bytesKey))
             {
                 const std::string tokStr = tokens_BytesToName[bytesKey][langIdx];
-                const std::string directCandidate = str + tokStr;
-                const data_t directActualBytes = tokenize_source_to_raw_bytes(directCandidate);
-                if (directActualBytes == expectedCandidateBytes)
+                if (validate_detok_token(tokStr, currentRawBytes))
                 {
-                    str = directCandidate;
-                    verifiedRawBytes = std::move(expectedCandidateBytes);
+                    accept_detok_token(tokStr, currentRawBytes);
                 }
                 else
                 {
-                    const std::string escapedCandidate = str + "\\" + tokStr;
-                    const data_t escapedActualBytes = tokenize_source_to_raw_bytes(escapedCandidate);
-                    if (escapedActualBytes == expectedCandidateBytes)
+                    const std::string escapedToken = "\\" + tokStr;
+                    if (validate_detok_token(escapedToken, currentRawBytes))
                     {
-                        str = escapedCandidate;
-                        verifiedRawBytes = std::move(expectedCandidateBytes);
+                        accept_detok_token(escapedToken, currentRawBytes);
                     }
                     else
                     {
                         const std::string rawEscape = format_raw_token_escape(bytesKey);
-                        const std::string rawEscapeCandidate = str + rawEscape;
-                        const data_t rawEscapeActualBytes = tokenize_source_to_raw_bytes(rawEscapeCandidate);
+                        const bool rawEscapeIsRoundtrippable = validate_detok_token(rawEscape, currentRawBytes);
                         const bool tokenItselfIsRoundtrippable = tokenize_source_to_raw_bytes(tokStr) == currentRawBytes;
 
                         if (!tokenItselfIsRoundtrippable)
@@ -883,21 +949,18 @@ namespace tivars::TypeHandlers
                                       << rawEscape << " instead!" << std::endl;
                         }
 
-                        if (rawEscapeActualBytes != expectedCandidateBytes)
+                        if (!rawEscapeIsRoundtrippable)
                         {
                             std::cerr << "[Warning] Internal error: raw escape " << rawEscape
                                       << " did not roundtrip to the expected bytes!" << std::endl;
                         }
 
-                        str = rawEscapeCandidate;
-                        verifiedRawBytes = std::move(expectedCandidateBytes);
+                        accept_detok_token(rawEscape, currentRawBytes);
                     }
                 }
             } else {
                 const std::string rawEscape = format_raw_token_escape(bytesKey);
-                const std::string rawEscapeCandidate = str + rawEscape;
-                const data_t rawEscapeActualBytes = tokenize_source_to_raw_bytes(rawEscapeCandidate);
-                if (rawEscapeActualBytes == expectedCandidateBytes)
+                if (validate_detok_token(rawEscape, currentRawBytes))
                 {
                     std::cerr << "[Warning] Unknown token 0x" << rawEscape.substr(2) << " detokenized as " << rawEscape << "!" << std::endl;
                 }
@@ -907,8 +970,7 @@ namespace tivars::TypeHandlers
                               << " did not roundtrip through " << rawEscape << " as expected!" << std::endl;
                 }
 
-                str = rawEscapeCandidate;
-                verifiedRawBytes = std::move(expectedCandidateBytes);
+                accept_detok_token(rawEscape, currentRawBytes);
             }
         }
 
