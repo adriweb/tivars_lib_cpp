@@ -574,8 +574,8 @@ int main(int argc, char** argv)
     {
         ScopedStderrCapture intrinsicBadTokenStderr;
         const std::string readable = TH_Tokenized::makeStringFromData(data_t{0x5E, 0x80}, {{"fromRawBytes", 1}});
-        assert(readable == "\\u5E80");
-        assert(intrinsicBadTokenStderr.str().find("Token 0x5E80 (u) could not be detokenized in a roundtrippable way, using \\u5E80 instead!") != std::string::npos);
+        assert(readable == "|u");
+        assert(intrinsicBadTokenStderr.str().empty());
         assert(TH_Tokenized::makeDataFromString(readable) == data_t({0x02, 0x00, 0x5E, 0x80}));
     }
 
@@ -587,21 +587,37 @@ int main(int argc, char** argv)
     }
 
     {
-        const std::array<std::pair<uint8_t, const char*>, 8> troublesomeSingleLetterTokens = {{
-            {0x02, "n"}, {0x12, "r"}, {0x16, "a"}, {0x17, "b"},
-            {0x18, "c"}, {0x19, "d"}, {0x1A, "e"}, {0x23, "z"}
+        struct SingleLetterTokenCase
+        {
+            uint8_t prefix;
+            uint8_t secondByte;
+            const char* displayStr;
+            const char* fallbackStr;
+        };
+
+        const std::array<SingleLetterTokenCase, 11> troublesomeSingleLetterTokens = {{
+            {0x62, 0x02, "n", "[n]"},
+            {0x62, 0x12, "r", "[r]"},
+            {0x62, 0x16, "a", "[|a]"},
+            {0x62, 0x17, "b", "[|b]"},
+            {0x62, 0x18, "c", "[|c]"},
+            {0x62, 0x19, "d", "[|d]"},
+            {0x62, 0x1A, "e", "[|e]"},
+            {0x62, 0x22, "p", "[p]"},
+            {0x62, 0x23, "z", "[z]"},
+            {0x62, 0x34, "s", "[s]"},
+            {0x5E, 0x80, "u", "|u"},
         }};
 
-        for (const auto& [secondByte, displayStr] : troublesomeSingleLetterTokens)
+        for (const auto& [prefix, secondByte, displayStr, fallbackStr] : troublesomeSingleLetterTokens)
         {
-            const data_t rawBytes = {0x62, secondByte};
+            const data_t rawBytes = {prefix, secondByte};
 
             {
                 ScopedStderrCapture nonPrettifiedStderr;
                 const std::string readable = TH_Tokenized::makeStringFromData(rawBytes, {{"fromRawBytes", 1}});
-                const std::string rawEscape = "\\u62" + tivars::dechex(secondByte);
-                assert(readable == rawEscape);
-                assert(nonPrettifiedStderr.str().find("Token 0x62" + tivars::dechex(secondByte) + " (" + displayStr + ") could not be detokenized in a roundtrippable way, using " + rawEscape + " instead!") != std::string::npos);
+                assert(readable == fallbackStr);
+                assert(nonPrettifiedStderr.str().empty());
             }
 
             {

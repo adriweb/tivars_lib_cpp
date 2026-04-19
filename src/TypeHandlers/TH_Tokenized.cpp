@@ -450,7 +450,14 @@ namespace tivars::TypeHandlers
 {
     namespace
     {
-        std::unordered_map<uint16_t, std::array<std::string, TH_Tokenized::LANG_MAX>> tokens_BytesToName;
+        struct TokenNames
+        {
+            std::array<std::string, TH_Tokenized::LANG_MAX> display{};
+            std::array<std::vector<std::string>, TH_Tokenized::LANG_MAX> variants{};
+            std::array<std::vector<std::string>, TH_Tokenized::LANG_MAX> accessibles{};
+        };
+
+        std::unordered_map<uint16_t, TokenNames> tokens_BytesToNames;
         std::unordered_map<std::string, uint16_t> tokens_NameToBytes;
         uint8_t lengthOfLongestTokenName;
         std::vector<uint8_t> firstByteOfTwoByteTokens;
@@ -602,6 +609,54 @@ namespace tivars::TypeHandlers
             return tokenize_source_to_raw_bytes(str, detect_strings, TokenScanState{});
         }
 
+        static void append_unique_string(std::vector<std::string>& list, const std::string& value)
+        {
+            if (value.empty())
+            {
+                return;
+            }
+
+            if (std::find(list.begin(), list.end(), value) == list.end())
+            {
+                list.push_back(value);
+            }
+        }
+
+        static std::vector<std::string> get_detok_alias_candidates(uint16_t bytesKey, uint8_t langIdx, const std::string& primaryDisplay)
+        {
+            using TH_Tokenized::LANG_EN;
+
+            const auto it = tokens_BytesToNames.find(bytesKey);
+            if (it == tokens_BytesToNames.end())
+            {
+                return {};
+            }
+
+            const TokenNames& tokenNames = it->second;
+            std::vector<std::string> candidates;
+            auto append_aliases = [&](const auto& aliases, uint8_t idx)
+            {
+                for (const auto& candidate : aliases[idx])
+                {
+                    if (candidate != primaryDisplay)
+                    {
+                        append_unique_string(candidates, candidate);
+                    }
+                }
+            };
+
+            append_aliases(tokenNames.variants, langIdx);
+            append_aliases(tokenNames.accessibles, langIdx);
+
+            if (langIdx != LANG_EN)
+            {
+                append_aliases(tokenNames.variants, LANG_EN);
+                append_aliases(tokenNames.accessibles, LANG_EN);
+            }
+
+            return candidates;
+        }
+
         // Shared XML parsing routine used by both standard and Qt/CEmu builds
         static void parse_tokens_xml_and_register(const std::string& xml)
         {
@@ -653,6 +708,9 @@ namespace tivars::TypeHandlers
                 {
                     for (const xml_node& lang : ver.children("lang"))
                     {
+                        const char* code = lang.attribute("code").as_string("");
+                        const uint8_t langIdx = std::strcmp(code, "fr") == 0 ? LANG_FR : LANG_EN;
+
                         for (const auto* which : { "variant", "accessible" })
                         {
                             for (const xml_node& v : lang.children(which))
@@ -660,6 +718,9 @@ namespace tivars::TypeHandlers
                                 const std::string s = v.child_value();
                                 if (!s.empty())
                                 {
+                                    auto& tokenNames = tokens_BytesToNames[bytes];
+                                    auto& aliasList = std::strcmp(which, "variant") == 0 ? tokenNames.variants[langIdx] : tokenNames.accessibles[langIdx];
+                                    append_unique_string(aliasList, s);
                                     tokens_NameToBytes[s] = bytes;
                                     if (s.size() > lengthOfLongestTokenName)
                                         lengthOfLongestTokenName = (uint8_t)s.size();
@@ -676,7 +737,7 @@ namespace tivars::TypeHandlers
                 const std::string fr = pick_display(tokenNode, "fr");
 
                 if (!en.empty() || !fr.empty())
-                    tokens_BytesToName[bytes] = { en, fr.empty() ? en : fr };
+                    tokens_BytesToNames[bytes].display = { en, fr.empty() ? en : fr };
                 if (!en.empty())
                     tokens_NameToBytes[en] = bytes;
                 if (!fr.empty())
@@ -908,9 +969,9 @@ namespace tivars::TypeHandlers
                 currentRawBytes.push_back(nextToken);
             }
 
-            if (tokens_BytesToName.contains(bytesKey))
+            if (tokens_BytesToNames.contains(bytesKey))
             {
-                const std::string tokStr = tokens_BytesToName[bytesKey][langIdx];
+                const std::string tokStr = tokens_BytesToNames[bytesKey].display[langIdx];
                 if (prettify)
                 {
                     str += tokStr;
@@ -921,29 +982,34 @@ namespace tivars::TypeHandlers
                 }
                 else
                 {
+                    bool acceptedFallback = false;
+
                     const std::string escapedToken = "\\" + tokStr;
                     if (validate_detok_token(escapedToken, currentRawBytes))
                     {
                         accept_detok_token(escapedToken, currentRawBytes);
+                        acceptedFallback = true;
                     }
-                    else
+
+                    if (!acceptedFallback)
+                    {
+                        for (const auto& aliasCandidate : get_detok_alias_candidates(bytesKey, langIdx, tokStr))
+                        {
+                            if (validate_detok_token(aliasCandidate, currentRawBytes))
+                            {
+                                accept_detok_token(aliasCandidate, currentRawBytes);
+                                acceptedFallback = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!acceptedFallback)
                     {
                         const std::string rawEscape = format_raw_token_escape(bytesKey);
-                        const bool tokenItselfIsRoundtrippable = tokenize_source_to_raw_bytes(tokStr) == currentRawBytes;
-
-                        if (!tokenItselfIsRoundtrippable)
-                        {
-                            std::cerr << "[Warning] Token 0x" << rawEscape.substr(2)
-                                      << " (" << tokStr << ") could not be detokenized in a roundtrippable way, using "
-                                      << rawEscape << " instead!" << std::endl;
-                        }
-                        else
-                        {
-                            std::cerr << "[Warning] Appending token 0x" << rawEscape.substr(2)
-                                      << " (" << tokStr << ") made the accumulated detokenized string non-roundtrippable, using "
-                                      << rawEscape << " instead!" << std::endl;
-                        }
-
+                        std::cerr << "[Warning] Appending token 0x" << rawEscape.substr(2)
+                                  << " (" << tokStr << ") made the accumulated detokenized string non-roundtrippable, using "
+                                  << rawEscape << " instead!" << std::endl;
                         accept_detok_token(rawEscape, currentRawBytes);
                     }
                 }
@@ -1164,9 +1230,9 @@ namespace tivars::TypeHandlers
         }
 
         std::string tokStr;
-        if (tokens_BytesToName.contains(bytesKey))
+        if (tokens_BytesToNames.contains(bytesKey))
         {
-            tokStr = tokens_BytesToName[bytesKey][langIdx];
+            tokStr = tokens_BytesToNames[bytesKey].display[langIdx];
         } else {
             tokStr = format_raw_token_escape(bytesKey);
         }
@@ -1187,9 +1253,9 @@ namespace tivars::TypeHandlers
         }
 
         std::string tokStr;
-        if (tokens_BytesToName.contains(tokenBytes))
+        if (tokens_BytesToNames.contains(tokenBytes))
         {
-            tokStr = tokens_BytesToName[tokenBytes][LANG_EN];
+            tokStr = tokens_BytesToNames[tokenBytes].display[LANG_EN];
         } else {
             tokStr = format_raw_token_escape(tokenBytes);
         }
@@ -1254,9 +1320,9 @@ namespace tivars::TypeHandlers
             }
 
             std::string tokStr;
-            if (tokens_BytesToName.contains(bytesKey))
+            if (tokens_BytesToNames.contains(bytesKey))
             {
-                tokStr = tokens_BytesToName[bytesKey][langIdx];
+                tokStr = tokens_BytesToNames[bytesKey].display[langIdx];
             } else {
                 tokStr = format_raw_token_escape(bytesKey);
             }
@@ -1340,7 +1406,7 @@ namespace tivars::TypeHandlers
     void TH_Tokenized::initTokens()
     {
         // Reset containers
-        tokens_BytesToName.clear();
+        tokens_BytesToNames.clear();
         tokens_NameToBytes.clear();
         firstByteOfTwoByteTokens.clear();
         lengthOfLongestTokenName = 0;
@@ -1369,13 +1435,13 @@ namespace tivars::TypeHandlers
         parse_tokens_xml_and_register(xmlFileStr);
 #endif
 
-        tokens_BytesToName[0x00] = { "", "" };
+        tokens_BytesToNames[0x00].display = { "", "" };
     }
 
     void TH_Tokenized::initTokensFromXMLFilePath(const std::string& path)
     {
         // Reset containers
-        tokens_BytesToName.clear();
+        tokens_BytesToNames.clear();
         tokens_NameToBytes.clear();
         firstByteOfTwoByteTokens.clear();
         lengthOfLongestTokenName = 0;
@@ -1387,7 +1453,7 @@ namespace tivars::TypeHandlers
         }
 
         parse_tokens_xml_and_register(xmlStr);
-        tokens_BytesToName[0x00] = { "", "" };
+        tokens_BytesToNames[0x00].display = { "", "" };
     }
 
 }
