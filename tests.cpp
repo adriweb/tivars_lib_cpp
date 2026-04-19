@@ -762,6 +762,12 @@ int main(int argc, char** argv)
         const data_t literalBackslash = TH_Tokenized::makeDataFromString("\\\\");
         data_t expectedLiteralBackslash = { 0x02, 0x00, 0xBB, 0xD7 };
         assert(literalBackslash == expectedLiteralBackslash);
+
+        for (const std::string& separator : { std::string("␟"), std::string(" "), std::string("‌") })
+        {
+            const data_t separatedArrow = TH_Tokenized::makeDataFromString("1-" + separator + ">A");
+            assert(separatedArrow == expectedEscapedArrow);
+        }
     }
 
     {
@@ -774,6 +780,13 @@ int main(int argc, char** argv)
         actual = TH_Tokenized::getPosInfoAtOffsetInSourceString("\\\\", 2);
         expected = { 0, 0, 2 };
         assert(compare_token_posinfo(actual, expected) == true);
+
+        for (const std::string& separator : { std::string("␟"), std::string(" "), std::string("‌") })
+        {
+            actual = TH_Tokenized::getPosInfoAtOffsetInSourceString("1-" + separator + ">A", 4);
+            expected = { 0, 3, 1 };
+            assert(compare_token_posinfo(actual, expected) == true);
+        }
     }
 
     {

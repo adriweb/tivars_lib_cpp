@@ -54,6 +54,21 @@ static void advance_source_pos(const std::string& s, uint16_t& line, uint16_t& c
     }
 }
 
+static size_t token_boundary_separator_len_at(const std::string& s, size_t pos)
+{
+    static constexpr std::array<std::string_view, 3> separators = { "␟", " ", "‌" };
+
+    for (const auto& separator : separators)
+    {
+        if (pos + separator.size() <= s.size() && std::memcmp(&s[pos], separator.data(), separator.size()) == 0)
+        {
+            return separator.size();
+        }
+    }
+
+    return 0;
+}
+
 static void ltrim_program_whitespace(std::string& s)
 {
     size_t pos = 0;
@@ -378,6 +393,14 @@ namespace tivars::TypeHandlers
 
             for (size_t strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
             {
+                const size_t separatorLen = token_boundary_separator_len_at(str, strCursorPos);
+                if (separatorLen > 0)
+                {
+                    onSkipped(str.substr(strCursorPos, separatorLen));
+                    strCursorPos += separatorLen - 1;
+                    continue;
+                }
+
                 const std::string currChar = str.substr(strCursorPos, 1);
 
                 if (currChar == backslashStr)
