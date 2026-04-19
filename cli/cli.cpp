@@ -46,7 +46,7 @@ int main(int argc, char** argv)
             ("l,lang", "Language", cxxopts::value<string>()->default_value("en"))
             ("a,archive", "Archive status", cxxopts::value<bool>())
             ("r,reindent", "Re-indent", cxxopts::value<bool>())
-            ("p,prettify", "Prettify", cxxopts::value<bool>())
+            ("p,prettify", "Prettify (display-oriented, may not roundtrip)", cxxopts::value<bool>())
             ("s,detect_strings", "Detect strings", cxxopts::value<bool>())
             ("h,help", "Print usage");
 

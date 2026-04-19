@@ -564,11 +564,53 @@ int main(int argc, char** argv)
     }
 
     {
+        ScopedStderrCapture prettifiedPrefixDivergenceStderr;
+        const std::string readable = TH_Tokenized::makeStringFromData(data_t{0x2A, 0x2B, 0x2C, 0x2D, 0x2E}, {{"fromRawBytes", 1}, {"prettify", 1}});
+        assert(readable == "\",𝑖!CubicReg ");
+        assert(prettifiedPrefixDivergenceStderr.str().find("non-roundtrippable") == std::string::npos);
+        assert(prettifiedPrefixDivergenceStderr.str().find("could not be detokenized in a roundtrippable way") == std::string::npos);
+    }
+
+    {
         ScopedStderrCapture intrinsicBadTokenStderr;
         const std::string readable = TH_Tokenized::makeStringFromData(data_t{0x5E, 0x80}, {{"fromRawBytes", 1}});
         assert(readable == "\\u5E80");
         assert(intrinsicBadTokenStderr.str().find("Token 0x5E80 (u) could not be detokenized in a roundtrippable way, using \\u5E80 instead!") != std::string::npos);
         assert(TH_Tokenized::makeDataFromString(readable) == data_t({0x02, 0x00, 0x5E, 0x80}));
+    }
+
+    {
+        ScopedStderrCapture prettifiedIntrinsicBadTokenStderr;
+        const std::string readable = TH_Tokenized::makeStringFromData(data_t{0x5E, 0x80}, {{"fromRawBytes", 1}, {"prettify", 1}});
+        assert(readable == "u");
+        assert(prettifiedIntrinsicBadTokenStderr.str().find("roundtrippable way") == std::string::npos);
+    }
+
+    {
+        const std::array<std::pair<uint8_t, const char*>, 8> troublesomeSingleLetterTokens = {{
+            {0x02, "n"}, {0x12, "r"}, {0x16, "a"}, {0x17, "b"},
+            {0x18, "c"}, {0x19, "d"}, {0x1A, "e"}, {0x23, "z"}
+        }};
+
+        for (const auto& [secondByte, displayStr] : troublesomeSingleLetterTokens)
+        {
+            const data_t rawBytes = {0x62, secondByte};
+
+            {
+                ScopedStderrCapture nonPrettifiedStderr;
+                const std::string readable = TH_Tokenized::makeStringFromData(rawBytes, {{"fromRawBytes", 1}});
+                const std::string rawEscape = "\\u62" + tivars::dechex(secondByte);
+                assert(readable == rawEscape);
+                assert(nonPrettifiedStderr.str().find("Token 0x62" + tivars::dechex(secondByte) + " (" + displayStr + ") could not be detokenized in a roundtrippable way, using " + rawEscape + " instead!") != std::string::npos);
+            }
+
+            {
+                ScopedStderrCapture prettifiedStderr;
+                const std::string readable = TH_Tokenized::makeStringFromData(rawBytes, {{"fromRawBytes", 1}, {"prettify", 1}});
+                assert(readable == displayStr);
+                assert(prettifiedStderr.str().empty());
+            }
+        }
     }
 
     {
@@ -616,9 +658,9 @@ int main(int argc, char** argv)
 
         testPrgmStr1.setContentFromString("\"42-\\>Str1:Str2:123");
         const std::string readable = testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", true}});
-        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", true}})) == "\"42-\\>Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", true}})) == "\"42->Str1\nStr2\n123");
         assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", true}})) == "\"42-\\>Str1:Str2:123");
-        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", false}})) == "\"42-\\>Str1:Str2:123");
+        assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", false}})) == "\"42->Str1:Str2:123");
         assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", false}})) == "\"42-\\>Str1:Str2:123");
         assert(trim(testPrgmStr1.getReadableContent()) == "\"42-\\>Str1:Str2:123");
 
@@ -651,10 +693,14 @@ int main(int argc, char** argv)
             testPrgm.setContentFromString(str);
             string detok_fr = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}});
             string detok_en = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_EN}});
+            string pretty_detok_fr = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_FR}, {"prettify", true}});
+            string pretty_detok_en = testPrgm.getReadableContent({{"lang", TH_Tokenized::LANG_EN}, {"prettify", true}});
             string hex = testPrgm.getRawContentHexStr();
             assert(hex == "0a00""4129bbb0bbbebbb32942");
             assert(detok_en == R"(A and\ B)");
             assert(detok_fr == R"(A and\ B)");
+            assert(pretty_detok_en == R"(A and B)");
+            assert(pretty_detok_fr == R"(A and B)");
         }
     }
 

@@ -70,7 +70,7 @@ namespace
         {
             const uint16_t entryIndex = static_cast<uint16_t>(i);
             (void)file.getRawContent(entryIndex).size();
-            const std::string readable = file.getReadableContent({{"prettify", 1}, {"reindent", 1}}, entryIndex);
+            const std::string readable = file.getReadableContent({{"reindent", 1}}, entryIndex);
 
             if (entries.size() == 1 && readable.size() <= maxRoundtripTextSize)
             {

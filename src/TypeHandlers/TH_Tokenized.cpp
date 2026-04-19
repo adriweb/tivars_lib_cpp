@@ -844,6 +844,8 @@ namespace tivars::TypeHandlers
             }
         }
 
+        const bool prettify = options.contains("prettify") && options.at("prettify") == 1;
+
         std::string str;
         data_t verifiedRawBytes;
         TokenScanState detokState{};
@@ -885,16 +887,6 @@ namespace tivars::TypeHandlers
         {
             str += token;
             tivars::vector_append(verifiedRawBytes, tokenRawBytes);
-
-            const TokenScanState nextState = detokState;
-            const data_t actualTokenBytes = tokenize_source_to_raw_bytes(token, true, nextState);
-            if (actualTokenBytes != tokenRawBytes)
-            {
-                std::cerr << "[Warning] Internal error: accepted detokenized token \"" << token
-                          << "\" did not tokenize back to the expected bytes!" << std::endl;
-            }
-
-            detokState = nextState;
             detokCheckpoints.push_back({str.size(), verifiedRawBytes.size(), detokState});
         };
 
@@ -919,7 +911,11 @@ namespace tivars::TypeHandlers
             if (tokens_BytesToName.contains(bytesKey))
             {
                 const std::string tokStr = tokens_BytesToName[bytesKey][langIdx];
-                if (validate_detok_token(tokStr, currentRawBytes))
+                if (prettify)
+                {
+                    str += tokStr;
+                }
+                else if (validate_detok_token(tokStr, currentRawBytes))
                 {
                     accept_detok_token(tokStr, currentRawBytes);
                 }
@@ -933,7 +929,6 @@ namespace tivars::TypeHandlers
                     else
                     {
                         const std::string rawEscape = format_raw_token_escape(bytesKey);
-                        const bool rawEscapeIsRoundtrippable = validate_detok_token(rawEscape, currentRawBytes);
                         const bool tokenItselfIsRoundtrippable = tokenize_source_to_raw_bytes(tokStr) == currentRawBytes;
 
                         if (!tokenItselfIsRoundtrippable)
@@ -949,32 +944,21 @@ namespace tivars::TypeHandlers
                                       << rawEscape << " instead!" << std::endl;
                         }
 
-                        if (!rawEscapeIsRoundtrippable)
-                        {
-                            std::cerr << "[Warning] Internal error: raw escape " << rawEscape
-                                      << " did not roundtrip to the expected bytes!" << std::endl;
-                        }
-
                         accept_detok_token(rawEscape, currentRawBytes);
                     }
                 }
             } else {
                 const std::string rawEscape = format_raw_token_escape(bytesKey);
-                if (validate_detok_token(rawEscape, currentRawBytes))
-                {
-                    std::cerr << "[Warning] Unknown token 0x" << rawEscape.substr(2) << " detokenized as " << rawEscape << "!" << std::endl;
+                std::cerr << "[Warning] Unknown token 0x" << rawEscape.substr(2) << " detokenized as " << rawEscape << "!" << std::endl;
+                if (prettify) {
+                    str += rawEscape;
+                } else {
+                    accept_detok_token(rawEscape, currentRawBytes);
                 }
-                else
-                {
-                    std::cerr << "[Warning] Internal error: unknown token 0x" << rawEscape.substr(2)
-                              << " did not roundtrip through " << rawEscape << " as expected!" << std::endl;
-                }
-
-                accept_detok_token(rawEscape, currentRawBytes);
             }
         }
 
-        if (options.contains("prettify") && options.at("prettify") == 1)
+        if (prettify)
         {
             str = prettify_token_string(str);
         }
