@@ -730,6 +730,21 @@ int main(int argc, char** argv)
     }
 
     {
+        TH_Tokenized::token_posinfo actual{}, expected{};
+        actual = TH_Tokenized::getPosInfoAtOffsetInSourceString("1->A", 4);
+        expected = { 0, 3, 1 };
+        assert(compare_token_posinfo(actual, expected) == true);
+
+        actual = TH_Tokenized::getPosInfoAtOffsetInSourceString("1→A", 4);
+        expected = { 0, 2, 1 };
+        assert(compare_token_posinfo(actual, expected) == true);
+
+        actual = TH_Tokenized::getPosInfoAtOffsetInSourceString("1->A", 3);
+        expected = { 0, 1, 2 };
+        assert(compare_token_posinfo(actual, expected) == true);
+    }
+
+    {
         // Make sure \r\n is tokenized the same as \n (because \r is just ignored as it's not a known token)
         TIVarFile testPrgm = TIVarFile::createNew("Program", "TEST1");
         testPrgm.setContentFromString("Pause 1\nPause 1");

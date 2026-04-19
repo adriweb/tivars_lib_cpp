@@ -36,6 +36,24 @@ static size_t strlen_mb(const std::string& s)
     return len;
 }
 
+static void advance_source_pos(const std::string& s, uint16_t& line, uint16_t& column)
+{
+    for (const char i : s)
+    {
+        const unsigned char c = static_cast<unsigned char>(i);
+        if (c == '\n')
+        {
+            line++;
+            column = 0;
+            continue;
+        }
+        if ((c & 0xc0) != 0x80)
+        {
+            column++;
+        }
+    }
+}
+
 static void ltrim_program_whitespace(std::string& s)
 {
     size_t pos = 0;
@@ -1024,6 +1042,49 @@ namespace tivars::TypeHandlers
         return getPosInfoAtOffset(data, byteOffset, { { "prettify", 1 } });
     }
 
+    TH_Tokenized::token_posinfo TH_Tokenized::getPosInfoAtOffsetInSourceString(const std::string& sourceStr, uint16_t byteOffset)
+    {
+        if (byteOffset < 2)
+        {
+            return { 0, 0, 0 };
+        }
+
+        token_posinfo posinfo = { 0, 0, 0 };
+        uint16_t line = 0;
+        uint16_t column = 0;
+        uint16_t dataOffset = 2;
+        bool found = false;
+
+        scan_source_tokens(sourceStr, true,
+                           [&](const std::string& tokenStr, uint16_t tokenValue)
+                           {
+                               const uint16_t emittedLen = tokenValue > 0xFF ? 2 : 1;
+                               if (!found && byteOffset >= dataOffset && byteOffset < dataOffset + emittedLen)
+                               {
+                                   posinfo = { line, column, (uint8_t)strlen_mb(tokenStr) };
+                                   found = true;
+                               }
+
+                               dataOffset += emittedLen;
+                               advance_source_pos(tokenStr, line, column);
+                           },
+                           [&](const std::string& skippedStr)
+                           {
+                               advance_source_pos(skippedStr, line, column);
+                           });
+
+        if (!found)
+        {
+            if (byteOffset >= dataOffset)
+            {
+                throw std::invalid_argument("byteOffset cannot be >= dataSize!");
+            }
+            return { 0, 0, 0 };
+        }
+
+        return posinfo;
+    }
+
     void TH_Tokenized::initTokens()
     {
         // Reset containers
@@ -1090,6 +1151,7 @@ namespace tivars::TypeHandlers
             .field("len",    &tivars::TypeHandlers::TH_Tokenized::token_posinfo::len);
 
         function("TH_Tokenized_getPosInfoAtOffsetFromHexStr", &tivars::TypeHandlers::TH_Tokenized::getPosInfoAtOffsetFromHexStr);
+        function("TH_Tokenized_getPosInfoAtOffsetInSourceString", &tivars::TypeHandlers::TH_Tokenized::getPosInfoAtOffsetInSourceString);
         function("TH_Tokenized_oneTokenBytesToString"       , &tivars::TypeHandlers::TH_Tokenized::oneTokenBytesToString);
     }
 #endif

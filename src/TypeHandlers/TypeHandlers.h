@@ -247,6 +247,7 @@ namespace tivars::TypeHandlers
         static std::string reindentCodeString(const std::string& str_orig, const options_t& options = options_t());
         static token_posinfo getPosInfoAtOffset(const data_t& data, uint16_t byteOffset, const options_t& options = options_t());
         static token_posinfo getPosInfoAtOffsetFromHexStr(const std::string& hexBytesStr, uint16_t byteOffset);
+        static token_posinfo getPosInfoAtOffsetInSourceString(const std::string& sourceStr, uint16_t byteOffset);
         static std::string tokenToString(const data_t& data, int *incr, const options_t& options);
         static std::string oneTokenBytesToString(uint16_t tokenBytes);
         static void initTokens();
