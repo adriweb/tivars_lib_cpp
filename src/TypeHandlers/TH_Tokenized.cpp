@@ -349,6 +349,74 @@ namespace tivars::TypeHandlers
         std::vector<uint8_t> firstByteOfTwoByteTokens;
         constexpr uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
 
+        template<typename OnToken, typename OnSkipped>
+        static void scan_source_tokens(const std::string& str, bool detect_strings, OnToken&& onToken, OnSkipped&& onSkipped)
+        {
+            bool isInCustomName = false; // after a "prgm" or ʟ token
+            bool isWithinString = false;
+            bool inEvaluatedString = false; // CE OS 5.2 added string interpolation with eval() for TI-Innovator commands
+            uint16_t lastTokenBytes = 0;
+
+            for (size_t strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
+            {
+                const std::string currChar = str.substr(strCursorPos, 1);
+                if (detect_strings)
+                {
+                    if ((lastTokenBytes == 0x5F || lastTokenBytes == 0xEB)) { // prgm and ʟ
+                        isInCustomName = true;
+                    } else if (currChar == "\"") {
+                        isWithinString = !isWithinString;
+                        inEvaluatedString = isWithinString && lastTokenBytes == 0xE7; // Send(
+                    } else if (currChar == "\n" || (strCursorPos < str.length() - strlen("→") && memcmp(&str[strCursorPos], "→", strlen("→")) == 0)) {
+                        isInCustomName = false;
+                        isWithinString = false;
+                        inEvaluatedString = false;
+                    } else if (isInCustomName && !isalnum(currChar[0])) {
+                        isInCustomName = false;
+                    }
+                }
+
+                const uint8_t maxTokSearchLen = std::min(str.length() - strCursorPos, (size_t)lengthOfLongestTokenName);
+                const bool needMinMunch = isInCustomName || (isWithinString && !inEvaluatedString);
+                bool matched = false;
+
+                /* needMinMunch => minimum token length, otherwise maximal munch */
+                for (size_t currentLength = needMinMunch ? 1 : maxTokSearchLen;
+                     needMinMunch ? (currentLength <= maxTokSearchLen) : (currentLength > 0);
+                     currentLength += (needMinMunch ? 1 : -1))
+                {
+                    std::string currentSubString = str.substr(strCursorPos, currentLength);
+
+                    // We want to use true-lowercase alpha tokens in this case.
+                    if ((isWithinString && !inEvaluatedString) && currentLength == 1 && std::islower(static_cast<unsigned char>(currentSubString[0])))
+                    {
+                        // 0xBBB0 is 'a', etc. But we skip what would be 'l' at 0xBBBB which doesn't exist (prefix conflict)
+                        const char letter = currentSubString[0];
+                        uint16_t tokenValue = 0xBBB0 + (letter - 'a') + (letter >= 'l' ? 1 : 0);
+                        onToken(currentSubString, tokenValue);
+                        lastTokenBytes = tokenValue;
+                        matched = true;
+                        break;
+                    }
+
+                    if (tokens_NameToBytes.contains(currentSubString))
+                    {
+                        uint16_t tokenValue = tokens_NameToBytes[currentSubString];
+                        onToken(currentSubString, tokenValue);
+                        strCursorPos += currentLength - 1;
+                        lastTokenBytes = tokenValue;
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if (!matched)
+                {
+                    onSkipped(currChar);
+                }
+            }
+        }
+
         // Shared XML parsing routine used by both standard and Qt/CEmu builds
         static void parse_tokens_xml_and_register(const std::string& xml)
         {
@@ -523,66 +591,16 @@ namespace tivars::TypeHandlers
         // two bytes reserved for the size. Filled later
         data.push_back(0); data.push_back(0);
 
-        bool isInCustomName = false; // after a "prgm" or ʟ token (
-        bool isWithinString = false;
-        bool inEvaluatedString = false; // CE OS 5.2 added string interpolation with eval() for TI-Innovator commands
-        uint16_t lastTokenBytes = 0;
-
-        for (size_t strCursorPos = 0; strCursorPos < str_new.length(); strCursorPos++)
-        {
-            const std::string currChar = str_new.substr(strCursorPos, 1);
-            if(detect_strings)
-            {
-                if((lastTokenBytes == 0x5F || lastTokenBytes == 0xEB)) { // prgm and ʟ
-                    isInCustomName = true;
-                } else if(currChar == "\"") {
-                    isWithinString = !isWithinString;
-                    inEvaluatedString = isWithinString && lastTokenBytes == 0xE7; // Send(
-                } else if(currChar == "\n" || (strCursorPos < str_new.length()-strlen("→") && memcmp(&str_new[strCursorPos], "→", strlen("→")) == 0)) {
-                    isInCustomName = false;
-                    isWithinString = false;
-                    inEvaluatedString = false;
-                } else if(isInCustomName && !isalnum(currChar[0])) {
-                    isInCustomName = false;
-                }
-            }
-
-            const uint8_t maxTokSearchLen = std::min(str_new.length() - strCursorPos, (size_t)lengthOfLongestTokenName);
-            const bool needMinMunch = isInCustomName || (isWithinString && !inEvaluatedString);
-
-            /* needMinMunch => minimum token length, otherwise maximal munch */
-            for (size_t currentLength = needMinMunch ? 1 : maxTokSearchLen;
-                 needMinMunch ? (currentLength <= maxTokSearchLen) : (currentLength > 0);
-                 currentLength += (needMinMunch ? 1 : -1))
-            {
-                std::string currentSubString = str_new.substr(strCursorPos, currentLength);
-
-                // We want to use true-lowercase alpha tokens in this case.
-                if ((isWithinString && !inEvaluatedString) && currentLength == 1 && std::islower(currentSubString[0]))
-                {
-                    // 0xBBB0 is 'a', etc. But we skip what would be 'l' at 0xBBBB which doesn't exist (prefix conflict)
-                    const char letter = currentSubString[0];
-                    uint16_t tokenValue = 0xBBB0 + (letter - 'a') + (letter >= 'l' ? 1 : 0);
-                    data.push_back(tokenValue >> 8);
-                    data.push_back(tokenValue & 0xFF);
-                    lastTokenBytes = tokenValue;
-                    break;
-                }
-
-                if (tokens_NameToBytes.contains(currentSubString))
-                {
-                    uint16_t tokenValue = tokens_NameToBytes[currentSubString];
-                    if (tokenValue > 0xFF)
-                    {
-                        data.push_back((uint8_t)(tokenValue >> 8));
-                    }
-                    data.push_back((uint8_t)(tokenValue & 0xFF));
-                    strCursorPos += currentLength - 1;
-                    lastTokenBytes = tokenValue;
-                    break;
-                }
-            }
-        }
+        scan_source_tokens(str_new, detect_strings,
+                           [&](const std::string&, uint16_t tokenValue)
+                           {
+                               if (tokenValue > 0xFF)
+                               {
+                                   data.push_back((uint8_t)(tokenValue >> 8));
+                               }
+                               data.push_back((uint8_t)(tokenValue & 0xFF));
+                           },
+                           [](const std::string&) {});
 
         size_t actualDataLen = data.size() - 2;
         data[0] = (uint8_t)(actualDataLen & 0xFF);
