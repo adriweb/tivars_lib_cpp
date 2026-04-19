@@ -745,6 +745,38 @@ int main(int argc, char** argv)
     }
 
     {
+        const data_t arrow = TH_Tokenized::makeDataFromString("1->A");
+        assert(arrow == data_t({0x03, 0x00, 0x31, 0x04, 0x41}));
+
+        const data_t escapedArrow = TH_Tokenized::makeDataFromString("1-\\>A");
+        data_t expectedEscapedArrow = { 0x04, 0x00 };
+        expectedEscapedArrow.push_back(TH_Tokenized::makeDataFromString("1")[2]);
+        expectedEscapedArrow.push_back(TH_Tokenized::makeDataFromString("-")[2]);
+        expectedEscapedArrow.push_back(TH_Tokenized::makeDataFromString(">")[2]);
+        expectedEscapedArrow.push_back(TH_Tokenized::makeDataFromString("A")[2]);
+        assert(escapedArrow == expectedEscapedArrow);
+
+        const data_t invisibleSeparator = TH_Tokenized::makeDataFromString("\\");
+        assert(invisibleSeparator == data_t({0x00, 0x00}));
+
+        const data_t literalBackslash = TH_Tokenized::makeDataFromString("\\\\");
+        data_t expectedLiteralBackslash = { 0x02, 0x00, 0xBB, 0xD7 };
+        assert(literalBackslash == expectedLiteralBackslash);
+    }
+
+    {
+        TH_Tokenized::token_posinfo actual{}, expected{};
+
+        actual = TH_Tokenized::getPosInfoAtOffsetInSourceString("1-\\>A", 4);
+        expected = { 0, 3, 1 };
+        assert(compare_token_posinfo(actual, expected) == true);
+
+        actual = TH_Tokenized::getPosInfoAtOffsetInSourceString("\\\\", 2);
+        expected = { 0, 0, 2 };
+        assert(compare_token_posinfo(actual, expected) == true);
+    }
+
+    {
         // Make sure \r\n is tokenized the same as \n (because \r is just ignored as it's not a known token)
         TIVarFile testPrgm = TIVarFile::createNew("Program", "TEST1");
         testPrgm.setContentFromString("Pause 1\nPause 1");

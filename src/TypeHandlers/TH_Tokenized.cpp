@@ -374,10 +374,26 @@ namespace tivars::TypeHandlers
             bool isWithinString = false;
             bool inEvaluatedString = false; // CE OS 5.2 added string interpolation with eval() for TI-Innovator commands
             uint16_t lastTokenBytes = 0;
+            static const std::string backslashStr = "\\";
 
             for (size_t strCursorPos = 0; strCursorPos < str.length(); strCursorPos++)
             {
                 const std::string currChar = str.substr(strCursorPos, 1);
+
+                if (currChar == backslashStr)
+                {
+                    if (strCursorPos + 1 < str.length() && str[strCursorPos + 1] == '\\' && tokens_NameToBytes.contains(backslashStr))
+                    {
+                        const uint16_t tokenValue = tokens_NameToBytes[backslashStr];
+                        onToken("\\\\", tokenValue);
+                        lastTokenBytes = tokenValue;
+                        strCursorPos++;
+                    } else {
+                        onSkipped(currChar);
+                    }
+                    continue;
+                }
+
                 if (detect_strings)
                 {
                     if ((lastTokenBytes == 0x5F || lastTokenBytes == 0xEB)) { // prgm and ʟ
