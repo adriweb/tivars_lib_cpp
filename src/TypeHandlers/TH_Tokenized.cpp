@@ -1470,6 +1470,7 @@ namespace tivars::TypeHandlers
 
         function("TH_Tokenized_getPosInfoAtOffsetFromHexStr", &tivars::TypeHandlers::TH_Tokenized::getPosInfoAtOffsetFromHexStr);
         function("TH_Tokenized_getPosInfoAtOffsetInSourceString", &tivars::TypeHandlers::TH_Tokenized::getPosInfoAtOffsetInSourceString);
+        function("TH_Tokenized_reindentCodeString", select_overload<std::string(const std::string&, const options_t&)>(&tivars::TypeHandlers::TH_Tokenized::reindentCodeString));
         function("TH_Tokenized_oneTokenBytesToString"       , &tivars::TypeHandlers::TH_Tokenized::oneTokenBytesToString);
     }
 #endif
