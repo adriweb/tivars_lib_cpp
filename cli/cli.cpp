@@ -225,21 +225,19 @@ int main(int argc, char** argv)
                     TH_Tokenized::initTokens();
                 }
 
-                TIVarFile file = iformat == VARFILE ? TIVarFile::loadFromFile(ipath) : TIVarFile::createNew(varvarType);
-
+                string requestedName;
                 if (result.count("name"))
                 {
-                    string name = result["name"].as<string>();
-                    file.setVarName(name);
+                    requestedName = result["name"].as<string>();
                 }
 
+                TIModel requestedModel{"84+CE"};
                 if (result.count("calc"))
                 {
                     string modelStr = result["calc"].as<string>();
                     try
                     {
-                        TIModel model{modelStr};
-                        file.setCalcModel(model);
+                        requestedModel = TIModel{modelStr};
                     } catch (invalid_argument& e)
                     {
                         cout << modelStr << "is not a valid calc model." << endl;
@@ -253,7 +251,21 @@ int main(int argc, char** argv)
                     }
                 }
 
-                file.setArchived(result["archive"].as<bool>());
+                TIVarFile file = iformat == VARFILE
+                               ? TIVarFile::loadFromFile(ipath)
+                               : TIVarFile::createNew(varvarType, requestedName, requestedModel);
+
+                if (iformat == VARFILE)
+                {
+                    if (result.count("name"))
+                    {
+                        file.setVarName(requestedName);
+                    }
+                    if (result.count("calc"))
+                    {
+                        file.setCalcModel(requestedModel);
+                    }
+                }
 
                 if (iformat == RAW)
                 {
@@ -293,6 +305,8 @@ int main(int argc, char** argv)
 
                     file.setContentFromString(str.str(), contentOptions);
                 }
+
+                file.setArchived(result["archive"].as<bool>());
 
                 switch (oformat)
                 {
