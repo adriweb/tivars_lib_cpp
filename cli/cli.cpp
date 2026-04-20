@@ -46,6 +46,7 @@ int main(int argc, char** argv)
             ("l,lang", "Language", cxxopts::value<string>()->default_value("en"))
             ("a,archive", "Archive status", cxxopts::value<bool>())
             ("r,reindent", "Re-indent", cxxopts::value<bool>())
+            ("accessible", "Use accessible token names for non-US-keyboard display tokens", cxxopts::value<bool>())
             ("p,prettify", "Prettify (display-oriented, may not roundtrip)", cxxopts::value<bool>())
             ("s,detect_strings", "Detect strings", cxxopts::value<bool>())
             ("h,help", "Print usage");
@@ -317,6 +318,7 @@ int main(int argc, char** argv)
 
                         options_t contentOptions;
                         contentOptions["reindent"] = result["reindent"].as<bool>();
+                        contentOptions["accessible"] = result["accessible"].as<bool>();
                         contentOptions["prettify"] = result["prettify"].as<bool>();
 
                         if (result.count("lang"))

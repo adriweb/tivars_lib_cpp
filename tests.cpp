@@ -649,11 +649,24 @@ int main(int argc, char** argv)
     }
 
     {
-        const std::string menuSource = "Menu(Str8,\"k(a+b)\",1,\"k(a-b)\",1S,\"\",A,\"\",A,\"\",A,\"\",A,\"\",A,Str9,F,Str7,Q";
+        const std::string menuSource = R"lit(Menu(Str8,"k(a+b)",1,"k(a-b)",1S,"",A,"",A,"",A,"",A,"",A,Str9,F,Str7,Q)lit";
         TIVarFile menuPrgm = TIVarFile::createNew("Program", "MENU");
         menuPrgm.setContentFromString(menuSource);
+        assert(menuPrgm.getReadableContent({{"accessible", true}, {"prettify", true}, {"reindent", false}}) == menuSource);
+        assert(menuPrgm.getReadableContent({{"accessible", true}, {"prettify", false}, {"reindent", false}}) == menuSource);
         assert(menuPrgm.getReadableContent({{"prettify", true}, {"reindent", false}}) == menuSource);
         assert(menuPrgm.getReadableContent({{"prettify", false}, {"reindent", false}}) == menuSource);
+    }
+
+    {
+        const std::string menuSource = R"lit(Menu(Str8,"k(a…b)",A," (a…b)ʳ",B,"k(a…b)ʳ",D," (a…b)(c…d)",5,"k(a…b)(c…d)",6,"",F,"",F,"",F,Str7,Q)lit";
+        const std::string accessibleMenuSource = R"lit(Menu(Str8,"k(a...b)",A," (a...b)^^r",B,"k(a...b)^^r",D," (a...b)(c...d)",5,"k(a...b)(c...d)",6,"",F,"",F,"",F,Str7,Q)lit";
+        TIVarFile menuPrgm = TIVarFile::createNew("Program", "MENU2");
+        menuPrgm.setContentFromString(menuSource);
+        const auto& tmp = menuPrgm.getReadableContent({{"accessible", true}, {"reindent", false}});
+        assert(menuPrgm.getReadableContent({{"accessible", true}, {"reindent", false}}) == accessibleMenuSource);
+        assert(menuPrgm.getReadableContent({{"accessible", true}, {"prettify", true}, {"reindent", false}}) == accessibleMenuSource);
+        assert(menuPrgm.getReadableContent({{"prettify", true}, {"reindent", false}}) == menuSource);
     }
 
     {
@@ -705,6 +718,10 @@ int main(int argc, char** argv)
         assert(trim(testPrgmStr1.getReadableContent({{"prettify", true}, {"reindent", false}})) == "42→Str1:Str2:123");
         assert(trim(testPrgmStr1.getReadableContent({{"prettify", false}, {"reindent", false}})) == "42→Str1:Str2:123");
         assert(trim(testPrgmStr1.getReadableContent()) == "42→Str1:Str2:123");
+
+        testPrgmStr1.setContentFromString("AUTO:chi^2pdf(:a+bi:42->Str1");
+        assert(trim(testPrgmStr1.getReadableContent({{"reindent", false}})) == "AUTO:χ²pdf(:a+b𝑖:42→Str1");
+        assert(trim(testPrgmStr1.getReadableContent({{"accessible", true}, {"reindent", false}})) == "AUTO:chi^2pdf(:a+bi:42->Str1");
     }
 
     {

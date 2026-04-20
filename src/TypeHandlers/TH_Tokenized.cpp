@@ -143,6 +143,17 @@ static std::string format_raw_token_escape(uint16_t tokenValue)
            + tivars::dechex(static_cast<unsigned char>(tokenValue & 0xFF));
 }
 
+static std::string format_token_hex(uint16_t tokenValue)
+{
+    if (tokenValue <= 0xFF)
+    {
+        return tivars::dechex(static_cast<unsigned char>(tokenValue));
+    }
+
+    return tivars::dechex(static_cast<unsigned char>(tokenValue >> 8))
+           + tivars::dechex(static_cast<unsigned char>(tokenValue & 0xFF));
+}
+
 static void ltrim_program_whitespace(std::string& s)
 {
     size_t pos = 0;
@@ -200,6 +211,21 @@ static std::string prettify_token_string(std::string str)
     }
 
     return str;
+}
+
+static bool is_standard_keyboard_typable(const std::string& str)
+{
+    return std::ranges::all_of(str, [](unsigned char c) { return c == '\n' || (c >= 0x20 && c <= 0x7E); });
+}
+
+static std::string format_last_resort_detok_string(uint16_t tokenValue)
+{
+    return tokenValue == 0x3F ? "\n" : format_raw_token_escape(tokenValue);
+}
+
+static std::string format_detok_string_for_log(const std::string& str)
+{
+    return str == "\n" ? "\\n" : str;
 }
 
 static void split_var_keyword_lines(std::string& str, const std::string& keyword)
@@ -668,6 +694,33 @@ namespace tivars::TypeHandlers
             return candidates;
         }
 
+        static std::string get_detok_primary_string(uint16_t bytesKey, uint8_t langIdx, const options_t& options)
+        {
+            using TH_Tokenized::LANG_EN;
+
+            const auto it = tokens_BytesToNames.find(bytesKey);
+            if (it == tokens_BytesToNames.end())
+            {
+                return format_raw_token_escape(bytesKey);
+            }
+
+            const TokenNames& tokenNames = it->second;
+            const std::string& display = tokenNames.display[langIdx];
+            const bool accessibleDetok = options.contains("accessible") && options.at("accessible") == 1;
+            if (!accessibleDetok || is_standard_keyboard_typable(display))
+            {
+                return display;
+            }
+
+            const std::vector<std::string>* accessibles = &tokenNames.accessibles[langIdx];
+            if (accessibles->empty() && langIdx != LANG_EN)
+            {
+                accessibles = &tokenNames.accessibles[LANG_EN];
+            }
+
+            return accessibles->empty() ? display : accessibles->front();
+        }
+
         // Shared XML parsing routine used by both standard and Qt/CEmu builds
         static void parse_tokens_xml_and_register(const std::string& xml)
         {
@@ -917,6 +970,7 @@ namespace tivars::TypeHandlers
         }
 
         const bool prettify = options.contains("prettify") && options.at("prettify") == 1;
+        const bool accessibleDetok = options.contains("accessible") && options.at("accessible") == 1;
 
         std::string str;
         data_t verifiedRawBytes;
@@ -983,8 +1037,8 @@ namespace tivars::TypeHandlers
 
             if (tokens_BytesToNames.contains(bytesKey))
             {
-                const std::string tokStr = tokens_BytesToNames[bytesKey].display[langIdx];
-                if (prettify)
+                const std::string tokStr = get_detok_primary_string(bytesKey, langIdx, options);
+                if (prettify || accessibleDetok)
                 {
                     str += tokStr;
                 }
@@ -1018,16 +1072,17 @@ namespace tivars::TypeHandlers
 
                     if (!acceptedFallback)
                     {
-                        const std::string rawEscape = format_raw_token_escape(bytesKey);
-                        std::cerr << "[Warning] Appending token 0x" << rawEscape.substr(2)
+                        const std::string rawEscape = format_last_resort_detok_string(bytesKey);
+                        std::cerr << "[Warning] Appending token 0x" << format_token_hex(bytesKey)
                                   << " (" << tokStr << ") made the accumulated detokenized string non-roundtrippable, using "
-                                  << rawEscape << " instead!" << std::endl;
+                                  << format_detok_string_for_log(rawEscape) << " instead!" << std::endl;
                         accept_detok_token(rawEscape, currentRawBytes);
                     }
                 }
             } else {
-                const std::string rawEscape = format_raw_token_escape(bytesKey);
-                std::cerr << "[Warning] Unknown token 0x" << rawEscape.substr(2) << " detokenized as " << rawEscape << "!" << std::endl;
+                const std::string rawEscape = format_last_resort_detok_string(bytesKey);
+                std::cerr << "[Warning] Unknown token 0x" << format_token_hex(bytesKey)
+                          << " detokenized as " << format_detok_string_for_log(rawEscape) << "!" << std::endl;
                 if (prettify) {
                     str += rawEscape;
                 } else {
@@ -1244,7 +1299,7 @@ namespace tivars::TypeHandlers
         std::string tokStr;
         if (tokens_BytesToNames.contains(bytesKey))
         {
-            tokStr = tokens_BytesToNames[bytesKey].display[langIdx];
+            tokStr = get_detok_primary_string(bytesKey, langIdx, options);
         } else {
             tokStr = format_raw_token_escape(bytesKey);
         }
@@ -1267,7 +1322,7 @@ namespace tivars::TypeHandlers
         std::string tokStr;
         if (tokens_BytesToNames.contains(tokenBytes))
         {
-            tokStr = tokens_BytesToNames[tokenBytes].display[LANG_EN];
+            tokStr = get_detok_primary_string(tokenBytes, LANG_EN, {});
         } else {
             tokStr = format_raw_token_escape(tokenBytes);
         }
@@ -1334,7 +1389,7 @@ namespace tivars::TypeHandlers
             std::string tokStr;
             if (tokens_BytesToNames.contains(bytesKey))
             {
-                tokStr = tokens_BytesToNames[bytesKey].display[langIdx];
+                tokStr = get_detok_primary_string(bytesKey, langIdx, options);
             } else {
                 tokStr = format_raw_token_escape(bytesKey);
             }
