@@ -488,6 +488,8 @@ namespace tivars::TypeHandlers
                 const size_t separatorLen = token_boundary_separator_len_at(str, strCursorPos);
                 if (separatorLen > 0)
                 {
+                    state.isInCustomName = false;
+                    state.lastTokenBytes = 0;
                     onSkipped(str.substr(strCursorPos, separatorLen));
                     strCursorPos += separatorLen - 1;
                     continue;
@@ -514,6 +516,8 @@ namespace tivars::TypeHandlers
                         state.lastTokenBytes = tokenValue;
                         strCursorPos++;
                     } else {
+                        state.isInCustomName = false;
+                        state.lastTokenBytes = 0;
                         onSkipped(currChar);
                     }
                     continue;
@@ -607,6 +611,13 @@ namespace tivars::TypeHandlers
         static data_t tokenize_source_to_raw_bytes(const std::string& str, bool detect_strings = true)
         {
             return tokenize_source_to_raw_bytes(str, detect_strings, TokenScanState{});
+        }
+
+        static void advance_token_scan_state(const std::string& str, TokenScanState& state)
+        {
+            scan_source_tokens_impl(str, true, state,
+                                    [](const std::string&, uint16_t) {},
+                                    [](const std::string&) {});
         }
 
         static void append_unique_string(std::vector<std::string>& list, const std::string& value)
@@ -948,6 +959,7 @@ namespace tivars::TypeHandlers
         {
             str += token;
             tivars::vector_append(verifiedRawBytes, tokenRawBytes);
+            advance_token_scan_state(token, detokState);
             detokCheckpoints.push_back({str.size(), verifiedRawBytes.size(), detokState});
         };
 

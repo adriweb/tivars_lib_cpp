@@ -638,6 +638,25 @@ int main(int argc, char** argv)
     }
 
     {
+        assert(TH_Tokenized::makeStringFromData(data_t({0x3F}), {{"fromRawBytes", 1}}) == "\n");
+        assert(TH_Tokenized::makeDataFromString("\n") == data_t({0x01, 0x00, 0x3F}));
+    }
+
+    {
+        const std::string readable = TH_Tokenized::makeStringFromData(data_t({0x5F, 0xAA, 0x08}), {{"fromRawBytes", 1}});
+        assert(readable == R"(prgm\Str9)");
+        assert(TH_Tokenized::makeDataFromString(readable) == data_t({0x03, 0x00, 0x5F, 0xAA, 0x08}));
+    }
+
+    {
+        const std::string menuSource = "Menu(Str8,\"k(a+b)\",1,\"k(a-b)\",1S,\"\",A,\"\",A,\"\",A,\"\",A,\"\",A,Str9,F,Str7,Q";
+        TIVarFile menuPrgm = TIVarFile::createNew("Program", "MENU");
+        menuPrgm.setContentFromString(menuSource);
+        assert(menuPrgm.getReadableContent({{"prettify", true}, {"reindent", false}}) == menuSource);
+        assert(menuPrgm.getReadableContent({{"prettify", false}, {"reindent", false}}) == menuSource);
+    }
+
+    {
         ScopedStderrCapture unknownTokenStderr;
         const std::string readable = TH_Tokenized::makeStringFromData(data_t{0xBB, 0xD0}, {{"fromRawBytes", 1}});
         assert(readable == "\\uBBD0");
