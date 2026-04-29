@@ -1042,6 +1042,10 @@ namespace tivars::TypeHandlers
                 {
                     str += tokStr;
                 }
+                else if (tokStr.empty())
+                {
+                    accept_detok_token(format_last_resort_detok_string(bytesKey), currentRawBytes);
+                }
                 else if (validate_detok_token(tokStr, currentRawBytes))
                 {
                     accept_detok_token(tokStr, currentRawBytes);
