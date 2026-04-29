@@ -8,6 +8,12 @@
 #include <string>
 #include <system_error>
 
+#ifdef _WIN32
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
+
 #include "../src/TIFlashFile.h"
 #include "../src/TIModels.h"
 #include "../src/TIVarFile.h"
@@ -26,6 +32,15 @@ namespace
 
     std::once_flag initFlag;
     std::atomic<uint64_t> inputCounter{0};
+
+    int current_process_id()
+    {
+#ifdef _WIN32
+        return _getpid();
+#else
+        return getpid();
+#endif
+    }
 
     void init_library()
     {
@@ -48,7 +63,7 @@ namespace
         }
 
         const uint64_t uniqueId = inputCounter.fetch_add(1, std::memory_order_relaxed);
-        const std::filesystem::path path = tempDir / ("tivars-fuzz-" + std::to_string(uniqueId) + ".bin");
+        const std::filesystem::path path = tempDir / ("tivars-fuzz-" + std::to_string(current_process_id()) + "-" + std::to_string(uniqueId) + ".bin");
         std::ofstream out(path, std::ios::binary);
         out.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(size));
         out.close();
