@@ -1,10 +1,21 @@
 CXX := em++
+DEBUG ?= 0
+
+ifeq ($(DEBUG),1)
+	OPTFLAGS := -O0 -g3 -flto
+	ASSERTIONS := 2
+	DEBUG_EMFLAGS := -s SAFE_HEAP=1
+else
+	OPTFLAGS := -O3 -flto
+	ASSERTIONS := 0
+	DEBUG_EMFLAGS :=
+endif
 
 # Emscripten stuff
-EMFLAGS := --bind -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME="'TIVarsLib'" -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=0 -s EXPORTED_RUNTIME_METHODS="['FS','getExceptionMessage','decrementExceptionRefcount']" --embed-file ti-toolkit-8x-tokens.xml
+EMFLAGS := --bind -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME="'TIVarsLib'" -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=$(ASSERTIONS) -s DISABLE_EXCEPTION_CATCHING=0 -s EXPORTED_RUNTIME_METHODS="['FS','getExceptionMessage','decrementExceptionRefcount']" $(DEBUG_EMFLAGS) --embed-file ti-toolkit-8x-tokens.xml
 
-CXXFLAGS := -O3 -flto -std=c++2a -DTH_GDB_SUPPORT=1 -Ivendor/pugixml -W -Wall -Wextra
-LFLAGS := -flto $(EMFLAGS)
+CXXFLAGS := $(OPTFLAGS) -std=c++2a -DTH_GDB_SUPPORT=1 -Ivendor/pugixml -W -Wall -Wextra
+LFLAGS := $(OPTFLAGS) $(EMFLAGS)
 
 SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp) vendor/pugixml/pugixml.cpp
 
