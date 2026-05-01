@@ -28,7 +28,13 @@ namespace tivars::TypeHandlers
             throw std::invalid_argument("Invalid type for given string");
         }
 
-        auto arr = explode(trim(str, "{}"), ',');
+        const std::string inner = trim(str, "{}");
+        if (inner.empty())
+        {
+            return {0, 0};
+        }
+
+        auto arr = explode(inner, ',');
         const size_t numCount = arr.size();
 
         for (auto& numStr : arr)
@@ -65,6 +71,10 @@ namespace tivars::TypeHandlers
         }
 
         const size_t numCount = (size_t) ((data[0] & 0xFF) + ((data[1] & 0xFF) << 8));
+        if (numCount == 0 && byteCount == 2)
+        {
+            return "{}";
+        }
 
         const bool isRealList    = (numCount == (byteCount - 2) / TH_GenericReal::dataByteCount);
         const bool isComplexList = (numCount == (byteCount - 2) / TH_GenericComplex::dataByteCount);
