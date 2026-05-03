@@ -2368,6 +2368,20 @@ End)";
         assert(longProtectedProgram.getVarEntries()[0]._type.getName() == "ProtectedProgram");
         const std::string longProtectedName = entry_name_to_string(longProtectedProgram.getVarEntries()[0]._type, longProtectedProgram.getVarEntries()[0].varname);
         assert(!longProtectedName.empty());
+        {
+            ScopedStderrCapture longProtectedDetokenizeStderr;
+            const std::string longProtectedReadable = longProtectedProgram.getReadableContent();
+            assert(longProtectedDetokenizeStderr.str().find("non-roundtrippable") == std::string::npos);
+            assert(longProtectedReadable.find("\"Q|ui[t][t][|e][r]→Str7") != std::string::npos);
+            assert(longProtectedReadable.find("\"R[|e][t]o|u[r]→Str9") != std::string::npos);
+            assert(longProtectedReadable.find("\\u5E80") == std::string::npos);
+            assert(longProtectedReadable.find("\\u621A") == std::string::npos);
+            assert(longProtectedReadable.find("\\u6212") == std::string::npos);
+            assert(longProtectedReadable.find("\\u6224") == std::string::npos);
+            TIVarFile recreatedLongProtectedProgram = TIVarFile::createNew("ProtectedProgram", longProtectedName);
+            recreatedLongProtectedProgram.setContentFromString(longProtectedReadable);
+            assert(recreatedLongProtectedProgram.getRawContent() == longProtectedProgram.getRawContent());
+        }
         const std::string longProtectedPath = "/tmp/"s + longProtectedName + ".8xp";
         assert(longProtectedProgram.saveVarToFile("/tmp", "") == longProtectedPath);
         assert(remove(longProtectedPath.c_str()) == 0);

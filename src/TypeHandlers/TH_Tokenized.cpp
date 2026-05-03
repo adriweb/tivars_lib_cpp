@@ -22,6 +22,7 @@
 #include <fstream>
 #include <cstring>
 #include <array>
+#include <algorithm>
 
 #include <pugixml.hpp>
 
@@ -497,12 +498,24 @@ namespace tivars::TypeHandlers
             uint16_t lastTokenBytes = 0;
         };
 
-        struct TokenScanCheckpoint
+        static void register_token_lookup_name(const std::string& name, uint16_t tokenValue)
         {
-            size_t strPos = 0;
-            size_t rawLen = 0;
-            TokenScanState state;
-        };
+            if (name.empty())
+            {
+                return;
+            }
+
+            tokens_NameToBytes[name] = tokenValue;
+            if (name.size() > lengthOfLongestTokenName)
+            {
+                lengthOfLongestTokenName = static_cast<uint8_t>(name.size());
+            }
+        }
+
+        static bool can_start_explicit_string_alias(char c)
+        {
+            return std::string_view("[]{}|^_").find(c) != std::string_view::npos;
+        }
 
         template<typename OnToken, typename OnSkipped>
         static void scan_source_tokens_impl(const std::string& str, bool detect_strings, TokenScanState& state, OnToken&& onToken, OnSkipped&& onSkipped)
@@ -572,9 +585,28 @@ namespace tivars::TypeHandlers
                 const bool needMinMunch = state.isInCustomName || (state.isWithinString && !state.inEvaluatedString);
                 bool matched = false;
 
+                if (state.isWithinString && !state.inEvaluatedString && can_start_explicit_string_alias(str[strCursorPos]))
+                {
+                    for (size_t currentLength = maxTokSearchLen; currentLength > 1; currentLength--)
+                    {
+                        const std::string currentSubString = str.substr(strCursorPos, currentLength);
+                        const auto tokenIt = tokens_NameToBytes.find(currentSubString);
+                        if (tokenIt == tokens_NameToBytes.end())
+                        {
+                            continue;
+                        }
+
+                        onToken(currentSubString, tokenIt->second);
+                        strCursorPos += currentLength - 1;
+                        state.lastTokenBytes = tokenIt->second;
+                        matched = true;
+                        break;
+                    }
+                }
+
                 /* needMinMunch => minimum token length, otherwise maximal munch */
                 for (size_t currentLength = needMinMunch ? 1 : maxTokSearchLen;
-                     needMinMunch ? (currentLength <= maxTokSearchLen) : (currentLength > 0);
+                     !matched && (needMinMunch ? (currentLength <= maxTokSearchLen) : (currentLength > 0));
                      currentLength += (needMinMunch ? 1 : -1))
                 {
                     std::string currentSubString = str.substr(strCursorPos, currentLength);
@@ -634,11 +666,6 @@ namespace tivars::TypeHandlers
             return data;
         }
 
-        static data_t tokenize_source_to_raw_bytes(const std::string& str, bool detect_strings = true)
-        {
-            return tokenize_source_to_raw_bytes(str, detect_strings, TokenScanState{});
-        }
-
         static void advance_token_scan_state(const std::string& str, TokenScanState& state)
         {
             scan_source_tokens_impl(str, true, state,
@@ -657,6 +684,30 @@ namespace tivars::TypeHandlers
             {
                 list.push_back(value);
             }
+        }
+
+        static bool append_can_merge_with_previous_token(const std::string& existing, const std::string& appended)
+        {
+            if (existing.empty() || appended.empty() || lengthOfLongestTokenName < 2)
+            {
+                return false;
+            }
+
+            const size_t maxSuffixLen = std::min(existing.size(), static_cast<size_t>(lengthOfLongestTokenName - 1));
+            for (size_t suffixLen = 1; suffixLen <= maxSuffixLen; suffixLen++)
+            {
+                const std::string suffix = existing.substr(existing.size() - suffixLen);
+                const size_t maxPrefixLen = std::min(appended.size(), static_cast<size_t>(lengthOfLongestTokenName) - suffixLen);
+                for (size_t prefixLen = 1; prefixLen <= maxPrefixLen; prefixLen++)
+                {
+                    if (tokens_NameToBytes.contains(suffix + appended.substr(0, prefixLen)))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         static std::vector<std::string> get_detok_alias_candidates(uint16_t bytesKey, uint8_t langIdx, const std::string& primaryDisplay)
@@ -682,13 +733,13 @@ namespace tivars::TypeHandlers
                 }
             };
 
-            append_aliases(tokenNames.variants, langIdx);
             append_aliases(tokenNames.accessibles, langIdx);
+            append_aliases(tokenNames.variants, langIdx);
 
             if (langIdx != LANG_EN)
             {
-                append_aliases(tokenNames.variants, LANG_EN);
                 append_aliases(tokenNames.accessibles, LANG_EN);
+                append_aliases(tokenNames.variants, LANG_EN);
             }
 
             return candidates;
@@ -785,9 +836,7 @@ namespace tivars::TypeHandlers
                                     auto& tokenNames = tokens_BytesToNames[bytes];
                                     auto& aliasList = std::strcmp(which, "variant") == 0 ? tokenNames.variants[langIdx] : tokenNames.accessibles[langIdx];
                                     append_unique_string(aliasList, s);
-                                    tokens_NameToBytes[s] = bytes;
-                                    if (s.size() > lengthOfLongestTokenName)
-                                        lengthOfLongestTokenName = (uint8_t)s.size();
+                                    register_token_lookup_name(s, bytes);
                                 }
                             }
                         }
@@ -803,13 +852,9 @@ namespace tivars::TypeHandlers
                 if (!en.empty() || !fr.empty())
                     tokens_BytesToNames[bytes].display = { en, fr.empty() ? en : fr };
                 if (!en.empty())
-                    tokens_NameToBytes[en] = bytes;
+                    register_token_lookup_name(en, bytes);
                 if (!fr.empty())
-                    tokens_NameToBytes[fr] = bytes;
-                if (en.size() > lengthOfLongestTokenName)
-                    lengthOfLongestTokenName = (uint8_t)en.size();
-                if (fr.size() > lengthOfLongestTokenName)
-                    lengthOfLongestTokenName = (uint8_t)fr.size();
+                    register_token_lookup_name(fr, bytes);
 
                 register_aliases(bytes, tokenNode);
             };
@@ -975,38 +1020,21 @@ namespace tivars::TypeHandlers
         std::string str;
         data_t verifiedRawBytes;
         TokenScanState detokState{};
-        std::vector<TokenScanCheckpoint> detokCheckpoints = { {0, 0, detokState} };
-        const size_t detokValidationLookbehind = std::max<size_t>(lengthOfLongestTokenName, 6) + 1;
 
         auto validate_detok_token = [&](const std::string& token, const data_t& tokenRawBytes)
         {
-            const size_t tailMinPos = str.size() > detokValidationLookbehind ? str.size() - detokValidationLookbehind : 0;
-            auto checkpointIt = std::upper_bound(detokCheckpoints.begin(), detokCheckpoints.end(), tailMinPos,
-                                                 [](size_t pos, const TokenScanCheckpoint& checkpoint)
-                                                 {
-                                                     return pos < checkpoint.strPos;
-                                                 });
-            if (checkpointIt != detokCheckpoints.begin())
+            if (tokenize_source_to_raw_bytes(token, true, detokState) != tokenRawBytes)
             {
-                checkpointIt--;
+                return false;
             }
-
-            std::string candidateSegment = str.substr(checkpointIt->strPos);
-            candidateSegment += token;
-
-            data_t expectedSegmentBytes(verifiedRawBytes.begin() + (long long)checkpointIt->rawLen, verifiedRawBytes.end());
-            tivars::vector_append(expectedSegmentBytes, tokenRawBytes);
-
-            const data_t actualBytes = tokenize_source_to_raw_bytes(candidateSegment, true, checkpointIt->state);
-            if (actualBytes == expectedSegmentBytes)
+            if (!append_can_merge_with_previous_token(str, token))
             {
                 return true;
             }
 
-            const std::string fullCandidate = str + token;
             data_t expectedFullBytes = verifiedRawBytes;
             tivars::vector_append(expectedFullBytes, tokenRawBytes);
-            return tokenize_source_to_raw_bytes(fullCandidate) == expectedFullBytes;
+            return tokenize_source_to_raw_bytes(str + token, true, TokenScanState{}) == expectedFullBytes;
         };
 
         auto accept_detok_token = [&](const std::string& token, const data_t& tokenRawBytes)
@@ -1014,7 +1042,6 @@ namespace tivars::TypeHandlers
             str += token;
             tivars::vector_append(verifiedRawBytes, tokenRawBytes);
             advance_token_scan_state(token, detokState);
-            detokCheckpoints.push_back({str.size(), verifiedRawBytes.size(), detokState});
         };
 
         for (size_t i = fromRawBytes ? 0 : 2; i < dataSize; i++)
@@ -1054,24 +1081,21 @@ namespace tivars::TypeHandlers
                 {
                     bool acceptedFallback = false;
 
+                    for (const auto& aliasCandidate : get_detok_alias_candidates(bytesKey, langIdx, tokStr))
+                    {
+                        if (validate_detok_token(aliasCandidate, currentRawBytes))
+                        {
+                            accept_detok_token(aliasCandidate, currentRawBytes);
+                            acceptedFallback = true;
+                            break;
+                        }
+                    }
+
                     const std::string escapedToken = "\\" + tokStr;
-                    if (validate_detok_token(escapedToken, currentRawBytes))
+                    if (!acceptedFallback && validate_detok_token(escapedToken, currentRawBytes))
                     {
                         accept_detok_token(escapedToken, currentRawBytes);
                         acceptedFallback = true;
-                    }
-
-                    if (!acceptedFallback)
-                    {
-                        for (const auto& aliasCandidate : get_detok_alias_candidates(bytesKey, langIdx, tokStr))
-                        {
-                            if (validate_detok_token(aliasCandidate, currentRawBytes))
-                            {
-                                accept_detok_token(aliasCandidate, currentRawBytes);
-                                acceptedFallback = true;
-                                break;
-                            }
-                        }
                     }
 
                     if (!acceptedFallback)
