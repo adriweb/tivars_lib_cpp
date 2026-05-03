@@ -587,6 +587,27 @@ int main(int argc, char** argv)
     }
 
     {
+        ScopedStderrCapture variantBeforeAccessibleStderr;
+        const data_t greekPiToken = {0xBB, 0xA7};
+        const std::string readable = TH_Tokenized::makeStringFromData(greekPiToken, {{"fromRawBytes", 1}});
+        assert(readable == "|π");
+        assert(variantBeforeAccessibleStderr.str().empty());
+        assert(TH_Tokenized::makeDataFromString(readable) == data_t({0x02, 0x00, 0xBB, 0xA7}));
+        assert(TH_Tokenized::makeDataFromString("greek_pi") == data_t({0x02, 0x00, 0xBB, 0xA7}));
+        assert(TH_Tokenized::makeDataFromString("π") == data_t({0x01, 0x00, 0xAC}));
+        assert(TH_Tokenized::makeStringFromData(greekPiToken, {{"fromRawBytes", 1}, {"accessible", 1}}) == "greek_pi");
+    }
+
+    {
+        ScopedStderrCapture stringVariantBeforeAccessibleStderr;
+        const data_t rawString = {0x2A, 0x51, 0xBB, 0xA7, 0x2A};
+        const std::string readable = TH_Tokenized::makeStringFromData(rawString, {{"fromRawBytes", 1}});
+        assert(readable == "\"Q|π\"");
+        assert(stringVariantBeforeAccessibleStderr.str().empty());
+        assert(TH_Tokenized::makeDataFromString(readable) == data_t({0x05, 0x00, 0x2A, 0x51, 0xBB, 0xA7, 0x2A}));
+    }
+
+    {
         struct SingleLetterTokenCase
         {
             uint8_t prefix;

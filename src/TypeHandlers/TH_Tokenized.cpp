@@ -698,41 +698,6 @@ namespace tivars::TypeHandlers
             return false;
         }
 
-        static std::set<std::string> get_detok_alias_candidates(uint16_t bytesKey, uint8_t langIdx, const std::string& primaryDisplay)
-        {
-            using TH_Tokenized::LANG_EN;
-
-            const auto it = tokens_BytesToNames.find(bytesKey);
-            if (it == tokens_BytesToNames.end())
-            {
-                return {};
-            }
-
-            const TokenNames& tokenNames = it->second;
-            std::set<std::string> candidates;
-            auto append_aliases = [&](const auto& aliases, uint8_t idx)
-            {
-                for (const auto& candidate : aliases[idx])
-                {
-                    if (candidate != primaryDisplay)
-                    {
-                        candidates.insert(candidate);
-                    }
-                }
-            };
-
-            append_aliases(tokenNames.accessibles, langIdx);
-            append_aliases(tokenNames.variants, langIdx);
-
-            if (langIdx != LANG_EN)
-            {
-                append_aliases(tokenNames.accessibles, LANG_EN);
-                append_aliases(tokenNames.variants, LANG_EN);
-            }
-
-            return candidates;
-        }
-
         static std::string get_detok_primary_string(uint16_t bytesKey, uint8_t langIdx, const options_t& options)
         {
             using TH_Tokenized::LANG_EN;
@@ -1050,8 +1015,10 @@ namespace tivars::TypeHandlers
                 currentRawBytes.push_back(nextToken);
             }
 
-            if (tokens_BytesToNames.contains(bytesKey))
+            const auto tokenNamesIt = tokens_BytesToNames.find(bytesKey);
+            if (tokenNamesIt != tokens_BytesToNames.end())
             {
+                const TokenNames& tokenNames = tokenNamesIt->second;
                 const std::string tokStr = get_detok_primary_string(bytesKey, langIdx, options);
                 if (prettify || accessibleDetok)
                 {
@@ -1069,15 +1036,23 @@ namespace tivars::TypeHandlers
                 {
                     bool acceptedFallback = false;
 
-                    for (const auto& aliasCandidate : get_detok_alias_candidates(bytesKey, langIdx, tokStr))
+                    auto try_aliases = [&](const auto& aliases, uint8_t idx)
                     {
-                        if (validate_detok_token(aliasCandidate, currentRawBytes))
+                        for (const auto& aliasCandidate : aliases[idx])
                         {
-                            accept_detok_token(aliasCandidate, currentRawBytes);
-                            acceptedFallback = true;
-                            break;
+                            if (aliasCandidate != tokStr && validate_detok_token(aliasCandidate, currentRawBytes))
+                            {
+                                accept_detok_token(aliasCandidate, currentRawBytes);
+                                acceptedFallback = true;
+                                return;
+                            }
                         }
-                    }
+                    };
+
+                    try_aliases(tokenNames.variants, langIdx);
+                    if (!acceptedFallback) try_aliases(tokenNames.accessibles, langIdx);
+                    if (!acceptedFallback && langIdx != LANG_EN) try_aliases(tokenNames.variants, LANG_EN);
+                    if (!acceptedFallback && langIdx != LANG_EN) try_aliases(tokenNames.accessibles, LANG_EN);
 
                     const std::string escapedToken = "\\" + tokStr;
                     if (!acceptedFallback && validate_detok_token(escapedToken, currentRawBytes))
