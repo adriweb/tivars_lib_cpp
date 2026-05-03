@@ -23,6 +23,7 @@
 #include <cstring>
 #include <array>
 #include <algorithm>
+#include <set>
 
 #include <pugixml.hpp>
 
@@ -480,8 +481,8 @@ namespace tivars::TypeHandlers
         struct TokenNames
         {
             std::array<std::string, TH_Tokenized::LANG_MAX> display{};
-            std::array<std::vector<std::string>, TH_Tokenized::LANG_MAX> variants{};
-            std::array<std::vector<std::string>, TH_Tokenized::LANG_MAX> accessibles{};
+            std::array<std::set<std::string>, TH_Tokenized::LANG_MAX> variants{};
+            std::array<std::set<std::string>, TH_Tokenized::LANG_MAX> accessibles{};
         };
 
         std::unordered_map<uint16_t, TokenNames> tokens_BytesToNames;
@@ -548,11 +549,11 @@ namespace tivars::TypeHandlers
                         continue;
                     }
 
-                    if (strCursorPos + 1 < str.length() && str[strCursorPos + 1] == '\\' && tokens_NameToBytes.contains(backslashStr))
+                    const auto backslashTokenIt = tokens_NameToBytes.find(backslashStr);
+                    if (strCursorPos + 1 < str.length() && str[strCursorPos + 1] == '\\' && backslashTokenIt != tokens_NameToBytes.end())
                     {
-                        const uint16_t tokenValue = tokens_NameToBytes[backslashStr];
-                        onToken("\\\\", tokenValue);
-                        state.lastTokenBytes = tokenValue;
+                        onToken("\\\\", backslashTokenIt->second);
+                        state.lastTokenBytes = backslashTokenIt->second;
                         strCursorPos++;
                     } else {
                         state.isInCustomName = false;
@@ -623,12 +624,12 @@ namespace tivars::TypeHandlers
                         break;
                     }
 
-                    if (tokens_NameToBytes.contains(currentSubString))
+                    const auto tokenIt = tokens_NameToBytes.find(currentSubString);
+                    if (tokenIt != tokens_NameToBytes.end())
                     {
-                        uint16_t tokenValue = tokens_NameToBytes[currentSubString];
-                        onToken(currentSubString, tokenValue);
+                        onToken(currentSubString, tokenIt->second);
                         strCursorPos += currentLength - 1;
-                        state.lastTokenBytes = tokenValue;
+                        state.lastTokenBytes = tokenIt->second;
                         matched = true;
                         break;
                     }
@@ -673,19 +674,6 @@ namespace tivars::TypeHandlers
                                     [](const std::string&) {});
         }
 
-        static void append_unique_string(std::vector<std::string>& list, const std::string& value)
-        {
-            if (value.empty())
-            {
-                return;
-            }
-
-            if (std::find(list.begin(), list.end(), value) == list.end())
-            {
-                list.push_back(value);
-            }
-        }
-
         static bool append_can_merge_with_previous_token(const std::string& existing, const std::string& appended)
         {
             if (existing.empty() || appended.empty() || lengthOfLongestTokenName < 2)
@@ -710,7 +698,7 @@ namespace tivars::TypeHandlers
             return false;
         }
 
-        static std::vector<std::string> get_detok_alias_candidates(uint16_t bytesKey, uint8_t langIdx, const std::string& primaryDisplay)
+        static std::set<std::string> get_detok_alias_candidates(uint16_t bytesKey, uint8_t langIdx, const std::string& primaryDisplay)
         {
             using TH_Tokenized::LANG_EN;
 
@@ -721,14 +709,14 @@ namespace tivars::TypeHandlers
             }
 
             const TokenNames& tokenNames = it->second;
-            std::vector<std::string> candidates;
+            std::set<std::string> candidates;
             auto append_aliases = [&](const auto& aliases, uint8_t idx)
             {
                 for (const auto& candidate : aliases[idx])
                 {
                     if (candidate != primaryDisplay)
                     {
-                        append_unique_string(candidates, candidate);
+                        candidates.insert(candidate);
                     }
                 }
             };
@@ -763,13 +751,11 @@ namespace tivars::TypeHandlers
                 return display;
             }
 
-            const std::vector<std::string>* accessibles = &tokenNames.accessibles[langIdx];
-            if (accessibles->empty() && langIdx != LANG_EN)
-            {
-                accessibles = &tokenNames.accessibles[LANG_EN];
-            }
+            const auto& accessibles = tokenNames.accessibles[langIdx].empty() && langIdx != LANG_EN
+                                      ? tokenNames.accessibles[LANG_EN]
+                                      : tokenNames.accessibles[langIdx];
 
-            return accessibles->empty() ? display : accessibles->front();
+            return accessibles.empty() ? display : *accessibles.begin();
         }
 
         // Shared XML parsing routine used by both standard and Qt/CEmu builds
@@ -826,20 +812,22 @@ namespace tivars::TypeHandlers
                         const char* code = lang.attribute("code").as_string("");
                         const uint8_t langIdx = std::strcmp(code, "fr") == 0 ? LANG_FR : LANG_EN;
 
-                        for (const auto* which : { "variant", "accessible" })
+                        auto register_alias_nodes = [&](const char* nodeName, auto& aliasList)
                         {
-                            for (const xml_node& v : lang.children(which))
+                            for (const xml_node& v : lang.children(nodeName))
                             {
                                 const std::string s = v.child_value();
                                 if (!s.empty())
                                 {
-                                    auto& tokenNames = tokens_BytesToNames[bytes];
-                                    auto& aliasList = std::strcmp(which, "variant") == 0 ? tokenNames.variants[langIdx] : tokenNames.accessibles[langIdx];
-                                    append_unique_string(aliasList, s);
+                                    aliasList.insert(s);
                                     register_token_lookup_name(s, bytes);
                                 }
                             }
-                        }
+                        };
+
+                        auto& tokenNames = tokens_BytesToNames[bytes];
+                        register_alias_nodes("accessible", tokenNames.accessibles[langIdx]);
+                        register_alias_nodes("variant", tokenNames.variants[langIdx]);
                     }
                 }
             };
@@ -1324,13 +1312,7 @@ namespace tivars::TypeHandlers
             bytesKey = nextToken + (currentToken << 8);
         }
 
-        std::string tokStr;
-        if (tokens_BytesToNames.contains(bytesKey))
-        {
-            tokStr = get_detok_primary_string(bytesKey, langIdx, options);
-        } else {
-            tokStr = format_raw_token_escape(bytesKey);
-        }
+        std::string tokStr = get_detok_primary_string(bytesKey, langIdx, options);
         if (fromPrettified)
         {
             tokStr = prettify_token_string(tokStr);
@@ -1347,13 +1329,7 @@ namespace tivars::TypeHandlers
             return "";
         }
 
-        std::string tokStr;
-        if (tokens_BytesToNames.contains(tokenBytes))
-        {
-            tokStr = get_detok_primary_string(tokenBytes, LANG_EN, {});
-        } else {
-            tokStr = format_raw_token_escape(tokenBytes);
-        }
+        std::string tokStr = get_detok_primary_string(tokenBytes, LANG_EN, {});
 
         tokStr = prettify_token_string(tokStr);
 
@@ -1414,13 +1390,7 @@ namespace tivars::TypeHandlers
                 i++;
             }
 
-            std::string tokStr;
-            if (tokens_BytesToNames.contains(bytesKey))
-            {
-                tokStr = get_detok_primary_string(bytesKey, langIdx, options);
-            } else {
-                tokStr = format_raw_token_escape(bytesKey);
-            }
+            std::string tokStr = get_detok_primary_string(bytesKey, langIdx, options);
             if (fromPrettified)
             {
                 tokStr = prettify_token_string(tokStr);
