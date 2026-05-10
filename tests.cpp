@@ -152,6 +152,13 @@ static void assert_evo_name_alias_roundtrip(uint8_t evoTypeID, const std::string
     assert(data_to_hex_string(EvoFormat::encode_evo_name(evoTypeID, displayName)) == nameHex);
 }
 
+static void assert_evo_name_matches_legacy_token_source(uint8_t evoTypeID, const std::string& displayName, const std::string& legacyTokenSource)
+{
+    const EvoFormat::EvoTypeID type = EvoFormat::evo_type_id_from_value(evoTypeID);
+    const data_t legacyData = TH_Tokenized::makeDataFromString(legacyTokenSource);
+    assert(EvoFormat::encode_evo_name(type, displayName) == EvoFormat::legacy_tokenized_data_to_evo(legacyData));
+}
+
 static void assert_ce_evo_ce_roundtrip(const std::string& typeName, const std::string& name, const std::string& readableContent,
                                        uint8_t evoTypeID, const std::string& expectedEvoName, const std::string& expectedEvoNameHex)
 {
@@ -1449,8 +1456,8 @@ int main(int argc, char** argv)
 
     {
         const std::vector<std::tuple<std::string, std::string, std::string>> plotStyleTokens = {
-            {"squareplot", "01007f", "BDE50000"},
-            {"crossplot", "010080", "BEE50000"},
+            {"squareplot", "01007f", "BDE50000"}, {"□", "01007f", "BDE50000"},
+            {"crossplot", "010080", "BEE50000"}, {"﹢", "010080", "BEE50000"},
             {"dotplot", "010081", "BFE50000"},
             {"plottinydot", "0200ef73", "C0E50000"},
             {"Thin", "0200ef74", "C1E50000"},
@@ -1519,6 +1526,77 @@ int main(int argc, char** argv)
         assert(!textTokenProgram.isEvoFormat());
         assert(textTokenProgram.getRawContent() == originalLegacyData);
         assert(stderrCapture.str().find("Cannot convert Evo token") == std::string::npos);
+    }
+
+    {
+        const auto evo_token_data = [](uint16_t token) {
+            return data_t{
+                static_cast<uint8_t>(token & 0xFF),
+                static_cast<uint8_t>((token >> 8) & 0xFF),
+                0x00,
+                0x00
+            };
+        };
+
+        const auto expected_legacy_to_evo_token = [](uint16_t evoToken) {
+            // These two old alias spellings share legacy token bytes with the canonical variables.
+            if (evoToken == 0xE611) return static_cast<uint16_t>(0xE983);
+            if (evoToken == 0xE612) return static_cast<uint16_t>(0xE984);
+            return evoToken;
+        };
+
+        const std::vector<std::pair<uint16_t, uint16_t>> oldAliasTokenRanges = {
+            {0xE0D1, 0xE0D1},
+            {0xE400, 0xE400},
+            {0xE40B, 0xE423},
+            {0xE425, 0xE44B},
+            {0xE44D, 0xE451},
+            {0xE454, 0xE4B4},
+            {0xE4C0, 0xE4E3},
+            {0xE4E5, 0xE50A},
+            {0xE580, 0xE588},
+            {0xE58A, 0xE597},
+            {0xE59A, 0xE5B5},
+            {0xE5B8, 0xE5C2},
+            {0xE600, 0xE601},
+            {0xE603, 0xE60D},
+            {0xE611, 0xE612},
+            {0xE643, 0xE651},
+            {0xE680, 0xE68D},
+            {0xE6A0, 0xE6AD},
+            {0xE6B7, 0xE6B8},
+            {0xE6C2, 0xE6C7},
+            {0xE81B, 0xE81C},
+            {0xE836, 0xE836},
+            {0xE873, 0xE873},
+            {0xE880, 0xE889},
+            {0xE890, 0xE899},
+            {0xE900, 0xE93A},
+            {0xE980, 0xE987},
+            {0xE98F, 0xE99B},
+            {0xE99F, 0xE99F},
+            {0xE9A3, 0xE9BF},
+            {0xE9D9, 0xE9DE},
+        };
+
+        size_t checkedAliasTokenCount = 0;
+        for (const auto& [firstToken, lastToken] : oldAliasTokenRanges)
+        {
+            for (uint16_t evoToken = firstToken; evoToken <= lastToken; ++evoToken)
+            {
+                const data_t evoData = evo_token_data(evoToken);
+                const data_t legacyData = EvoFormat::evo_tokenized_data_to_legacy(evoData);
+                assert(legacyData.size() >= 3);
+                assert(legacyData.size() <= 4);
+                assert(static_cast<size_t>(legacyData[0]) == legacyData.size() - 2);
+                assert(legacyData[1] == 0x00);
+
+                const data_t roundTrippedEvoData = EvoFormat::legacy_tokenized_data_to_evo(legacyData);
+                assert(roundTrippedEvoData == evo_token_data(expected_legacy_to_evo_token(evoToken)));
+                ++checkedAliasTokenCount;
+            }
+        }
+        assert(checkedAliasTokenCount == 510);
     }
 
     {
@@ -1715,6 +1793,27 @@ Disp Str1
         assert_evo_name_alias_roundtrip(12, "Window", word_hex(0xE8BA));
         assert_evo_name_alias_roundtrip(13, "RclWindw", word_hex(0xE8BB));
         assert_evo_name_alias_roundtrip(14, "TblSet", word_hex(0xE8BC));
+
+        assert_evo_name_matches_legacy_token_source(0, "A", "A");
+        assert_evo_name_matches_legacy_token_source(1, "L1", "L1");
+        assert_evo_name_matches_legacy_token_source(1, "ABC", "ʟABC");
+        assert_evo_name_matches_legacy_token_source(3, "GDB0", "GDB0");
+        assert_evo_name_matches_legacy_token_source(4, "Pic0", "Pic0");
+        assert_evo_name_matches_legacy_token_source(5, "Image0", "Image0");
+        assert_evo_name_matches_legacy_token_source(6, "J", "[J]");
+        assert_evo_name_matches_legacy_token_source(6, "[J]", "[J]");
+        assert_evo_name_matches_legacy_token_source(7, "Y1", "{Y1}");
+        assert_evo_name_matches_legacy_token_source(7, "X6T", "{X6T}");
+        assert_evo_name_matches_legacy_token_source(7, "r6", "{r6}");
+        assert_evo_name_matches_legacy_token_source(7, "u", "|u");
+        assert_evo_name_matches_legacy_token_source(10, "Str0", "Str0");
+
+        assert(data_to_hex_string(EvoFormat::encode_evo_name(EvoFormat::EvoTypeID::Program, "PAUSE")) == "0FE800E814E812E804E80000");
+        assert(EvoFormat::decode_evo_name(EvoFormat::EvoTypeID::Program, data_from_hex_string("0FE800E814E812E804E80000")) == "PAUSE");
+        assert(data_to_hex_string(EvoFormat::encode_evo_name(EvoFormat::EvoTypeID::Real, "a?θ")) == "00E800E41AE80000");
+        assert(EvoFormat::decode_evo_name(EvoFormat::EvoTypeID::Real, data_from_hex_string("00E800E41AE80000")) == "A_θ");
+        assert(data_to_hex_string(EvoFormat::encode_evo_name(EvoFormat::EvoTypeID::AppVar, "py_file1")) == "7000790000E4660069006C00650002E40000");
+        assert(EvoFormat::decode_evo_name(EvoFormat::EvoTypeID::AppVar, data_from_hex_string("7000790000E4660069006C00650002E40000")) == "py_file1");
     }
 
     {
