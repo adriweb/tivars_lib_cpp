@@ -8,6 +8,7 @@
 #ifndef TIVARS_LIB_CPP_EVOFORMAT_H
 #define TIVARS_LIB_CPP_EVOFORMAT_H
 
+#include "EvoTypes.h"
 #include "TIVarFile.h"
 
 #include <map>
@@ -59,12 +60,10 @@ namespace tivars::EvoFormat
     void append_cbor_bytes(data_t& out, const data_t& bytes);
     void append_cbor_key_uint(data_t& out, std::string_view key, uint64_t value);
 
-    std::string decode_evo_name(uint8_t evoTypeID, const data_t& nameBytes);
-    data_t encode_evo_name(uint8_t evoTypeID, std::string displayName);
-    TIVarType type_from_evo_type(uint8_t evoTypeID);
-    uint8_t evo_type_from_type(const TIVarType& type, uint8_t fallback);
-    std::string type_name_from_evo_type(uint8_t evoTypeID);
-    std::string extension_from_evo_type(uint8_t evoTypeID);
+    std::string decode_evo_name(EvoTypeID evoTypeID, const data_t& nameBytes);
+    data_t encode_evo_name(EvoTypeID evoTypeID, std::string displayName);
+    TIVarType type_from_evo_type(EvoTypeID evoTypeID);
+    EvoTypeID evo_type_from_type(const TIVarType& type);
     std::string bytes_to_hex_string(const data_t& data);
     EvoPythonScriptInfo parse_evo_python_script_payload(const data_t& data);
 

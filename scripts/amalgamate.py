@@ -21,6 +21,7 @@ HEADER_FILES = [
     ROOT / "src/TIVarType.h",
     ROOT / "src/TIModel.h",
     ROOT / "src/BinaryFile.h",
+    ROOT / "src/EvoTypes.h",
     ROOT / "src/TIVarFile.h",
     ROOT / "src/EvoFormat.h",
     ROOT / "src/TIModels.h",
