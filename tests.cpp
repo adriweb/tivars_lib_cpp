@@ -150,9 +150,10 @@ static void assert_evo_name_alias_roundtrip(uint8_t evoTypeID, const std::string
 {
     const std::string nameHex = unterminatedNameHex + "0000";
     const data_t nameBytes = data_from_hex_string(nameHex);
+    const EvoFormat::EvoTypeID type = EvoFormat::evo_type_id_from_value(evoTypeID);
 
-    assert(EvoFormat::decode_evo_name(evoTypeID, nameBytes) == displayName);
-    assert(data_to_hex_string(EvoFormat::encode_evo_name(evoTypeID, displayName)) == nameHex);
+    assert(EvoFormat::decode_evo_name(type, nameBytes) == displayName);
+    assert(data_to_hex_string(EvoFormat::encode_evo_name(type, displayName)) == nameHex);
 }
 
 static void assert_evo_name_matches_legacy_token_source(uint8_t evoTypeID, const std::string& displayName, const std::string& legacyTokenSource)
@@ -174,12 +175,12 @@ static void assert_ce_evo_ce_roundtrip(const std::string& typeName, const std::s
 
     legacy.convertToModel(TIModel{"84Evo"});
     assert(legacy.isEvoFormat());
-    assert(legacy.getVarEntries()[0].evoTypeID == evoTypeID);
+    assert(EvoFormat::evo_type_id_value(legacy.getVarEntries()[0].evoTypeID) == evoTypeID);
 
     const json evoJSON = json::parse(legacy.getReadableContent());
     assert(evoJSON["name"] == expectedEvoName);
     assert(evoJSON["metaData"]["nameHex"] == expectedEvoNameHex);
-    if (evoTypeID == 2 || evoTypeID == 7)
+    if (EvoFormat::evo_type_id_from_value(evoTypeID) == EvoFormat::EvoTypeID::Program || EvoFormat::evo_type_id_from_value(evoTypeID) == EvoFormat::EvoTypeID::Equation)
     {
         assert(evoJSON["code"] == originalReadable);
     }
@@ -1827,6 +1828,97 @@ Disp Str1
     }
 
     {
+        const auto assert_no_evo_type_mapping = [](const std::string& typeName)
+        {
+            assert(EvoFormat::extension_from_ti_type_name(typeName).empty());
+            bool threw = false;
+            try
+            {
+                (void)EvoFormat::evo_type_id_from_ti_type_name(typeName);
+            }
+            catch (const std::invalid_argument&)
+            {
+                threw = true;
+            }
+            assert(threw);
+        };
+
+        const std::array<std::tuple<EvoFormat::EvoTypeID, std::string, std::string, std::string>, 16> expectedEvoTypes = {{
+            {EvoFormat::EvoTypeID::Real,           "Real",           "Real",           "8xn2"},
+            {EvoFormat::EvoTypeID::RealList,       "RealList",       "RealList",       "8xl2"},
+            {EvoFormat::EvoTypeID::Program,        "Program",        "Program",        "8xp2"},
+            {EvoFormat::EvoTypeID::GraphDataBase,  "GraphDataBase",  "GraphDataBase",  "8xd2"},
+            {EvoFormat::EvoTypeID::Picture,        "Picture",        "Picture",        "8ci2"},
+            {EvoFormat::EvoTypeID::Image,          "Image",          "Image",          "8ca2"},
+            {EvoFormat::EvoTypeID::Matrix,         "Matrix",         "Matrix",         "8xm2"},
+            {EvoFormat::EvoTypeID::Equation,       "Equation",       "Equation",       "8xy2"},
+            {EvoFormat::EvoTypeID::AppVar,         "AppVar",         "AppVar",         "8xv2"},
+            {EvoFormat::EvoTypeID::GroupObject,    "GroupObject",    "GroupObject",    "8xg2"},
+            {EvoFormat::EvoTypeID::String,         "String",         "String",         "8xs2"},
+            {EvoFormat::EvoTypeID::FlashApp,       "FlashApp",       "FlashApp",       "8ek2"},
+            {EvoFormat::EvoTypeID::WindowSettings, "WindowSettings", "WindowSettings", "8xw2"},
+            {EvoFormat::EvoTypeID::RecallWindow,   "RecallWindow",   "RecallWindow",   "8xz2"},
+            {EvoFormat::EvoTypeID::TableRange,     "TableRange",     "TableRange",     "8xt2"},
+            {EvoFormat::EvoTypeID::PythonScript,   "PythonAppVar",   "PythonScript",   "8xpy2"},
+        }};
+
+        for (uint8_t i = 0; i < expectedEvoTypes.size(); i++)
+        {
+            const auto& [evoTypeID, legacyTypeName, evoTypeName, extension] = expectedEvoTypes[i];
+            assert(EvoFormat::evo_type_id_value(evoTypeID) == i);
+            assert(EvoFormat::evo_type_id_from_value(i) == evoTypeID);
+            assert(EvoFormat::ti_type_name_from_evo_type(evoTypeID) == legacyTypeName);
+            assert(EvoFormat::type_name_from_evo_type(evoTypeID) == evoTypeName);
+            assert(EvoFormat::extension_from_evo_type(evoTypeID) == extension);
+            assert(EvoFormat::evo_type_id_from_ti_type_name(legacyTypeName) == evoTypeID);
+            assert(EvoFormat::extension_from_ti_type_name(legacyTypeName) == extension);
+
+            const EvoFormat::EvoTypeInfo& info = EvoFormat::evo_type_info(evoTypeID);
+            assert(info.legacyTypeName == legacyTypeName);
+            assert(info.typeName == evoTypeName);
+            assert(info.extension == extension);
+            assert(EvoFormat::evo_type_info_matches_ti_type_name(info, legacyTypeName));
+        }
+
+        const std::array<std::pair<std::string, EvoFormat::EvoTypeID>, 14> expectedEvoAliases = {{
+            {"Complex",              EvoFormat::EvoTypeID::Real},
+            {"RealFraction",         EvoFormat::EvoTypeID::Real},
+            {"ExactComplexFrac",     EvoFormat::EvoTypeID::Real},
+            {"ExactRealRadical",     EvoFormat::EvoTypeID::Real},
+            {"ExactComplexRadical",  EvoFormat::EvoTypeID::Real},
+            {"ExactComplexPi",       EvoFormat::EvoTypeID::Real},
+            {"ExactComplexPiFrac",   EvoFormat::EvoTypeID::Real},
+            {"ExactRealPi",          EvoFormat::EvoTypeID::Real},
+            {"ExactRealPiFrac",      EvoFormat::EvoTypeID::Real},
+            {"ComplexList",          EvoFormat::EvoTypeID::RealList},
+            {"ProtectedProgram",     EvoFormat::EvoTypeID::Program},
+            {"SmartEquation",        EvoFormat::EvoTypeID::Equation},
+            {"PythonAppVar",         EvoFormat::EvoTypeID::PythonScript},
+            {"AppVar",               EvoFormat::EvoTypeID::AppVar},
+        }};
+
+        for (const auto& [legacyTypeName, evoTypeID] : expectedEvoAliases)
+        {
+            assert(EvoFormat::evo_type_id_from_ti_type_name(legacyTypeName) == evoTypeID);
+            assert(EvoFormat::extension_from_ti_type_name(legacyTypeName) == EvoFormat::extension_from_evo_type(evoTypeID));
+        }
+
+        assert_no_evo_type_mapping("PythonModuleAppVar");
+        assert_no_evo_type_mapping("PythonImageAppVar");
+        assert_no_evo_type_mapping("StudyCardsAppVar");
+        assert_no_evo_type_mapping("NotAnEvoType");
+
+        bool threw = false;
+        try
+        {
+            (void)EvoFormat::evo_type_info(EvoFormat::evo_type_id_from_value(16));
+        }
+        catch (const std::invalid_argument&)
+        {
+            threw = true;
+        }
+        assert(threw);
+
         assert_ce_evo_ce_roundtrip("Real", "A", "42", 0, "A", "00E80000");
         assert_ce_evo_ce_roundtrip("Real", "θ", "1", 0, "θ", "1AE80000");
         assert_ce_evo_ce_roundtrip("RealList", "L6", "{1,2,3}", 1, "L6", "35E80000");
@@ -1861,7 +1953,7 @@ Disp Str1
 
         TIVarFile evoPicture = TIVarFile::loadFromFile(evoSamples + "Pic1.8ci2");
         assert(evoPicture.isEvoFormat());
-        assert(evoPicture.getVarEntries()[0].evoTypeID == 4);
+        assert(evoPicture.getVarEntries()[0].evoTypeID == EvoFormat::EvoTypeID::Picture);
         assert(evoPicture.getRawContent().size() == 33441);
         assert(evoPicture.getRawContent()[0] == 0x0F);
         evoPicture.convertToModel(TIModel{"84+CE"});
@@ -1871,7 +1963,7 @@ Disp Str1
 
         TIVarFile evoAppVar = TIVarFile::loadFromFile(evoSamples + "EqnsCnfg.8xv2");
         assert(evoAppVar.isEvoFormat());
-        assert(evoAppVar.getVarEntries()[0].evoTypeID == 8);
+        assert(evoAppVar.getVarEntries()[0].evoTypeID == EvoFormat::EvoTypeID::AppVar);
         const data_t evoAppVarRaw = evoAppVar.getRawContent();
         evoAppVar.convertToModel(TIModel{"84+CE"});
         assert(!evoAppVar.isEvoFormat());
