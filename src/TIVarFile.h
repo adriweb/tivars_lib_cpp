@@ -10,6 +10,7 @@
 
 #include "CommonTypes.h"
 #include "BinaryFile.h"
+#include "EvoTypes.h"
 #include "TIVarType.h"
 #include "TIModel.h"
 
@@ -42,7 +43,7 @@ namespace tivars
             uint16_t data_length2 = 0; // same as data_length
             data_t data;
             /**********/
-            uint8_t evoTypeID = 0;
+            EvoFormat::EvoTypeID evoTypeID{0};
             uint8_t evoMetaVersion = 1;
             uint8_t evoMetaFlags = 0;
             std::map<std::string, uint64_t> evoFields;
