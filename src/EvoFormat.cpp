@@ -75,7 +75,7 @@ uint16_t evo_checksum(const data_t& body)
     return checksum;
 }
 
-uint64_t read_cbor_uint_arg(const data_t& data, size_t& offset, uint8_t additional)
+static uint64_t read_cbor_uint_arg(const data_t& data, size_t& offset, uint8_t additional)
 {
     if (additional < 24)
     {
@@ -268,7 +268,7 @@ bool is_evo_file_data(const data_t& fileData)
     }
 }
 
-void append_cbor_uint(data_t& out, uint64_t value)
+static void append_cbor_uint(data_t& out, uint64_t value)
 {
     if (value < 24)
     {
@@ -337,13 +337,13 @@ void append_cbor_key_uint(data_t& out, std::string_view key, uint64_t value)
     append_cbor_uint(out, value);
 }
 
-void append_evo_name_word(data_t& out, uint16_t word)
+static void append_evo_name_word(data_t& out, uint16_t word)
 {
     out.push_back(static_cast<uint8_t>(word & 0xFF));
     out.push_back(static_cast<uint8_t>((word >> 8) & 0xFF));
 }
 
-std::string char_from_evo_name_word(uint16_t word)
+static std::string char_from_evo_name_word(uint16_t word)
 {
     if (word >= 0xE800 && word <= 0xE819) return std::string(1, static_cast<char>('A' + (word - 0xE800)));
     if (word == 0xE81A) return "θ";
@@ -353,7 +353,7 @@ std::string char_from_evo_name_word(uint16_t word)
     return "_";
 }
 
-std::vector<uint16_t> evo_name_words(const data_t& nameBytes)
+static std::vector<uint16_t> evo_name_words(const data_t& nameBytes)
 {
     std::vector<uint16_t> words;
     for (size_t i = 0; i + 1 < nameBytes.size(); i += 2)
@@ -368,7 +368,7 @@ std::vector<uint16_t> evo_name_words(const data_t& nameBytes)
     return words;
 }
 
-std::string decode_evo_name(uint8_t evoTypeID, const data_t& nameBytes)
+std::string decode_evo_name(EvoTypeID evoTypeID, const data_t& nameBytes)
 {
     const std::vector<uint16_t> words = evo_name_words(nameBytes);
     if (words.empty())
@@ -377,7 +377,7 @@ std::string decode_evo_name(uint8_t evoTypeID, const data_t& nameBytes)
     }
 
     const uint16_t first = words[0];
-    if (evoTypeID == 1)
+    if (evoTypeID == EvoTypeID::RealList)
     {
         if (first >= 0xE830 && first <= 0xE835) return "L" + std::to_string(first - 0xE830 + 1);
         std::string out;
@@ -385,26 +385,26 @@ std::string decode_evo_name(uint8_t evoTypeID, const data_t& nameBytes)
         for (size_t i = start; i < words.size(); i++) out += char_from_evo_name_word(words[i]);
         return out;
     }
-    if (evoTypeID == 3)
+    if (evoTypeID == EvoTypeID::GraphDataBase)
     {
         if (first == 0xE899) return "GDB0";
         if (first >= 0xE890 && first <= 0xE898) return "GDB" + std::to_string(first - 0xE890 + 1);
     }
-    if (evoTypeID == 4)
+    if (evoTypeID == EvoTypeID::Picture)
     {
         if (first == 0xE889) return "Pic0";
         if (first >= 0xE880 && first <= 0xE888) return "Pic" + std::to_string(first - 0xE880 + 1);
     }
-    if (evoTypeID == 5)
+    if (evoTypeID == EvoTypeID::Image)
     {
         if (first == 0xE8B9) return "Image0";
         if (first >= 0xE8B0 && first <= 0xE8B8) return "Image" + std::to_string(first - 0xE8B0 + 1);
     }
-    if (evoTypeID == 6 && first >= 0xE820 && first <= 0xE829)
+    if (evoTypeID == EvoTypeID::Matrix && first >= 0xE820 && first <= 0xE829)
     {
         return std::string(1, static_cast<char>('A' + (first - 0xE820)));
     }
-    if (evoTypeID == 7)
+    if (evoTypeID == EvoTypeID::Equation)
     {
         if (first >= 0xE840 && first <= 0xE849) return "Y" + std::to_string(first == 0xE849 ? 0 : first - 0xE840 + 1);
         if (first >= 0xE850 && first <= 0xE85B)
@@ -415,14 +415,14 @@ std::string decode_evo_name(uint8_t evoTypeID, const data_t& nameBytes)
         if (first >= 0xE860 && first <= 0xE865) return "r" + std::to_string(first - 0xE860 + 1);
         if (first >= 0xE870 && first <= 0xE872) return std::string(1, static_cast<char>('u' + (first - 0xE870)));
     }
-    if (evoTypeID == 10)
+    if (evoTypeID == EvoTypeID::String)
     {
         if (first == 0xE8A9) return "Str0";
         if (first >= 0xE8A0 && first <= 0xE8A8) return "Str" + std::to_string(first - 0xE8A0 + 1);
     }
-    if (evoTypeID == 12 && first == 0xE8BA) return "Window";
-    if (evoTypeID == 13 && first == 0xE8BB) return "RclWindw";
-    if (evoTypeID == 14 && first == 0xE8BC) return "TblSet";
+    if (evoTypeID == EvoTypeID::WindowSettings && first == 0xE8BA) return "Window";
+    if (evoTypeID == EvoTypeID::RecallWindow && first == 0xE8BB) return "RclWindw";
+    if (evoTypeID == EvoTypeID::TableRange && first == 0xE8BC) return "TblSet";
 
     std::string out;
     for (const uint16_t word : words)
@@ -432,7 +432,7 @@ std::string decode_evo_name(uint8_t evoTypeID, const data_t& nameBytes)
     return out;
 }
 
-data_t encode_evo_custom_name(std::string name, bool allowLowerAscii)
+static data_t encode_evo_custom_name(std::string name, bool allowLowerAscii)
 {
     data_t out;
     name = normalize_theta_chars(name);
@@ -453,7 +453,7 @@ data_t encode_evo_custom_name(std::string name, bool allowLowerAscii)
     return out;
 }
 
-data_t encode_evo_name(uint8_t evoTypeID, std::string displayName)
+data_t encode_evo_name(EvoTypeID evoTypeID, std::string displayName)
 {
     data_t out;
     const std::string upperName = strtoupper(normalize_theta_chars(displayName));
@@ -463,7 +463,7 @@ data_t encode_evo_name(uint8_t evoTypeID, std::string displayName)
         return out;
     };
 
-    if (evoTypeID == 1)
+    if (evoTypeID == EvoTypeID::RealList)
     {
         if (upperName.size() == 2 && upperName[0] == 'L' && upperName[1] >= '1' && upperName[1] <= '6')
         {
@@ -477,25 +477,25 @@ data_t encode_evo_name(uint8_t evoTypeID, std::string displayName)
         out.insert(out.end(), custom.begin(), custom.end());
         return append_terminated();
     }
-    if (evoTypeID == 3 && upperName.rfind("GDB", 0) == 0 && upperName.size() == 4 && std::isdigit(static_cast<unsigned char>(upperName[3])))
+    if (evoTypeID == EvoTypeID::GraphDataBase && upperName.rfind("GDB", 0) == 0 && upperName.size() == 4 && std::isdigit(static_cast<unsigned char>(upperName[3])))
     {
         const int idx = upperName[3] - '0';
         append_evo_name_word(out, idx == 0 ? 0xE899 : static_cast<uint16_t>(0xE890 + idx - 1));
         return append_terminated();
     }
-    if (evoTypeID == 4 && upperName.rfind("PIC", 0) == 0 && upperName.size() == 4 && std::isdigit(static_cast<unsigned char>(upperName[3])))
+    if (evoTypeID == EvoTypeID::Picture && upperName.rfind("PIC", 0) == 0 && upperName.size() == 4 && std::isdigit(static_cast<unsigned char>(upperName[3])))
     {
         const int idx = upperName[3] - '0';
         append_evo_name_word(out, idx == 0 ? 0xE889 : static_cast<uint16_t>(0xE880 + idx - 1));
         return append_terminated();
     }
-    if (evoTypeID == 5 && upperName.rfind("IMAGE", 0) == 0 && upperName.size() == 6 && std::isdigit(static_cast<unsigned char>(upperName[5])))
+    if (evoTypeID == EvoTypeID::Image && upperName.rfind("IMAGE", 0) == 0 && upperName.size() == 6 && std::isdigit(static_cast<unsigned char>(upperName[5])))
     {
         const int idx = upperName[5] - '0';
         append_evo_name_word(out, idx == 0 ? 0xE8B9 : static_cast<uint16_t>(0xE8B0 + idx - 1));
         return append_terminated();
     }
-    if (evoTypeID == 6)
+    if (evoTypeID == EvoTypeID::Matrix)
     {
         std::string mat = upperName;
         if (mat.size() == 3 && mat.front() == '[' && mat.back() == ']') mat = mat.substr(1, 1);
@@ -505,7 +505,7 @@ data_t encode_evo_name(uint8_t evoTypeID, std::string displayName)
             return append_terminated();
         }
     }
-    if (evoTypeID == 7)
+    if (evoTypeID == EvoTypeID::Equation)
     {
         if (upperName.size() == 2 && upperName[0] == 'Y' && std::isdigit(static_cast<unsigned char>(upperName[1])))
         {
@@ -529,77 +529,39 @@ data_t encode_evo_name(uint8_t evoTypeID, std::string displayName)
             return append_terminated();
         }
     }
-    if (evoTypeID == 10 && upperName.rfind("STR", 0) == 0 && upperName.size() == 4 && std::isdigit(static_cast<unsigned char>(upperName[3])))
+    if (evoTypeID == EvoTypeID::String && upperName.rfind("STR", 0) == 0 && upperName.size() == 4 && std::isdigit(static_cast<unsigned char>(upperName[3])))
     {
         const int idx = upperName[3] - '0';
         append_evo_name_word(out, idx == 0 ? 0xE8A9 : static_cast<uint16_t>(0xE8A0 + idx - 1));
         return append_terminated();
     }
-    if (evoTypeID == 12)
+    if (evoTypeID == EvoTypeID::WindowSettings)
     {
         append_evo_name_word(out, 0xE8BA);
         return append_terminated();
     }
-    if (evoTypeID == 13)
+    if (evoTypeID == EvoTypeID::RecallWindow)
     {
         append_evo_name_word(out, 0xE8BB);
         return append_terminated();
     }
-    if (evoTypeID == 14)
+    if (evoTypeID == EvoTypeID::TableRange)
     {
         append_evo_name_word(out, 0xE8BC);
         return append_terminated();
     }
 
-    return encode_evo_custom_name(displayName, evoTypeID == 8 || evoTypeID == 15);
+    return encode_evo_custom_name(displayName, evoTypeID == EvoTypeID::AppVar || evoTypeID == EvoTypeID::PythonScript);
 }
 
-TIVarType type_from_evo_type(uint8_t evoTypeID)
+TIVarType type_from_evo_type(EvoTypeID evoTypeID)
 {
-    switch (evoTypeID)
-    {
-        case 0: return TIVarType{"Real"};
-        case 1: return TIVarType{"RealList"};
-        case 2: return TIVarType{"Program"};
-        case 3: return TIVarType{"GraphDataBase"};
-        case 4: return TIVarType{"Picture"};
-        case 5: return TIVarType{"Image"};
-        case 6: return TIVarType{"Matrix"};
-        case 7: return TIVarType{"Equation"};
-        case 8: return TIVarType{"AppVar"};
-        case 9: return TIVarType{"GroupObject"};
-        case 10: return TIVarType{"String"};
-        case 11: return TIVarType{"FlashApp"};
-        case 12: return TIVarType{"WindowSettings"};
-        case 13: return TIVarType{"RecallWindow"};
-        case 14: return TIVarType{"TableRange"};
-        default: return TIVarType{"AppVar"};
-    }
+    return TIVarType{std::string{ti_type_name_from_evo_type(evoTypeID)}};
 }
 
-uint8_t evo_type_from_type(const TIVarType& type, uint8_t fallback)
+EvoTypeID evo_type_from_type(const TIVarType& type)
 {
-    if (fallback != 0 || type.getName() == "Real")
-    {
-        return fallback;
-    }
-    const std::string typeName = type.getName();
-    if (typeName == "Complex" || typeName.rfind("Exact", 0) == 0) return 0;
-    if (typeName == "RealList" || typeName == "ComplexList") return 1;
-    if (typeName == "Program" || typeName == "ProtectedProgram") return 2;
-    if (typeName == "GraphDataBase") return 3;
-    if (typeName == "Picture") return 4;
-    if (typeName == "Image") return 5;
-    if (typeName == "Matrix") return 6;
-    if (typeName == "Equation" || typeName == "SmartEquation") return 7;
-    if (typeName.find("AppVar") != std::string::npos) return 8;
-    if (typeName == "GroupObject") return 9;
-    if (typeName == "String") return 10;
-    if (typeName == "FlashApp") return 11;
-    if (typeName == "WindowSettings") return 12;
-    if (typeName == "RecallWindow") return 13;
-    if (typeName == "TableRange") return 14;
-    return 8;
+    return evo_type_id_from_ti_type_name(type.getName());
 }
 
 std::string bytes_to_hex_string(const data_t& data)
@@ -611,39 +573,6 @@ std::string bytes_to_hex_string(const data_t& data)
         result += dechex(byte);
     }
     return result;
-}
-
-std::string type_name_from_evo_type(uint8_t evoTypeID)
-{
-    if (evoTypeID == 15)
-    {
-        return "EvoPythonScript";
-    }
-    return type_from_evo_type(evoTypeID).getName();
-}
-
-std::string extension_from_evo_type(uint8_t evoTypeID)
-{
-    switch (evoTypeID)
-    {
-        case 0: return "8xn2";
-        case 1: return "8xl2";
-        case 2: return "8xp2";
-        case 3: return "8xd2";
-        case 4: return "8ci2";
-        case 5: return "8ca2";
-        case 6: return "8xm2";
-        case 7: return "8xy2";
-        case 8: return "8xv2";
-        case 9: return "8xg2";
-        case 10: return "8xs2";
-        case 11: return "8ek2";
-        case 12: return "8xw2";
-        case 13: return "8xz2";
-        case 14: return "8xt2";
-        case 15: return "8xpy2";
-        default: return "";
-    }
 }
 
 namespace
@@ -741,7 +670,7 @@ struct EvoTokenInfo
 
 #include "EvoTokens.inc"
 
-const char* evo_token_name(uint16_t token)
+static const char* evo_token_name(uint16_t token)
 {
     static const std::unordered_map<uint16_t, const char*> names = [] {
         std::unordered_map<uint16_t, const char*> map;
@@ -756,9 +685,9 @@ const char* evo_token_name(uint16_t token)
     return it == names.end() ? nullptr : it->second;
 }
 
-bool direct_legacy_token_for_evo(uint16_t evoToken, uint16_t& legacyToken);
+static bool direct_legacy_token_for_evo(uint16_t evoToken, uint16_t& legacyToken);
 
-std::string evo_token_to_string(uint16_t token)
+static std::string evo_token_to_string(uint16_t token)
 {
     if (token == 0x0000) return "";
     if (token >= 0xE800 && token <= 0xE819) return std::string(1, static_cast<char>('A' + (token - 0xE800)));
@@ -812,11 +741,11 @@ std::string detokenize_evo_token_words(const data_t& data)
 
 bool is_evo_tokenized_entry(const TIVarFile::var_entry_t& entry)
 {
-    const uint8_t evoTypeID = evo_type_from_type(entry._type, entry.evoTypeID);
-    return evoTypeID == 2 || evoTypeID == 7 || evoTypeID == 10;
+    const EvoTypeID evoTypeID = entry.evoTypeID;
+    return evoTypeID == EvoTypeID::Program || evoTypeID == EvoTypeID::Equation || evoTypeID == EvoTypeID::String;
 }
 
-void append_legacy_token(data_t& out, uint16_t legacyToken)
+static void append_legacy_token(data_t& out, uint16_t legacyToken)
 {
     if (legacyToken > 0xFF)
     {
@@ -825,13 +754,13 @@ void append_legacy_token(data_t& out, uint16_t legacyToken)
     out.push_back(static_cast<uint8_t>(legacyToken & 0xFF));
 }
 
-void append_evo_token(data_t& out, uint16_t evoToken)
+static void append_evo_token(data_t& out, uint16_t evoToken)
 {
     out.push_back(static_cast<uint8_t>(evoToken & 0xFF));
     out.push_back(static_cast<uint8_t>((evoToken >> 8) & 0xFF));
 }
 
-bool direct_legacy_token_for_evo(uint16_t evoToken, uint16_t& legacyToken)
+static bool direct_legacy_token_for_evo(uint16_t evoToken, uint16_t& legacyToken)
 {
     if (evoToken >= 0xE401 && evoToken <= 0xE40A)
     {
@@ -1297,7 +1226,7 @@ bool direct_legacy_token_for_evo(uint16_t evoToken, uint16_t& legacyToken)
     return true;
 }
 
-bool direct_evo_token_for_legacy(uint16_t legacyToken, uint16_t& evoToken)
+static bool direct_evo_token_for_legacy(uint16_t legacyToken, uint16_t& evoToken)
 {
     if (legacyToken >= 0x30 && legacyToken <= 0x39)
     {
@@ -1760,7 +1689,7 @@ bool direct_evo_token_for_legacy(uint16_t legacyToken, uint16_t& evoToken)
     return true;
 }
 
-bool tokenized_legacy_payload_for_evo(uint16_t evoToken, data_t& payload)
+static bool tokenized_legacy_payload_for_evo(uint16_t evoToken, data_t& payload)
 {
     uint16_t legacyToken = 0;
     if (!direct_legacy_token_for_evo(evoToken, legacyToken))
@@ -1879,7 +1808,7 @@ data_t legacy_tokenized_data_to_evo(const data_t& legacyData, bool smartConversi
     return evo;
 }
 
-uint16_t read_le16_at(const data_t& data, size_t offset)
+static uint16_t read_le16_at(const data_t& data, size_t offset)
 {
     if (offset + 1 >= data.size())
     {
@@ -1888,13 +1817,13 @@ uint16_t read_le16_at(const data_t& data, size_t offset)
     return static_cast<uint16_t>(data[offset] | (data[offset + 1] << 8));
 }
 
-void append_le16(data_t& data, uint16_t word)
+static void append_le16(data_t& data, uint16_t word)
 {
     data.push_back(static_cast<uint8_t>(word & 0xFF));
     data.push_back(static_cast<uint8_t>((word >> 8) & 0xFF));
 }
 
-std::vector<uint16_t> evo_words(const data_t& data)
+static std::vector<uint16_t> evo_words(const data_t& data)
 {
     std::vector<uint16_t> words;
     words.reserve(data.size() / 2);
@@ -1905,7 +1834,7 @@ std::vector<uint16_t> evo_words(const data_t& data)
     return words;
 }
 
-uint8_t real_equivalent_subtype(uint8_t subtype)
+static uint8_t real_equivalent_subtype(uint8_t subtype)
 {
     switch (subtype)
     {
@@ -1918,7 +1847,7 @@ uint8_t real_equivalent_subtype(uint8_t subtype)
     }
 }
 
-data_t normalize_legacy_real_member(data_t data)
+static data_t normalize_legacy_real_member(data_t data)
 {
     if (data.size() != TypeHandlers::TH_GenericReal::dataByteCount)
     {
@@ -1928,7 +1857,7 @@ data_t normalize_legacy_real_member(data_t data)
     return data;
 }
 
-bool legacy_real_is_zero(data_t data)
+static bool legacy_real_is_zero(data_t data)
 {
     if (data.size() != TypeHandlers::TH_GenericReal::dataByteCount)
     {
@@ -1938,7 +1867,7 @@ bool legacy_real_is_zero(data_t data)
     return TypeHandlers::TH_GenericReal::makeStringFromData(data) == "0";
 }
 
-data_t legacy_fp_to_evo_decimal(const data_t& legacyReal)
+static data_t legacy_fp_to_evo_decimal(const data_t& legacyReal)
 {
     if (legacyReal.size() != TypeHandlers::TH_GenericReal::dataByteCount)
     {
@@ -1958,7 +1887,7 @@ data_t legacy_fp_to_evo_decimal(const data_t& legacyReal)
     return evo;
 }
 
-data_t evo_decimal_to_legacy_fp(const data_t& evoData, size_t offset, uint8_t legacyType)
+static data_t evo_decimal_to_legacy_fp(const data_t& evoData, size_t offset, uint8_t legacyType)
 {
     if (offset + 11 >= evoData.size() || read_le16_at(evoData, offset + 10) != 0x0023)
     {
@@ -1983,7 +1912,7 @@ data_t evo_decimal_to_legacy_fp(const data_t& evoData, size_t offset, uint8_t le
     return legacy;
 }
 
-uint64_t parse_evo_integer_limbs(const std::vector<uint16_t>& words, size_t begin, size_t end)
+static uint64_t parse_evo_integer_limbs(const std::vector<uint16_t>& words, size_t begin, size_t end)
 {
     if (end <= begin)
     {
@@ -2007,14 +1936,14 @@ uint64_t parse_evo_integer_limbs(const std::vector<uint16_t>& words, size_t begi
     return value;
 }
 
-data_t decimal_string_to_legacy_real(const std::string& value, uint8_t legacyType)
+static data_t decimal_string_to_legacy_real(const std::string& value, uint8_t legacyType)
 {
     data_t legacy = TypeHandlers::STH_FP::makeDataFromString(value);
     legacy[0] = static_cast<uint8_t>((legacy[0] & 0x80) | (legacyType & 0x3F));
     return legacy;
 }
 
-data_t evo_scalar_to_legacy_real(const data_t& evoData, size_t& offset, uint8_t legacyType = 0x00)
+static data_t evo_scalar_to_legacy_real(const data_t& evoData, size_t& offset, uint8_t legacyType = 0x00)
 {
     const std::vector<uint16_t> words = evo_words(evoData);
     const size_t wordOffset = offset / 2;
@@ -2143,7 +2072,7 @@ data_t evo_scalar_to_legacy_value(const data_t& evoData, size_t& offset)
     return first;
 }
 
-void append_evo_uint64(data_t& data, uint64_t value)
+static void append_evo_uint64(data_t& data, uint64_t value)
 {
     uint16_t limbCount = 0;
     do
@@ -2156,7 +2085,7 @@ void append_evo_uint64(data_t& data, uint64_t value)
     append_le16(data, limbCount);
 }
 
-data_t legacy_real_to_evo_scalar(data_t legacyReal)
+static data_t legacy_real_to_evo_scalar(data_t legacyReal)
 {
     if (legacyReal.size() != TypeHandlers::TH_GenericReal::dataByteCount)
     {

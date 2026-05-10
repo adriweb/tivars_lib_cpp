@@ -481,9 +481,9 @@ namespace tivars
         entry.setVarName(name);
         if (this->evoFormat)
         {
-            entry.evoTypeID = evo_type_from_type(type, 0);
+            entry.evoTypeID = evo_type_from_type(type);
             entry.evoMetaVersion = 1;
-            entry.evoMetaFlags = (entry.evoTypeID == 5 || entry.evoTypeID == 4) ? 1 : 0;
+            entry.evoMetaFlags = (entry.evoTypeID == EvoTypeID::Image || entry.evoTypeID == EvoTypeID::Picture) ? 1 : 0;
             entry.evoFields["version"] = 1;
         }
         entry.data_length2 = 0; // will have to be overwritten later
@@ -629,7 +629,7 @@ namespace tivars
 
         const auto nameIt = meta.find("name");
         const data_t nameBytes = (nameIt != meta.end() && nameIt->second.kind == EvoCBORValue::Kind::Bytes) ? nameIt->second.bytes : data_t{};
-        const uint8_t evoTypeID = static_cast<uint8_t>(read_uint_field(meta, "type", 8));
+        const EvoTypeID evoTypeID = evo_type_id_from_value(static_cast<uint8_t>(read_uint_field(meta, "type", evo_type_id_value(EvoTypeID::AppVar))));
         const TIVarType mappedType = type_from_evo_type(evoTypeID);
 
         var_entry_t entry{};
@@ -1018,7 +1018,7 @@ namespace tivars
         {
             data = legacy_image_to_evo(data, entry.evoFields);
         }
-        else if (this->evoFormat && entry._type.getName().find("AppVar") != std::string::npos)
+        else if (this->evoFormat && (entry._type.getName() == "AppVar" || entry._type.getName() == "PythonAppVar"))
         {
             entry.evoFields["version"] = 1;
         }
@@ -1066,11 +1066,11 @@ namespace tivars
             {
                 if (targetEvoFormat)
                 {
-                    const uint8_t evoTypeID = evo_type_from_type(entry._type, entry.evoTypeID);
+                    const EvoTypeID evoTypeID = evo_type_from_type(entry._type);
                     const std::string displayName = entry_name_to_string(entry._type, entry.varname, sizeof(var_entry_t::varname));
 
                     entry.evoFields.clear();
-                    if (is_evo_tokenized_entry(entry))
+                    if (evoTypeID == EvoTypeID::Program || evoTypeID == EvoTypeID::Equation || evoTypeID == EvoTypeID::String)
                     {
                         entry.data = legacy_tokenized_data_to_evo(entry.data, smartConversion);
                         entry.evoFields["version"] = 1;
@@ -1102,7 +1102,7 @@ namespace tivars
                     {
                         entry.data = legacy_image_to_evo(entry.data, entry.evoFields);
                     }
-                    else if (entry._type.getName().find("AppVar") != std::string::npos)
+                    else if (entry._type.getName() == "AppVar" || entry._type.getName() == "PythonAppVar")
                     {
                         entry.evoFields["version"] = 1;
                         entry.evoFields["size"] = entry.data.size();
@@ -1114,7 +1114,7 @@ namespace tivars
 
                     entry.evoTypeID = evoTypeID;
                     entry.evoMetaVersion = entry.evoMetaVersion == 0 ? 1 : entry.evoMetaVersion;
-                    entry.evoMetaFlags = (evoTypeID == 5 || evoTypeID == 4) ? 1 : entry.evoMetaFlags;
+                    entry.evoMetaFlags = (evoTypeID == EvoTypeID::Image || evoTypeID == EvoTypeID::Picture) ? 1 : entry.evoMetaFlags;
                     entry.evoNameBytes = encode_evo_name(evoTypeID, displayName);
                     entry.evoDataIsRawCBOR = false;
                     entry.meta_length = 0;
@@ -1125,13 +1125,13 @@ namespace tivars
                     {
                         entry.data = evo_tokenized_data_to_legacy(entry.data);
                     }
-                    else if (entry.evoTypeID == 0)
+                    else if (entry.evoTypeID == EvoTypeID::Real)
                     {
                         size_t offset = 0;
                         entry.data = evo_scalar_to_legacy_value(entry.data, offset);
                         set_numeric_entry_type_from_payload(entry);
                     }
-                    else if (entry.evoTypeID == 1)
+                    else if (entry.evoTypeID == EvoTypeID::RealList)
                     {
                         const auto lenIt = entry.evoFields.find("len");
                         if (lenIt == entry.evoFields.end())
@@ -1142,7 +1142,7 @@ namespace tivars
                         entry.data = evo_list_to_legacy(entry.data, lenIt->second, complexList);
                         set_entry_type(entry, TIVarType{complexList ? "ComplexList" : "RealList"});
                     }
-                    else if (entry.evoTypeID == 6)
+                    else if (entry.evoTypeID == EvoTypeID::Matrix)
                     {
                         const auto rowsIt = entry.evoFields.find("rows");
                         const auto colsIt = entry.evoFields.find("cols");
@@ -1153,24 +1153,24 @@ namespace tivars
                         entry.data = evo_matrix_to_legacy(entry.data, rowsIt->second, colsIt->second);
                         set_entry_type(entry, TIVarType{"Matrix"});
                     }
-                    else if (entry.evoTypeID == 5)
+                    else if (entry.evoTypeID == EvoTypeID::Image)
                     {
                         entry.data = evo_image_to_legacy(entry.data);
                         set_entry_type(entry, TIVarType{"Image"});
                     }
-                    else if (entry.evoTypeID == 4)
+                    else if (entry.evoTypeID == EvoTypeID::Picture)
                     {
                         entry.data = evo_picture_to_legacy(entry.data);
                         set_entry_type(entry, TIVarType{"Picture"});
                     }
-                    else if (entry.evoTypeID == 8 && !entry.evoDataIsRawCBOR)
+                    else if (entry.evoTypeID == EvoTypeID::AppVar && !entry.evoDataIsRawCBOR)
                     {
                         set_entry_type(entry, TIVarType{"AppVar"});
                         entry.determineFullType();
                     }
                     else
                     {
-                        throw std::runtime_error("Evo conversion is not supported for type " + std::to_string(entry.evoTypeID) + " variables");
+                        throw std::runtime_error("Evo conversion is not supported for type " + std::to_string(evo_type_id_value(entry.evoTypeID)) + " variables");
                     }
 
                     const std::string displayName = decode_evo_name(entry.evoTypeID, entry.evoNameBytes);
@@ -1182,7 +1182,7 @@ namespace tivars
                     entry.evoNameBytes.clear();
                     entry.evoDataIsRawCBOR = false;
                     entry.meta_length = (model.getFlags() & TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength;
-                    entry.evoTypeID = 0;
+                    entry.evoTypeID = EvoTypeID::Real;
                     entry.evoMetaVersion = 1;
                     entry.evoMetaFlags = 0;
                 }
@@ -1346,7 +1346,7 @@ namespace tivars
         }
 
         const auto& entry = this->entries[0];
-        const uint8_t evoTypeID = evo_type_from_type(entry._type, entry.evoTypeID);
+        const EvoTypeID evoTypeID = entry.evoTypeID;
         const std::string displayName = entry_name_to_string(entry._type, entry.varname, sizeof(var_entry_t::varname));
         const data_t nameBytes = !entry.evoNameBytes.empty() ? entry.evoNameBytes : encode_evo_name(evoTypeID, displayName);
 
@@ -1354,7 +1354,7 @@ namespace tivars
         out.push_back(0xBF);
         append_cbor_text(out, "metaData");
         out.push_back(0xBF);
-        append_cbor_key_uint(out, "type", evoTypeID);
+        append_cbor_key_uint(out, "type", evo_type_id_value(evoTypeID));
         append_cbor_key_uint(out, "version", entry.evoMetaVersion == 0 ? 1 : entry.evoMetaVersion);
         append_cbor_key_uint(out, "flags", entry.evoMetaFlags);
         append_cbor_text(out, "name");
@@ -1404,7 +1404,7 @@ namespace tivars
         (void)options;
         const auto& entry = this->entries[entryIdx];
         nlohmann::ordered_json j;
-        j["type"] = entry.evoTypeID;
+        j["type"] = evo_type_id_value(entry.evoTypeID);
         j["typeName"] = type_name_from_evo_type(entry.evoTypeID);
         j["name"] = decode_evo_name(entry.evoTypeID, entry.evoNameBytes.empty() ? encode_evo_name(entry.evoTypeID, entry_name_to_string(entry._type, entry.varname, sizeof(var_entry_t::varname))) : entry.evoNameBytes);
         j["metaData"] = {
@@ -1417,11 +1417,11 @@ namespace tivars
             j[key] = value;
         }
         j["rawDataHex"] = bytes_to_hex_string(entry.data);
-        if (!entry.evoDataIsRawCBOR && (entry.evoTypeID == 2 || entry.evoTypeID == 7))
+        if (!entry.evoDataIsRawCBOR && (entry.evoTypeID == EvoTypeID::Program || entry.evoTypeID == EvoTypeID::Equation))
         {
             j["code"] = detokenize_evo_token_words(entry.data);
         }
-        if (!entry.evoDataIsRawCBOR && entry.evoTypeID == 15)
+        if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::PythonScript)
         {
             try
             {
