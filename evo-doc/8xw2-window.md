@@ -1,6 +1,10 @@
 # `.8xw2` window settings
 
-Sample file: `Window.8xw2`.
+Sample files:
+
+- `testData/evo/Window.8xw2`
+- `testData/evo/more/Window.8xw2`
+- `testData/evo/more/Window_parametric.8xw2`
 
 Metadata:
 
@@ -35,14 +39,14 @@ size      = byte length of data; equals arraylen * 2
 data      = custom scalar payload
 ```
 
-Observed `Window.8xw2` entries:
+All observed `Window.8xw2` files contain the same entries:
 
 ```text
-00  E98F TOK_VAR_XMIN         metaData.flags 8, size 12
-01  E990 TOK_VAR_XMAX         metaData.flags 8, size 12
+00  E98F TOK_VAR_XMIN         size 12
+01  E990 TOK_VAR_XMAX         size 12
 02  E991 TOK_VAR_XSCL         size 6
-03  E993 TOK_VAR_YMIN         metaData.flags 8, size 12
-04  E994 TOK_VAR_YMAX         metaData.flags 8, size 12
+03  E993 TOK_VAR_YMIN         size 12
+04  E994 TOK_VAR_YMAX         size 12
 05  E995 TOK_VAR_YSCL         size 6
 06  E992 TOK_VAR_X_RES        size 6
 07  E9B2 TOK_VAR_DELTA_X      size 12
@@ -60,7 +64,12 @@ Observed `Window.8xw2` entries:
 19  E9AF TOK_VAR_PLOT_STEP    size 6
 ```
 
-Representative custom scalar payloads:
+The root sample has `metaData.flags = 8` on `XMIN`, `XMAX`, `YMIN`,
+and `YMAX`. The `more/Window.8xw2` and
+`more/Window_parametric.8xw2` samples have `metaData.flags = 0` on all
+nested entries, including those coordinate variables.
+
+Representative custom scalar payloads from `testData/evo/Window.8xw2`:
 
 ```text
 XMIN:
@@ -79,7 +88,52 @@ THETA_MAX:
   00 00 00 07 53 18 83 62 01 00 23 00
 ```
 
+Representative custom scalar payloads from
+`testData/evo/more/Window.8xw2`:
+
+```text
+XMIN:
+  00 00 00 00 00 00 90 15 ff 01 23 00
+
+XMAX:
+  00 00 00 27 63 79 70 15 01 00 23 00
+
+XSCL:
+  03 00 01 00 1f 00
+
+YMIN:
+  00 00 00 00 00 00 40 10 ff 01 23 00
+
+YMAX:
+  00 00 00 00 00 00 50 20 01 01 23 00
+
+X_RES:
+  02 00 01 00 1f 00
+
+DELTA_X:
+  00 95 11 09 11 96 93 54 01 fe 23 00
+
+DELTA_Y:
+  00 69 07 23 69 57 85 14 01 ff 23 00
+```
+
+`testData/evo/more/Window_parametric.8xw2` was captured while the
+calculator was in Parametric mode. It has the same entry order and
+metadata flags as `testData/evo/more/Window.8xw2`; the observed payload
+differences are:
+
+```text
+YMIN:
+  00 00 00 00 00 00 40 15 ff 01 23 00
+
+YMAX:
+  00 00 00 00 00 00 50 25 01 01 23 00
+
+DELTA_Y:
+  00 62 84 53 61 34 66 19 01 ff 23 00
+```
+
 The nested scalar `data` encoding matches the `.8xn2` custom scalar
 shape. The observed nested `metaData.flags = 8` values are limited to
-the X/Y min/max coordinate variables in this sample. Other window
-variables use `metaData.flags = 0`.
+the X/Y min/max coordinate variables in the root sample, but the newer
+samples show those same variables can also use `metaData.flags = 0`.
