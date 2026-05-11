@@ -13,9 +13,13 @@ metaData.name    = variable token, little-endian, then 0000
 
 The observed `metaData.flags = 8` top-level samples are `X.8xn2` and
 `Y.8xn2`. The same metadata flag appears on nested `XMIN`, `XMAX`,
-`YMIN`, and `YMAX` entries in `Window.8xw2`. This appears tied to
-special graph/window coordinate variables, not to the scalar data format
-itself.
+`YMIN`, and `YMAX` entries in `testData/evo/Window.8xw2`, while the
+same nested entries use `metaData.flags = 0` in
+`testData/evo/more/Window.8xw2` and
+`testData/evo/more/Window_parametric.8xw2`. This appears tied to
+metadata context for special graph/window coordinate variables, not to
+the scalar data format itself, and should not be required to recognize
+those variables.
 
 Body fields:
 
