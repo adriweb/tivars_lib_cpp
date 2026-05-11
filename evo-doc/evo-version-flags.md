@@ -92,16 +92,23 @@ variable-level image/Pic metadata flag rather than a pixel-data flag.
 
 ## `metaData.flags = 4` for equations
 
-The current `.8xy2` sample, `Y1.8xy2`, has:
+The current `.8xy2` samples use:
 
 ```text
-metaData.type  = 7
-metaData.flags = 4
+metaData.type    = 7
+metaData.flags   = 4 or 6
 ```
 
 The body has no `flags` key. This likely belongs to equation
-graph/display state, not to the expression token stream itself. More
-equation samples are needed before naming the bit.
+graph/display state, not to the expression token stream itself.
+
+In the observed Evo GDB sample, `testData/evo/more/GDB1.8xd2`, the
+equation display metadata is stored in `NQEI` records next to the
+equation expression records. The X1T/Y1T pair was disabled in the
+equation editor and has `NQEI` flags `2`; enabled pairs in the same
+file use `4` or `6`. This suggests bit `0x04` is tied to enabled /
+plotted equation state, while the exact meaning of bit `0x02` is still
+unknown.
 
 The online calculator WASM contains a field-name table that includes
 common fields and graph/equation metadata fields:
@@ -126,7 +133,7 @@ X.8xn2    metaData.flags = 8, body flags = 0
 Y.8xn2    metaData.flags = 8, body flags = 0
 ```
 
-and in nested scalar entries inside `Window.8xw2`:
+and in nested scalar entries inside `testData/evo/Window.8xw2`:
 
 ```text
 XMIN      metaData.flags = 8
@@ -135,7 +142,12 @@ YMIN      metaData.flags = 8
 YMAX      metaData.flags = 8
 ```
 
-Other window values in the same file use `metaData.flags = 0`.
+Other window values in the same file use `metaData.flags = 0`. A
+second window sample, `testData/evo/more/Window.8xw2`, and a
+Parametric-mode sample, `testData/evo/more/Window_parametric.8xw2`,
+use `metaData.flags = 0` for all nested entries, including `XMIN`,
+`XMAX`, `YMIN`, and `YMAX`.
+
 Therefore bit `0x08` is not simply "decimal value" or "approximate
 number"; many decimal scalar values use metadata flag `0`.
 
@@ -143,7 +155,8 @@ The current best description is:
 
 ```text
 metaData.flags bit 0x08 appears tied to special graph/window coordinate
-variables, especially X/Y and X/Y min/max.
+variable metadata context, especially X/Y and X/Y min/max, but observed
+files do not always set it for those nested window variables.
 ```
 
 The precise semantic name is still unknown.
