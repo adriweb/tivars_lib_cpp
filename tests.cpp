@@ -1463,6 +1463,8 @@ int main(int argc, char** argv)
             {"plottinydot", "0200ef73", "C0E50000"},
             {"Thin", "0200ef74", "C1E50000"},
             {"Dot-Thin", "0200ef75", "C2E50000"},
+            {"BackgroundOn Image1", "0400ef5bef50", "B6E5B0E80000"},
+            {"BackgroundOff", "0200ef64", "B7E50000"},
         };
 
         for (const auto& [source, legacyHex, evoHex] : plotStyleTokens)
@@ -1541,8 +1543,11 @@ int main(int argc, char** argv)
 
         const auto expected_legacy_to_evo_token = [](uint16_t evoToken) {
             // These two old alias spellings share legacy token bytes with the canonical variables.
+            if (evoToken == 0xE0D1) return static_cast<uint16_t>(0xE44C);
             if (evoToken == 0xE611) return static_cast<uint16_t>(0xE983);
             if (evoToken == 0xE612) return static_cast<uint16_t>(0xE984);
+            if (evoToken >= 0xE99C && evoToken <= 0xE99E) return static_cast<uint16_t>(0xE9D9 + (evoToken - 0xE99C));
+            if (evoToken >= 0xE9A0 && evoToken <= 0xE9A2) return static_cast<uint16_t>(0xE9DC + (evoToken - 0xE9A0));
             return evoToken;
         };
 
@@ -1551,19 +1556,26 @@ int main(int argc, char** argv)
             {0xE400, 0xE400},
             {0xE40B, 0xE423},
             {0xE425, 0xE44B},
+            {0xE44C, 0xE44C},
             {0xE44D, 0xE451},
+            {0xE452, 0xE453},
             {0xE454, 0xE4B4},
             {0xE4C0, 0xE4E3},
             {0xE4E5, 0xE50A},
             {0xE580, 0xE588},
             {0xE58A, 0xE597},
             {0xE59A, 0xE5B5},
+            {0xE5B6, 0xE5B7},
             {0xE5B8, 0xE5C2},
             {0xE600, 0xE601},
             {0xE603, 0xE60D},
+            {0xE60E, 0xE610},
             {0xE611, 0xE612},
+            {0xE613, 0xE61C},
+            {0xE640, 0xE642},
             {0xE643, 0xE651},
             {0xE680, 0xE68D},
+            {0xE68E, 0xE694},
             {0xE6A0, 0xE6AD},
             {0xE6B7, 0xE6B8},
             {0xE6C2, 0xE6C7},
@@ -1575,7 +1587,9 @@ int main(int argc, char** argv)
             {0xE900, 0xE93A},
             {0xE980, 0xE987},
             {0xE98F, 0xE99B},
+            {0xE99C, 0xE99E},
             {0xE99F, 0xE99F},
+            {0xE9A0, 0xE9A2},
             {0xE9A3, 0xE9BF},
             {0xE9D9, 0xE9DE},
         };
@@ -1597,7 +1611,7 @@ int main(int argc, char** argv)
                 ++checkedAliasTokenCount;
             }
         }
-        assert(checkedAliasTokenCount == 510);
+        assert(checkedAliasTokenCount == 544);
     }
 
     {
@@ -1690,6 +1704,21 @@ Disp Str1
         seqProgram.convertToModel(TIModel{"84+CE"});
         assert(!seqProgram.isEvoFormat());
         assert(seqProgram.getRawContent() == originalLegacyData);
+    }
+
+    {
+        TIVarFile evalProgram = TIVarFile::createNew("Program", "EVALTOK", "84+CE");
+        evalProgram.setContentFromString("eval(\"1+1\"");
+        const data_t originalLegacyData = evalProgram.getRawContent();
+        assert(evalProgram.getRawContentHexStr() == "0700ef982a3170312a");
+
+        evalProgram.convertToModel(TIModel{"84Evo"});
+        assert(evalProgram.isEvoFormat());
+        assert(json::parse(evalProgram.getReadableContent())["dataHex"] == "E4E416E402E428E402E416E40000");
+
+        evalProgram.convertToModel(TIModel{"84+CE"});
+        assert(!evalProgram.isEvoFormat());
+        assert(evalProgram.getRawContent() == originalLegacyData);
     }
 
     {
