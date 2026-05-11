@@ -1950,6 +1950,45 @@ Disp Str1
         assert_evo_to_legacy_readable(evoSamples + "more/L.8xn2", "1.5");
         assert_evo_to_legacy_readable(evoSamples + "more/S.8xn2", "1/3");
         assert_evo_to_legacy_readable(evoSamples + "more/D.8xm2", "[[1,2][3,4]]");
+        assert_evo_to_legacy_readable(evoSamples + "more/X1T.8xy2", "2T");
+        assert_evo_to_legacy_readable(evoSamples + "more/Y1T.8xy2", "⁻5.5T");
+        assert_evo_to_legacy_readable(evoSamples + "more/X2T.8xy2", "cos(T/2");
+        assert_evo_to_legacy_readable(evoSamples + "more/Y2T.8xy2", "sin(T/3");
+        assert_evo_to_legacy_readable(evoSamples + "more/X3T.8xy2", "T^2");
+        assert_evo_to_legacy_readable(evoSamples + "more/Y3T.8xy2", "⁻T");
+        assert_evo_to_legacy_readable(evoSamples + "more/X4T.8xy2", "0");
+        assert_evo_to_legacy_readable(evoSamples + "more/Y4T.8xy2", "T");
+        for (const auto& [equationSample, expectedFlags] : std::array<std::tuple<const char*, uint8_t>, 8>{{
+            {"more/X1T.8xy2", 4}, {"more/Y1T.8xy2", 4},
+            {"more/X2T.8xy2", 4}, {"more/Y2T.8xy2", 4},
+            {"more/X3T.8xy2", 4}, {"more/Y3T.8xy2", 4},
+            {"more/X4T.8xy2", 6}, {"more/Y4T.8xy2", 6},
+        }})
+        {
+            TIVarFile equation = TIVarFile::loadFromFile(evoSamples + equationSample);
+            assert(equation.isEvoFormat());
+            assert(equation.getVarEntries()[0].evoTypeID == EvoFormat::EvoTypeID::Equation);
+            assert(equation.getVarEntries()[0].evoMetaFlags == expectedFlags);
+        }
+
+        for (const char* windowSample : {"more/Window.8xw2", "more/Window_parametric.8xw2"})
+        {
+            TIVarFile evoWindow = TIVarFile::loadFromFile(evoSamples + windowSample);
+            assert(evoWindow.isEvoFormat());
+            assert(evoWindow.getVarEntries()[0].evoTypeID == EvoFormat::EvoTypeID::WindowSettings);
+            assert(evoWindow.getVarEntries()[0].evoMetaFlags == 0);
+            assert(evoWindow.getVarEntries()[0].evoNameBytes == data_t({0xBA, 0xE8, 0x00, 0x00}));
+        }
+
+        TIVarFile evoGDB = TIVarFile::loadFromFile(evoSamples + "more/GDB1.8xd2");
+        assert(evoGDB.isEvoFormat());
+        assert(evoGDB.getVarEntries()[0].evoTypeID == EvoFormat::EvoTypeID::GraphDataBase);
+        assert(evoGDB.getVarEntries()[0].evoMetaFlags == 0);
+        assert(evoGDB.getVarEntries()[0].evoNameBytes == data_t({0x90, 0xE8, 0x00, 0x00}));
+        data_t evoGDBRaw = evoGDB.getRawContent();
+        assert(evoGDBRaw.size() == 836);
+        assert(evoGDBRaw[36] == 'R' && evoGDBRaw[37] == 'A' && evoGDBRaw[38] == 'V' && evoGDBRaw[39] == 'I');
+        assert(evoGDBRaw[304] == 'N' && evoGDBRaw[305] == 'Q' && evoGDBRaw[306] == 'E' && evoGDBRaw[307] == 'I');
 
         TIVarFile evoPicture = TIVarFile::loadFromFile(evoSamples + "Pic1.8ci2");
         assert(evoPicture.isEvoFormat());
