@@ -39,7 +39,6 @@ int main(int argc, char** argv)
             ("n,name", "Variable name", cxxopts::value<string>())
             ("t,type", "Variable type", cxxopts::value<string>())
             ("m,calc", "Calc. model", cxxopts::value<string>())
-            ("x,xml", "Path to tokens XML file (overrides default ti-toolkit-8x-tokens.xml)", cxxopts::value<string>())
             ("l,lang", "Language", cxxopts::value<string>()->default_value("en"))
             ("a,archive", "Archive status", cxxopts::value<bool>())
             ("r,reindent", "Re-indent", cxxopts::value<bool>())
@@ -214,14 +213,6 @@ int main(int argc, char** argv)
             }
             else
             {
-                if (result.count("xml"))
-                {
-                    string xmlFilePath = result["xml"].as<string>();
-                    TH_Tokenized::initTokensFromXMLFilePath(xmlFilePath);
-                } else {
-                    TH_Tokenized::initTokens();
-                }
-
                 string requestedName;
                 if (result.count("name"))
                 {

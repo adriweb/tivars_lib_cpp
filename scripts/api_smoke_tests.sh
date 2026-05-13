@@ -27,6 +27,7 @@ int main()
 }
 CPP
 
+cc -std=c2x -c "$ROOT_DIR/src/TypeHandlers/BuiltinTokensXml.c" -o "$TMP_DIR/BuiltinTokensXml.o"
 COMMON_SOURCES=("$ROOT_DIR"/src/*.cpp "$ROOT_DIR"/src/TypeHandlers/*.cpp "$ROOT_DIR"/vendor/pugixml/pugixml.cpp)
-c++ -std=c++2a -DTH_GDB_SUPPORT=1 -I"$ROOT_DIR" -I"$ROOT_DIR/vendor/pugixml" "${COMMON_SOURCES[@]}" "$TMP_DIR/api_init_smoke.cpp" -o "$TMP_DIR/api_init_smoke"
+c++ -std=c++2a -DTH_GDB_SUPPORT=1 -I"$ROOT_DIR" -I"$ROOT_DIR/vendor/pugixml" "${COMMON_SOURCES[@]}" "$TMP_DIR/BuiltinTokensXml.o" "$TMP_DIR/api_init_smoke.cpp" -o "$TMP_DIR/api_init_smoke"
 "$TMP_DIR/api_init_smoke"

@@ -12,8 +12,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04,ubuntu-latest,macOS-15-intel,macOS-latest]
+        os: [ubuntu-24.04,macos-15-intel,macos-26-intel,macos-26]
     steps:
-      - uses: actions/checkout@v5
-      - run: make -j4
+      - uses: actions/checkout@v6
+
+      - name: Install LLVM 19
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo apt-get update && sudo apt-get install -y clang-19 lld-19
+
+      - name: Build
+        if: startsWith(matrix.os, 'ubuntu')
+        run: make -j4 CC=clang-19 CXX=clang++-19 LFLAGS=-fuse-ld=lld-19
+      - name: Build
+        if: matrix.os == 'macos-15-intel'
+        run: make -j4 CC=gcc-15 CXX=g++-15
+      - name: Build
+        if: startsWith(matrix.os, 'macos-26')
+        run: make -j4 CC=$(brew --prefix llvm@20)/bin/clang CXX=$(brew --prefix llvm@20)/bin/clang++
+
       - run: ./tivars_tests

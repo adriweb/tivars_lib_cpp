@@ -1,3 +1,4 @@
+CC := emcc
 CXX := em++
 DEBUG ?= 0
 
@@ -12,14 +13,15 @@ else
 endif
 
 # Emscripten stuff
-EMFLAGS := --bind -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME="'TIVarsLib'" -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=$(ASSERTIONS) -s DISABLE_EXCEPTION_CATCHING=0 -s EXPORTED_RUNTIME_METHODS="['FS','getExceptionMessage','decrementExceptionRefcount']" $(DEBUG_EMFLAGS) --embed-file ti-toolkit-8x-tokens.xml
+EMFLAGS := --bind -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME="'TIVarsLib'" -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=$(ASSERTIONS) -s DISABLE_EXCEPTION_CATCHING=0 -s EXPORTED_RUNTIME_METHODS="['FS','getExceptionMessage','decrementExceptionRefcount']" $(DEBUG_EMFLAGS)
 
 CXXFLAGS := $(OPTFLAGS) -std=c++2a -DTH_GDB_SUPPORT=1 -Ivendor/pugixml -W -Wall -Wextra
+CFLAGS := $(OPTFLAGS) -std=c2x -W -Wall -Wextra
 LFLAGS := $(OPTFLAGS) $(EMFLAGS)
 
-SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp) vendor/pugixml/pugixml.cpp
+SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp) $(wildcard src/TypeHandlers/*.c) vendor/pugixml/pugixml.cpp
 
-OBJS = $(patsubst %.cpp, %.bc, $(SOURCES))
+OBJS = $(patsubst %.c, %.bc, $(patsubst %.cpp, %.bc, $(SOURCES)))
 
 OUTPUT := TIVarsLib
 
@@ -29,6 +31,9 @@ all: wasm
 
 %.bc: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.bc: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OUTPUT).js: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $@

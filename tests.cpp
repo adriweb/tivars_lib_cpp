@@ -201,8 +201,6 @@ int main(int argc, char** argv)
 
     setlocale(LC_ALL, ".UTF-8");
 
-    TH_Tokenized::initTokens();
-
     /* Tests */
 
     assert(TIVarType{"ExactRealPi"}.getId() == 32);

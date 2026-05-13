@@ -250,8 +250,6 @@ namespace tivars::TypeHandlers
         static token_posinfo getPosInfoAtOffsetInSourceString(const std::string& sourceStr, uint16_t byteOffset);
         static std::string tokenToString(const data_t& data, int *incr, const options_t& options);
         static std::string oneTokenBytesToString(uint16_t tokenBytes);
-        static void initTokens();
-        static void initTokensFromXMLFilePath(const std::string& path);
     };
 
     // Special temporary type that may appear as an equation, during basic program execution

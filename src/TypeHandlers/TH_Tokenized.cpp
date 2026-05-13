@@ -10,16 +10,11 @@
 #include "../TIVarFile.h"
 #include "../tivarslib_utils.h"
 
-#ifndef CEMU_VERSION
-  #include <iterator>
-#else
-  #include <QtCore/QFile>
-#endif
+#include <cstddef>
 #include <stdexcept>
 #include <unordered_map>
 #include <iostream>
 #include <sstream>
-#include <fstream>
 #include <cstring>
 #include <array>
 #include <algorithm>
@@ -29,6 +24,12 @@
 
 using namespace std::string_literals;
 using json = nlohmann::ordered_json;
+
+extern "C"
+{
+    extern const unsigned char tivars_builtin_tokens_xml[];
+    extern const size_t tivars_builtin_tokens_xml_size;
+}
 
 static size_t strlen_mb(const std::string& s)
 {
@@ -489,7 +490,44 @@ namespace tivars::TypeHandlers
         std::unordered_map<std::string, uint16_t> tokens_NameToBytes;
         uint8_t lengthOfLongestTokenName;
         std::vector<uint8_t> firstByteOfTwoByteTokens;
+        bool tokensInitialized = false;
         constexpr uint16_t squishedASMTokens[] = { 0xBB6D, 0xEF69, 0xEF7B }; // 83+/84+, 84+CSE, CE
+
+        static void parse_tokens_xml_and_register(const std::string& xml);
+
+        static void init_tokens()
+        {
+            if (tokensInitialized)
+            {
+                return;
+            }
+
+            tokens_BytesToNames.clear();
+            tokens_NameToBytes.clear();
+            firstByteOfTwoByteTokens.clear();
+            lengthOfLongestTokenName = 0;
+
+            const std::string xmlStr(
+                reinterpret_cast<const char*>(tivars_builtin_tokens_xml),
+                tivars_builtin_tokens_xml_size
+            );
+            if (xmlStr.empty())
+            {
+                throw std::runtime_error("Embedded token XML is empty");
+            }
+
+            parse_tokens_xml_and_register(xmlStr);
+            tokens_BytesToNames[0x00].display = { "", "" };
+            tokensInitialized = true;
+        }
+
+        static void ensure_tokens_initialized()
+        {
+            if (!tokensInitialized)
+            {
+                init_tokens();
+            }
+        }
 
         struct TokenScanState
         {
@@ -855,6 +893,8 @@ namespace tivars::TypeHandlers
     data_t TH_Tokenized::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         (void)_ctx;
+        ensure_tokens_initialized();
+
         const std::string trimmed = tivars::trim(str);
         if (!trimmed.empty() && trimmed.front() == '{')
         {
@@ -918,6 +958,8 @@ namespace tivars::TypeHandlers
 
     std::string TH_Tokenized::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
+        ensure_tokens_initialized();
+
         const size_t dataSize = data.size();
 
         const bool fromRawBytes = options.contains("fromRawBytes") && options.at("fromRawBytes") == 1;
@@ -1102,6 +1144,8 @@ namespace tivars::TypeHandlers
 
     TIVarFileMinVersionByte TH_Tokenized::getMinVersionFromData(const data_t& data)
     {
+        ensure_tokens_initialized();
+
         const size_t dataSize = data.size();
         if (dataSize < 2)
         {
@@ -1263,6 +1307,8 @@ namespace tivars::TypeHandlers
 
     std::string TH_Tokenized::tokenToString(const data_t& data, int *incr, const options_t& options)
     {
+        ensure_tokens_initialized();
+
         const size_t dataSize = data.size();
 
         const uint8_t currentToken = data[0];
@@ -1298,6 +1344,8 @@ namespace tivars::TypeHandlers
 
     std::string TH_Tokenized::oneTokenBytesToString(uint16_t tokenBytes)
     {
+        ensure_tokens_initialized();
+
         if (tokenBytes < 0xFF && is_in_vector(firstByteOfTwoByteTokens, (uint8_t)(tokenBytes & 0xFF)))
         {
             std::cerr << "[Warning] Encountered an unfinished two-byte token!" << std::endl;
@@ -1313,6 +1361,8 @@ namespace tivars::TypeHandlers
 
     TH_Tokenized::token_posinfo TH_Tokenized::getPosInfoAtOffset(const data_t& data, uint16_t byteOffset, const options_t& options)
     {
+        ensure_tokens_initialized();
+
         const size_t dataSize = data.size();
 
         if (byteOffset >= dataSize)
@@ -1402,6 +1452,8 @@ namespace tivars::TypeHandlers
 
     TH_Tokenized::token_posinfo TH_Tokenized::getPosInfoAtOffsetInSourceString(const std::string& sourceStr, uint16_t byteOffset)
     {
+        ensure_tokens_initialized();
+
         if (byteOffset < 2)
         {
             return { 0, 0, 0 };
@@ -1441,59 +1493,6 @@ namespace tivars::TypeHandlers
         }
 
         return posinfo;
-    }
-
-    void TH_Tokenized::initTokens()
-    {
-        // Reset containers
-        tokens_BytesToNames.clear();
-        tokens_NameToBytes.clear();
-        firstByteOfTwoByteTokens.clear();
-        lengthOfLongestTokenName = 0;
-
-#ifndef CEMU_VERSION
-        // Load from XML file on disk
-        const std::string xmlPath = "ti-toolkit-8x-tokens.xml";
-        std::ifstream t(xmlPath);
-        const std::string xmlStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
-        if (xmlStr.empty()) {
-            return;
-        }
-        parse_tokens_xml_and_register(xmlStr);
-#else
-        // In Qt/CEmu version, try loading XML from resources
-        std::string xmlFileStr;
-        QFile inputFile(QStringLiteral(":/other/tivars_lib_cpp/ti-toolkit-8x-tokens.xml"));
-        if (inputFile.open(QIODevice::ReadOnly))
-        {
-            xmlFileStr = inputFile.readAll().toStdString();
-        }
-        if (xmlFileStr.empty())
-        {
-            return;
-        }
-        parse_tokens_xml_and_register(xmlFileStr);
-#endif
-
-        tokens_BytesToNames[0x00].display = { "", "" };
-    }
-
-    void TH_Tokenized::initTokensFromXMLFilePath(const std::string& path)
-    {
-        // Reset containers
-        tokens_BytesToNames.clear();
-        tokens_NameToBytes.clear();
-        firstByteOfTwoByteTokens.clear();
-        lengthOfLongestTokenName = 0;
-
-        std::ifstream t(path);
-        const std::string xmlStr((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
-        if (xmlStr.empty()) {
-            return;
-        }
-
-        parse_tokens_xml_and_register(xmlStr);
-        tokens_BytesToNames[0x00].display = { "", "" };
     }
 
 }

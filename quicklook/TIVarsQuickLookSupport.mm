@@ -693,15 +693,6 @@ namespace
     {
         std::call_once(initFlag, []() {
             std::setlocale(LC_ALL, ".UTF-8");
-            NSString* xmlPath = [NSBundle.mainBundle pathForResource:@"ti-toolkit-8x-tokens" ofType:@"xml"];
-            if (xmlPath)
-            {
-                tivars::TypeHandlers::TH_Tokenized::initTokensFromXMLFilePath(xmlPath.UTF8String);
-            }
-            else
-            {
-                tivars::TypeHandlers::TH_Tokenized::initTokens();
-            }
         });
     }
 

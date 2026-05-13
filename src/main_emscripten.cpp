@@ -20,8 +20,6 @@ extern "C" int EMSCRIPTEN_KEEPALIVE main(int, char**)
 {
     setlocale(LC_ALL, ".UTF-8");
 
-    TypeHandlers::TH_Tokenized::initTokens();
-
     puts("tivars_lib ready!");
 
     return 0;

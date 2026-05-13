@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.21)
 
 if(DEFINED TIVARS_ENABLE_FUZZING)
     set(TIVARS_ENABLE_FUZZING "${TIVARS_ENABLE_FUZZING}" CACHE BOOL "Build libFuzzer targets" FORCE)
@@ -22,7 +22,7 @@ endif()
 
 project(tivars_lib_cpp
         VERSION     1.3.0
-        LANGUAGES   CXX)
+        LANGUAGES   C CXX)
 
 include(CheckCXXCompilerFlag)
 if(MSVC)
@@ -49,6 +49,13 @@ endif()
 
 file(GLOB HEADER_FILES "src/*.h" "src/TypeHandlers/*.h")
 file(GLOB COMMON_SOURCE ${HEADER_FILES} "src/*.cpp" "src/TypeHandlers/*.cpp")
+set(TIVARS_BUILTIN_TOKENS_SOURCE src/TypeHandlers/BuiltinTokensXml.c)
+list(APPEND COMMON_SOURCE ${TIVARS_BUILTIN_TOKENS_SOURCE})
+set_source_files_properties(${TIVARS_BUILTIN_TOKENS_SOURCE}
+    PROPERTIES
+        C_STANDARD 23
+        C_STANDARD_REQUIRED ON
+)
 
 # pugixml (vendored)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor/pugixml)
@@ -71,7 +78,6 @@ target_compile_definitions(tivars_lib_cpp_cli PRIVATE CXXOPTS_NO_REGEX=1)
 
 if(TIVARS_ENABLE_FUZZING)
     set(TIVARS_FUZZ_CORPUS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus)
-    set(TIVARS_TOKENS_XML_PATH ${CMAKE_CURRENT_SOURCE_DIR}/ti-toolkit-8x-tokens.xml)
 
     add_custom_target(tivars_fuzzer_seed_corpus
             COMMAND ${CMAKE_COMMAND} -E make_directory ${TIVARS_FUZZ_CORPUS_DIR}
@@ -83,7 +89,6 @@ if(TIVARS_ENABLE_FUZZING)
     add_dependencies(tivars_lib_cpp_fuzzer tivars_fuzzer_seed_corpus)
     target_compile_definitions(tivars_lib_cpp_fuzzer PRIVATE
             FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1
-            TIVARS_TOKENS_XML_PATH="${TIVARS_TOKENS_XML_PATH}"
     )
     target_compile_options(tivars_lib_cpp_fuzzer PRIVATE
             -O1
@@ -212,9 +217,7 @@ if(APPLE)
             $<TARGET_OBJECTS:tivars_quicklook_support>
             quicklook/PreviewProvider.mm
             quicklook/ExtensionMain.m
-            ti-toolkit-8x-tokens.xml
     )
-    set_source_files_properties(ti-toolkit-8x-tokens.xml PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set_target_properties(tivars_quicklook_preview_extension PROPERTIES
             BUNDLE_EXTENSION appex
             OUTPUT_NAME TIVarsQuickLookPreview
@@ -232,7 +235,6 @@ if(APPLE)
             $<TARGET_OBJECTS:tivars_quicklook_support>
             quicklook/ThumbnailProvider.mm
             quicklook/ExtensionMain.m
-            ti-toolkit-8x-tokens.xml
     )
     set_target_properties(tivars_quicklook_thumbnail_extension PROPERTIES
             BUNDLE_EXTENSION appex

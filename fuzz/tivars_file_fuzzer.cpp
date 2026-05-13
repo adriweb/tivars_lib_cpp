@@ -21,10 +21,6 @@
 #include "../src/TypeHandlers/TypeHandlers.h"
 #include "../src/tivarslib_utils.h"
 
-#ifndef TIVARS_TOKENS_XML_PATH
-#define TIVARS_TOKENS_XML_PATH "ti-toolkit-8x-tokens.xml"
-#endif
-
 namespace
 {
     constexpr size_t maxInputSize = 2U * 1024U * 1024U;
@@ -47,7 +43,6 @@ namespace
         std::call_once(initFlag, []()
         {
             std::setlocale(LC_ALL, ".UTF-8");
-            tivars::TypeHandlers::TH_Tokenized::initTokensFromXMLFilePath(TIVARS_TOKENS_XML_PATH);
         });
     }
 
