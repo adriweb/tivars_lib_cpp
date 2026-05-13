@@ -76,7 +76,7 @@ namespace tivars::TypeHandlers
                     }
                     index = (dataByteCount << 1) + 1;
                 }
-            } else if (c == 'e') {
+            } else if (c == 'e' || c == 'E') {
                 const bool sign = parseSign(i, e);
                 int offset = 0;
                 do {

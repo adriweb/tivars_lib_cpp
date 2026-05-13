@@ -1454,6 +1454,8 @@ End)";
         assert(testRealList.getReadableContent() == content);
         testRealList.setContentFromString("{1,2}\n");
         assert(testRealList.getReadableContent() == "{1,2}");
+        testRealList.setContentFromString("{1E2,3}");
+        assert(testRealList.getReadableContent() == "{100,3}");
     }
 
     {

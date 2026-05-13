@@ -19,5 +19,8 @@ printf '1' > "$TMP_DIR/one_real.txt"
 printf '{1,2}\n' > "$TMP_DIR/list_with_newline.txt"
 "$CLI" -i "$TMP_DIR/list_with_newline.txt" -j readable -o "$TMP_DIR/list_with_newline.8xl" -k varfile -t RealList -n L1
 
+printf '{1E2}\n' > "$TMP_DIR/list_with_uppercase_exp.txt"
+"$CLI" -i "$TMP_DIR/list_with_uppercase_exp.txt" -j readable -o "$TMP_DIR/list_with_uppercase_exp.8xl" -k varfile -t RealList -n L1
+
 printf '[[1,2][3,4]]\n' > "$TMP_DIR/matrix_with_newline.txt"
 "$CLI" -i "$TMP_DIR/matrix_with_newline.txt" -j readable -o "$TMP_DIR/matrix_with_newline.8xm" -k varfile -t Matrix -n A
