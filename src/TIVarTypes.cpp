@@ -16,10 +16,15 @@ namespace tivars
     {
         std::unordered_map<std::string, TIVarType> types;
         const TIVarType unknownVarType{};
+        bool typesInitialized = false;
     }
+
+    void ensure_types_initialized();
+    void initTIVarTypesArray();
 
     const std::unordered_map<std::string, TIVarType>& TIVarTypes::all()
     {
+        ensure_types_initialized();
         return types;
     }
 
@@ -63,7 +68,7 @@ namespace tivars
     &(TypeHandlers::TH_StructuredAppVar::getMinVersionFromData),                                    \
 }
 
-    void TIVarTypes::insertType(const std::string& name, int id, const std::vector<std::string>& exts, const TypeHandlersTuple& handlers)
+    void insertType(const std::string& name, int id, const std::vector<std::string>& exts, const TypeHandlersTuple& handlers = { &TypeHandlers::DummyHandler::makeDataFromString, &TypeHandlers::DummyHandler::makeStringFromData, &TypeHandlers::DummyHandler::getMinVersionFromData })
     {
         const TIVarType varType(id, name, exts, handlers);
         types[name] = varType;
@@ -81,11 +86,25 @@ namespace tivars
         }
     }
 
+    void ensure_types_initialized()
+    {
+        if (!typesInitialized)
+        {
+            initTIVarTypesArray();
+        }
+    }
+
     // 82+/83+/84+ are grouped since only the clock is the difference, and it doesn't have an actual varType.
     // For number vartypes, Real and Complex are the generic handlers we use, they'll dispatch to specific ones.
-    void TIVarTypes::initTIVarTypesArray() // order: 82     83    82A   84+T  82+/83+  84+C  84+CE  83PCE  82AEP
-                                           //                                   84+         84+CE-T
+    void initTIVarTypesArray()            // order: 82     83     82A   84+T  82+/83+  84+C  84+CE  83PCE  82AEP
+                                          //                                   84+         84+CE-T
     {
+        if (typesInitialized)
+        {
+            return;
+        }
+        typesInitialized = true;
+
         const std::string _;
 
         /* Standard types */
@@ -150,13 +169,13 @@ namespace tivars
 
     bool TIVarTypes::isValidID(uint8_t id)
     {
+        ensure_types_initialized();
         return types.contains(std::to_string(id));
     }
 
     bool TIVarTypes::isValidName(const std::string& name)
     {
+        ensure_types_initialized();
         return (!name.empty() && types.contains(name));
     }
 }
-
-//TIVarTypes::initTIVarTypesArray();

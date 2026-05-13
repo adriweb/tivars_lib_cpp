@@ -21,14 +21,10 @@ namespace tivars
         static TIVarType fromName(const std::string& name);
         static TIVarType fromId(uint8_t id);
 
-        static void initTIVarTypesArray();
         static const std::unordered_map<std::string, TIVarType>& all();
 
         static bool isValidName(const std::string& name);
         static bool isValidID(uint8_t id);
-
-    private:
-        static void insertType(const std::string& name, int id, const std::vector<std::string>& exts, const TypeHandlers::TypeHandlersTuple& handlers = { &TypeHandlers::DummyHandler::makeDataFromString, &TypeHandlers::DummyHandler::makeStringFromData, &TypeHandlers::DummyHandler::getMinVersionFromData });
 
     };
 }

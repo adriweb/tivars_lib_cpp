@@ -14,7 +14,10 @@ namespace tivars
     {
         std::unordered_map<std::string, TIModel> models;
         const TIModel unknownModel{};
+        bool modelsInitialized = false;
     }
+
+    void init_models();
 
     TIModel TIModels::fromName(const std::string& name)
     {
@@ -32,7 +35,7 @@ namespace tivars
     }
 
     // orderID is for the extensions association
-    void TIModels::insertModel(int orderID, uint32_t flags, const std::string& name, const std::string& sig, uint8_t productId, TIVarFileMinVersionByte minVersion)
+    void insertModel(int orderID, uint32_t flags, const std::string& name, const std::string& sig, uint8_t productId, TIVarFileMinVersionByte minVersion)
     {
         const TIModel model(orderID, name, flags, sig, productId, minVersion);
 
@@ -47,8 +50,22 @@ namespace tivars
             models[sig] = model;
     }
 
-    void TIModels::initTIModelsArray()
+    void ensure_models_initialized()
     {
+        if (!modelsInitialized)
+        {
+            init_models();
+        }
+    }
+
+    void init_models()
+    {
+        if (modelsInitialized)
+        {
+            return;
+        }
+        modelsInitialized = true;
+
         const uint32_t flags82     = 0           | has82things;
         const uint32_t flags83     = flags82     | hasComplex;
         const uint32_t flags83p    = flags83     | hasFlash | hasApps;
@@ -81,24 +98,26 @@ namespace tivars
 
     const std::unordered_map<std::string, TIModel>& TIModels::all()
     {
+        ensure_models_initialized();
         return models;
     }
 
     bool TIModels::isValidPID(uint8_t pid)
     {
+        ensure_models_initialized();
         return (pid > 0 && models.contains(std::to_string(pid)));
     }
 
     bool TIModels::isValidName(const std::string& name)
     {
+        ensure_models_initialized();
         return (!name.empty() && models.contains(name));
     }
 
     bool TIModels::isValidSignature(const std::string& sig)
     {
+        ensure_models_initialized();
         return (!sig.empty() && models.contains(sig));
     }
 
 };
-
-// TIModels::initTIModelsArray();

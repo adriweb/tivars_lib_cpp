@@ -30,9 +30,6 @@ string lowercase(string value);
 
 int main(int argc, char** argv)
 {
-    TIModels::initTIModelsArray();
-    TIVarTypes::initTIVarTypesArray();
-
     cxxopts::Options options("tivars_lib_cpp", "A program to interact with TI-z80 calculator files");
     options.add_options()
             ("i,input", "Input file", cxxopts::value<string>())

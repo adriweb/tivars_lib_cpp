@@ -47,8 +47,6 @@ namespace
         std::call_once(initFlag, []()
         {
             std::setlocale(LC_ALL, ".UTF-8");
-            tivars::TIModels::initTIModelsArray();
-            tivars::TIVarTypes::initTIVarTypesArray();
             tivars::TypeHandlers::TH_Tokenized::initTokensFromXMLFilePath(TIVARS_TOKENS_XML_PATH);
         });
     }

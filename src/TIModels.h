@@ -36,15 +36,11 @@ namespace tivars
         static TIModel fromSignature(const std::string& sig);
         static TIModel fromPID(uint8_t pid);
 
-        static void initTIModelsArray();
         static const std::unordered_map<std::string, TIModel>& all();
 
         static bool isValidPID(uint8_t pid);
         static bool isValidName(const std::string& name);
         static bool isValidSignature(const std::string& sig);
-
-    private:
-        static void insertModel(int orderID, uint32_t flags, const std::string& name, const std::string& sig, uint8_t productId, TIVarFileMinVersionByte minVersion);
 
     };
 

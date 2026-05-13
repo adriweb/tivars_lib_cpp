@@ -20,8 +20,6 @@ extern "C" int EMSCRIPTEN_KEEPALIVE main(int, char**)
 {
     setlocale(LC_ALL, ".UTF-8");
 
-    TIModels::initTIModelsArray();
-    TIVarTypes::initTIVarTypesArray();
     TypeHandlers::TH_Tokenized::initTokens();
 
     puts("tivars_lib ready!");

@@ -201,10 +201,6 @@ int main(int argc, char** argv)
 
     setlocale(LC_ALL, ".UTF-8");
 
-    /* Init Stuff */
-
-    TIModels::initTIModelsArray();
-    TIVarTypes::initTIVarTypesArray();
     TH_Tokenized::initTokens();
 
     /* Tests */
