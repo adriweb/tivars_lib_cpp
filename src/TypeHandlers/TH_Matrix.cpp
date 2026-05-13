@@ -21,14 +21,15 @@ namespace tivars::TypeHandlers
 
         data_t data(2); // reserve 2 bytes for size fields
 
-        if (str.length() < 5 || str.substr(0, 2) != "[[" || str.substr(str.length()-2, 2) != "]]")
+        const std::string trimmed = trim(str);
+        if (trimmed.length() < 5 || trimmed.substr(0, 2) != "[[" || trimmed.substr(trimmed.length()-2, 2) != "]]")
         {
             throw std::invalid_argument("Invalid input string. Needs to be a valid matrix");
         }
 
         std::vector<std::vector<std::string>> matrix;
 
-        std::vector<std::string> rows = explode(str.substr(2, str.length() - 4), "][");
+        std::vector<std::string> rows = explode(trimmed.substr(2, trimmed.length() - 4), "][");
         const size_t rowCount = rows.size();
         matrix.resize(rowCount);
 

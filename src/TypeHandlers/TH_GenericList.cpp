@@ -28,7 +28,7 @@ namespace tivars::TypeHandlers
             throw std::invalid_argument("Invalid type for given string");
         }
 
-        const std::string inner = trim(str, "{}");
+        const std::string inner = trim(trim(str), "{}");
         if (inner.empty())
         {
             return {0, 0};

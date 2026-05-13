@@ -15,3 +15,9 @@ cmp -s "$TMP_DIR/one_real_raw.bin" "$TMP_DIR/one_real_roundtrip.bin"
 printf '1' > "$TMP_DIR/one_real.txt"
 "$CLI" -i "$TMP_DIR/one_real.txt" -j readable -o "$TMP_DIR/one_real_83.83n" -k varfile -t Real -m 83 -n A
 "$CLI" -i "$TMP_DIR/one_real.txt" -j readable -o "$TMP_DIR/one_real_default.8xn" -k varfile -t Real
+
+printf '{1,2}\n' > "$TMP_DIR/list_with_newline.txt"
+"$CLI" -i "$TMP_DIR/list_with_newline.txt" -j readable -o "$TMP_DIR/list_with_newline.8xl" -k varfile -t RealList -n L1
+
+printf '[[1,2][3,4]]\n' > "$TMP_DIR/matrix_with_newline.txt"
+"$CLI" -i "$TMP_DIR/matrix_with_newline.txt" -j readable -o "$TMP_DIR/matrix_with_newline.8xm" -k varfile -t Matrix -n A

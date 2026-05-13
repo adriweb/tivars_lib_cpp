@@ -1452,6 +1452,8 @@ End)";
         const std::string content = "{9,0,0.5,-6e-8}";
         testRealList.setContentFromString(content);
         assert(testRealList.getReadableContent() == content);
+        testRealList.setContentFromString("{1,2}\n");
+        assert(testRealList.getReadableContent() == "{1,2}");
     }
 
     {
@@ -1462,6 +1464,10 @@ End)";
         testStandardMatrix.setContentFromString("[[1,2,3][4,5,6][-7.5,-8,-9][1,2,3][4,5,6][-0.002,-8,-9]]");
         cout << testStandardMatrix.getReadableContent() << "\n";
         testStandardMatrix.saveVarToFile("testData", "Matrix_new");
+
+        TIVarFile matrixWithNewline = TIVarFile::createNew("Matrix", "A");
+        matrixWithNewline.setContentFromString("[[1,2][3,4]]\n");
+        assert(matrixWithNewline.getReadableContent() == "[[1,2][3,4]]");
     }
 
 #ifndef __EMSCRIPTEN__
