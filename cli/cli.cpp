@@ -303,7 +303,10 @@ int main(int argc, char** argv)
                     file.setContentFromString(str.str(), contentOptions);
                 }
 
-                file.setArchived(result["archive"].as<bool>());
+                if (result.count("archive"))
+                {
+                    file.setArchived(result["archive"].as<bool>());
+                }
 
                 switch (oformat)
                 {
