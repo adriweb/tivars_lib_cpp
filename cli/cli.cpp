@@ -279,11 +279,8 @@ int main(int argc, char** argv)
                     int filesize = in.tellg();
                     in.seekg(0, ios::beg);
 
-                    data_t data;
-                    data.resize(filesize + 2);
-                    data[0] = filesize & 0xFF;
-                    data[1] = (filesize >> 8) & 0xFF;
-                    in.read((char*) &data[2], filesize);
+                    data_t data(filesize);
+                    in.read((char*) data.data(), filesize);
                     in.close();
 
                     file.setContentFromData(data);
@@ -318,7 +315,11 @@ int main(int argc, char** argv)
                             cout << opath << ": Failed to open file" << endl;
                             return 1;
                         }
-                        out.write((char*) (&file.getRawContent()[2]), file.getRawContent().size() - 2);
+                        const data_t rawContent = file.getRawContent();
+                        if (!rawContent.empty())
+                        {
+                            out.write((char*) rawContent.data(), rawContent.size());
+                        }
                         break;
                     }
                     case READABLE:
