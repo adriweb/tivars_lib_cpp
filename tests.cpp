@@ -2008,6 +2008,16 @@ End)";
     }
 
     {
+        TIVarFile realDefaultVar = TIVarFile::createNew("Real");
+        const uint8_t expectedScalarDefault[8] = {'A'};
+        assert(std::equal(realDefaultVar.getVarEntries()[0].varname, realDefaultVar.getVarEntries()[0].varname + 8, expectedScalarDefault));
+
+        TIVarFile complexDefaultVar = TIVarFile::createNew("Complex");
+        assert(std::equal(complexDefaultVar.getVarEntries()[0].varname, complexDefaultVar.getVarEntries()[0].varname + 8, expectedScalarDefault));
+
+        TIVarFile exactDefaultVar = TIVarFile::createNew("ExactRealPi", "", "83PCE");
+        assert(std::equal(exactDefaultVar.getVarEntries()[0].varname, exactDefaultVar.getVarEntries()[0].varname + 8, expectedScalarDefault));
+
         TIVarFile listDefaultVar = TIVarFile::createNew("RealList");
         const auto& listDefault = listDefaultVar.getVarEntries()[0];
         const uint8_t expectedListDefault[8] = {0x5D, 0x00};

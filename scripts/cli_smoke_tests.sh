@@ -14,3 +14,4 @@ cmp -s "$TMP_DIR/one_real_raw.bin" "$TMP_DIR/one_real_roundtrip.bin"
 
 printf '1' > "$TMP_DIR/one_real.txt"
 "$CLI" -i "$TMP_DIR/one_real.txt" -j readable -o "$TMP_DIR/one_real_83.83n" -k varfile -t Real -m 83 -n A
+"$CLI" -i "$TMP_DIR/one_real.txt" -j readable -o "$TMP_DIR/one_real_default.8xn" -k varfile -t Real

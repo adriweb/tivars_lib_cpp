@@ -172,6 +172,11 @@ namespace tivars
         std::string default_var_name_for_type(const TIVarType& type)
         {
             const auto& typeName = type.getName();
+            const auto typeId = type.getId();
+            if (typeName == "Real" || typeName == "Complex" || (typeId >= 0x1B && typeId <= 0x21))
+            {
+                return "A";
+            }
             if (typeName == "RealList" || typeName == "ComplexList")
             {
                 return make_indexed_var_name(0x5D, 0x00);
