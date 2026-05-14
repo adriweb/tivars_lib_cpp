@@ -68,16 +68,57 @@ namespace tivars
     &(TypeHandlers::TH_StructuredAppVar::getMinVersionFromData),                                    \
 }
 
+    namespace
+    {
+        std::string evo_extension_for_type(const std::string& name)
+        {
+            if (name == "Real" || name == "Complex" || name == "RealFraction" || name.rfind("Exact", 0) == 0)
+                return "8xn2";
+            if (name == "RealList" || name == "ComplexList")
+                return "8xl2";
+            if (name == "Matrix")
+                return "8xm2";
+            if (name == "Equation" || name == "SmartEquation")
+                return "8xy2";
+            if (name == "String")
+                return "8xs2";
+            if (name == "Program" || name == "ProtectedProgram")
+                return "8xp2";
+            if (name == "Picture")
+                return "8ci2";
+            if (name == "GraphDataBase")
+                return "8xd2";
+            if (name == "WindowSettings")
+                return "8xw2";
+            if (name == "RecallWindow")
+                return "8xz2";
+            if (name == "TableRange")
+                return "8xt2";
+            if (name.find("AppVar") != std::string::npos)
+                return "8xv2";
+            if (name == "GroupObject")
+                return "8xg2";
+            if (name == "Image")
+                return "8ca2";
+            if (name == "FlashApp")
+                return "8ek2";
+            return "";
+        }
+    }
+
     void insertType(const std::string& name, int id, const std::vector<std::string>& exts, const TypeHandlersTuple& handlers = { &TypeHandlers::DummyHandler::makeDataFromString, &TypeHandlers::DummyHandler::makeStringFromData, &TypeHandlers::DummyHandler::getMinVersionFromData })
     {
-        const TIVarType varType(id, name, exts, handlers);
+        std::vector<std::string> extsWithEvo = exts;
+        extsWithEvo.push_back(evo_extension_for_type(name));
+
+        const TIVarType varType(id, name, extsWithEvo, handlers);
         types[name] = varType;
         const std::string id_str = std::to_string(id);
         if (!types.contains(id_str))
         {
             types[id_str] = varType;
         }
-        for (const std::string& ext : exts)
+        for (const std::string& ext : extsWithEvo)
         {
             if (!ext.empty() && !types.contains(ext))
             {

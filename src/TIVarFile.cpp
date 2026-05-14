@@ -6,6 +6,7 @@
  */
 
 #include "TIVarFile.h"
+#include "EvoFormat.h"
 
 #include <algorithm>
 #include <iomanip>
@@ -22,9 +23,11 @@
 #include <unordered_set>
 
 #include "TIVarTypes.h"
+#include "json.hpp"
 
 namespace tivars
 {
+    using namespace EvoFormat;
     namespace
     {
         constexpr uint8_t backupTypeId = 0x13;
@@ -440,6 +443,25 @@ namespace tivars
     TIVarFile::TIVarFile(const std::string& filePath) : BinaryFile(filePath)
     {
         this->fromFile = true;
+        if (this->fileSize >= 3)
+        {
+            rewind(this->file);
+            const data_t fileData = this->get_raw_bytes(this->fileSize);
+            if (is_evo_file_data(fileData))
+            {
+                this->evoFormat = true;
+                this->makeEvoVarEntryFromFile();
+                this->computedChecksum = this->computeEvoChecksumFromFileData();
+                this->fileChecksum = this->getChecksumValueFromFile();
+                if (this->computedChecksum != this->fileChecksum)
+                {
+                    printf("[Warning] Evo file is corrupt (file checksum = 0x%04X, calculated checksum = 0x%04X)\n", this->fileChecksum, this->computedChecksum);
+                    this->corrupt = true;
+                }
+                this->close();
+                return;
+            }
+        }
         if (this->fileSize < 76) // bare minimum for header + a var entry
         {
             throw std::runtime_error("This file is not a valid TI-[e]z80 variable file");
@@ -474,6 +496,8 @@ namespace tivars
             throw std::runtime_error("This calculator model (" + this->calcModel.getName() + ") does not support the type " + type.getName());
         }
 
+        this->evoFormat = (this->calcModel.getFlags() & TIFeatureFlags::hasEvoASIC) != 0;
+
         const std::string signature = this->calcModel.getSig();
         const std::string comment = str_pad("Created by tivars_lib_cpp", sizeof(var_header_t::comment), "\0");
 
@@ -483,13 +507,21 @@ namespace tivars
 
         this->entries.resize(1);
         auto& entry = this->entries[0];
-        entry.meta_length  = (type.getName() == "Backup")
+        entry.meta_length  = this->evoFormat ? 0
+                           : ((type.getName() == "Backup")
                            ? TypeHandlers::TH_Backup::onFileMetaLength3
-                           : ((this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength);
+                           : ((this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength));
         entry.data_length  = 0; // will have to be overwritten later
         entry.typeID       = (uint8_t) type.getId();
         entry._type = type;
         entry.setVarName(name);
+        if (this->evoFormat)
+        {
+            entry.evoTypeID = evo_type_from_type(type, 0);
+            entry.evoMetaVersion = 1;
+            entry.evoMetaFlags = (entry.evoTypeID == 5 || entry.evoTypeID == 4) ? 1 : 0;
+            entry.evoFields["version"] = 1;
+        }
         entry.data_length2 = 0; // will have to be overwritten later
     }
 
@@ -597,11 +629,96 @@ namespace tivars
         this->calcModel = inferLoadedModel(this->calcModel, this->entries);
     }
 
+    void TIVarFile::makeEvoVarEntryFromFile()
+    {
+        rewind(this->file);
+        data_t fileData = this->get_raw_bytes(this->fileSize);
+        if (fileData.size() < 3)
+        {
+            throw std::invalid_argument("Invalid Evo file. File is too small.");
+        }
+
+        const data_t body(fileData.begin(), fileData.end() - 2);
+        size_t offset = 0;
+        const EvoCBORValue root = parse_cbor_value(body, offset);
+        if (root.kind != EvoCBORValue::Kind::Map)
+        {
+            throw std::invalid_argument("Invalid Evo file. Expected a top-level CBOR map.");
+        }
+
+        const auto metaIt = root.map.find("metaData");
+        if (metaIt == root.map.end() || metaIt->second.kind != EvoCBORValue::Kind::Map)
+        {
+            throw std::invalid_argument("Invalid Evo file. Missing metaData map.");
+        }
+
+        const auto& meta = metaIt->second.map;
+        const auto read_uint_field = [](const std::map<std::string, EvoCBORValue>& map, const std::string& key, uint64_t fallback) -> uint64_t
+        {
+            const auto it = map.find(key);
+            if (it == map.end() || it->second.kind != EvoCBORValue::Kind::Unsigned)
+            {
+                return fallback;
+            }
+            return it->second.unsignedValue;
+        };
+
+        const auto nameIt = meta.find("name");
+        const data_t nameBytes = (nameIt != meta.end() && nameIt->second.kind == EvoCBORValue::Kind::Bytes) ? nameIt->second.bytes : data_t{};
+        const uint8_t evoTypeID = static_cast<uint8_t>(read_uint_field(meta, "type", 8));
+        const TIVarType mappedType = type_from_evo_type(evoTypeID);
+
+        var_entry_t entry{};
+        entry.evoTypeID = evoTypeID;
+        entry.evoMetaVersion = static_cast<uint8_t>(read_uint_field(meta, "version", 1));
+        entry.evoMetaFlags = static_cast<uint8_t>(read_uint_field(meta, "flags", 0));
+        entry.evoNameBytes = nameBytes;
+        entry.typeID = static_cast<uint8_t>(mappedType.getId());
+        entry._type = mappedType;
+
+        const std::string displayName = decode_evo_name(evoTypeID, nameBytes);
+        const std::string paddedName = str_pad(displayName, sizeof(var_entry_t::varname), "\0");
+        std::ranges::copy(paddedName.substr(0, sizeof(var_entry_t::varname)), entry.varname);
+
+        for (const auto& [key, value] : root.map)
+        {
+            if (key == "metaData")
+            {
+                continue;
+            }
+            if (key == "data")
+            {
+                if (value.kind == EvoCBORValue::Kind::Bytes)
+                {
+                    entry.data = value.bytes;
+                    entry.evoDataIsRawCBOR = false;
+                }
+                else
+                {
+                    entry.data = value.raw;
+                    entry.evoDataIsRawCBOR = true;
+                }
+            }
+            else if (value.kind == EvoCBORValue::Kind::Unsigned)
+            {
+                entry.evoFields[key] = value.unsignedValue;
+            }
+        }
+
+        entry.data_length = entry.data_length2 = static_cast<uint16_t>(entry.data.size());
+        this->entries.push_back(entry);
+        this->calcModel = TIModels::fromName("84Evo");
+    }
+
 
     /*** Private actions ***/
 
     uint16_t TIVarFile::computeChecksumFromFileData() const
     {
+        if (this->evoFormat)
+        {
+            return computeEvoChecksumFromFileData();
+        }
         if (this->fromFile)
         {
             fseek(this->file, TIVarFile::firstVarEntryOffset, SEEK_SET);
@@ -617,8 +734,27 @@ namespace tivars
         }
     }
 
+    uint16_t TIVarFile::computeEvoChecksumFromFileData() const
+    {
+        if (!this->fromFile)
+        {
+            throw std::runtime_error("[Error] No file loaded");
+        }
+        rewind(this->file);
+        const data_t fileData = this->get_raw_bytes(this->fileSize);
+        if (fileData.size() < 2)
+        {
+            return 0;
+        }
+        return evo_checksum(data_t(fileData.begin(), fileData.end() - 2));
+    }
+
     uint16_t TIVarFile::computeChecksumFromInstanceData() const
     {
+        if (this->evoFormat)
+        {
+            return computeEvoChecksumFromInstanceData();
+        }
         uint16_t sum = 0;
         for (const auto& entry : this->entries)
         {
@@ -664,11 +800,22 @@ namespace tivars
         return (uint16_t) (sum & 0xFFFF);
     }
 
+    uint16_t TIVarFile::computeEvoChecksumFromInstanceData() const
+    {
+        return evo_checksum(make_evo_bin_data());
+    }
+
     uint16_t TIVarFile::getChecksumValueFromFile()
     {
         if (this->fromFile)
         {
             fseek(this->file, this->fileSize - 2, SEEK_SET);
+            if (this->evoFormat)
+            {
+                const uint8_t high = this->get_raw_byte();
+                const uint8_t low = this->get_raw_byte();
+                return static_cast<uint16_t>((high << 8) | low);
+            }
             return this->get_two_bytes_swapped();
         } else {
             throw std::runtime_error("[Error] No file loaded");
@@ -680,6 +827,31 @@ namespace tivars
      */
     void TIVarFile::refreshMetadataFields()
     {
+        if (this->evoFormat)
+        {
+            for (auto& entry : this->entries)
+            {
+                entry.data_length = entry.data_length2 = static_cast<uint16_t>(entry.data.size());
+                if (!entry.evoDataIsRawCBOR)
+                {
+                    if ((entry._type.getName() == "RealList" || entry._type.getName() == "ComplexList")
+                        && entry.evoFields.contains("len") && entry.evoFields.at("len") == 0 && entry.data.empty())
+                    {
+                        entry.evoFields.erase("arraylen");
+                        entry.evoFields.erase("size");
+                        continue;
+                    }
+                    entry.evoFields["size"] = entry.data.size();
+                    if (is_evo_tokenized_entry(entry) || is_legacy_numeric_entry(entry))
+                    {
+                        entry.evoFields["arraylen"] = entry.data.size() / 2;
+                    }
+                }
+            }
+            this->computedChecksum = this->computeEvoChecksumFromInstanceData();
+            return;
+        }
+
         this->header.entries_len = 0;
         for (auto& entry : this->entries)
         {
@@ -855,7 +1027,38 @@ namespace tivars
     void TIVarFile::setContentFromString(const std::string& str, const options_t& options, uint16_t entryIdx)
     {
         auto& entry = this->entries[entryIdx];
-        entry.data = std::get<0>(entry._type.getHandlers())(str, options, this);
+        data_t data = std::get<0>(entry._type.getHandlers())(str, options, this);
+        if (this->evoFormat && is_evo_tokenized_entry(entry))
+        {
+            data = legacy_tokenized_data_to_evo(data);
+        }
+        else if (this->evoFormat && is_legacy_numeric_entry(entry))
+        {
+            const bool exactFraction = legacy_value_is_exact_fraction(data);
+            data = legacy_value_to_evo_expression(data);
+            entry.evoFields["flags"] = exactFraction ? 6 : 0;
+        }
+        else if (this->evoFormat && (entry._type.getName() == "RealList" || entry._type.getName() == "ComplexList"))
+        {
+            data = legacy_list_to_evo(data, entry._type.getName() == "ComplexList", entry.evoFields);
+        }
+        else if (this->evoFormat && entry._type.getName() == "Matrix")
+        {
+            data = legacy_matrix_to_evo(data, entry.evoFields);
+        }
+        else if (this->evoFormat && entry._type.getName() == "Picture")
+        {
+            data = legacy_picture_to_evo(data, entry.evoFields);
+        }
+        else if (this->evoFormat && entry._type.getName() == "Image")
+        {
+            data = legacy_image_to_evo(data, entry.evoFields);
+        }
+        else if (this->evoFormat && entry._type.getName().find("AppVar") != std::string::npos)
+        {
+            entry.evoFields["version"] = 1;
+        }
+        entry.data = data;
         this->refreshMetadataFields();
     }
     void TIVarFile::setContentFromString(const std::string& str, const options_t& options)
@@ -872,6 +1075,153 @@ namespace tivars
         this->calcModel = model;
         std::string signature = model.getSig();
         std::ranges::copy(signature, this->header.signature);
+    }
+
+    void TIVarFile::convertToModel(const TIModel& model)
+    {
+        const bool targetEvoFormat = (model.getFlags() & TIFeatureFlags::hasEvoASIC) != 0;
+        if (!model_supports_all_entries(model, this->entries))
+        {
+            throw std::runtime_error("This calculator model (" + model.getName() + ") does not support every variable entry in this file");
+        }
+
+        if (targetEvoFormat && this->entries.size() != 1)
+        {
+            throw std::runtime_error("Evo variable files can only contain one variable entry");
+        }
+
+        if (this->evoFormat != targetEvoFormat)
+        {
+            for (auto& entry : this->entries)
+            {
+                if (targetEvoFormat)
+                {
+                    const uint8_t evoTypeID = evo_type_from_type(entry._type, entry.evoTypeID);
+                    const std::string displayName = entry_name_to_string(entry._type, entry.varname, sizeof(var_entry_t::varname));
+
+                    entry.evoFields.clear();
+                    if (is_evo_tokenized_entry(entry))
+                    {
+                        entry.data = legacy_tokenized_data_to_evo(entry.data);
+                        entry.evoFields["version"] = 1;
+                        entry.evoFields["arraylen"] = entry.data.size() / 2;
+                        entry.evoFields["size"] = entry.data.size();
+                    }
+                    else if (is_legacy_numeric_entry(entry))
+                    {
+                        const bool exactFraction = legacy_value_is_exact_fraction(entry.data);
+                        entry.data = legacy_value_to_evo_expression(entry.data);
+                        entry.evoFields["version"] = 1;
+                        entry.evoFields["flags"] = exactFraction ? 6 : 0;
+                        entry.evoFields["arraylen"] = entry.data.size() / 2;
+                        entry.evoFields["size"] = entry.data.size();
+                    }
+                    else if (entry._type.getName() == "RealList" || entry._type.getName() == "ComplexList")
+                    {
+                        entry.data = legacy_list_to_evo(entry.data, entry._type.getName() == "ComplexList", entry.evoFields);
+                    }
+                    else if (entry._type.getName() == "Matrix")
+                    {
+                        entry.data = legacy_matrix_to_evo(entry.data, entry.evoFields);
+                    }
+                    else if (entry._type.getName() == "Picture")
+                    {
+                        entry.data = legacy_picture_to_evo(entry.data, entry.evoFields);
+                    }
+                    else if (entry._type.getName() == "Image")
+                    {
+                        entry.data = legacy_image_to_evo(entry.data, entry.evoFields);
+                    }
+                    else if (entry._type.getName().find("AppVar") != std::string::npos)
+                    {
+                        entry.evoFields["version"] = 1;
+                        entry.evoFields["size"] = entry.data.size();
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Evo conversion is not supported for " + entry._type.getName() + " variables");
+                    }
+
+                    entry.evoTypeID = evoTypeID;
+                    entry.evoMetaVersion = entry.evoMetaVersion == 0 ? 1 : entry.evoMetaVersion;
+                    entry.evoMetaFlags = (evoTypeID == 5 || evoTypeID == 4) ? 1 : entry.evoMetaFlags;
+                    entry.evoNameBytes = encode_evo_name(evoTypeID, displayName);
+                    entry.evoDataIsRawCBOR = false;
+                    entry.meta_length = 0;
+                }
+                else
+                {
+                    if (is_evo_tokenized_entry(entry))
+                    {
+                        entry.data = evo_tokenized_data_to_legacy(entry.data);
+                    }
+                    else if (entry.evoTypeID == 0)
+                    {
+                        size_t offset = 0;
+                        entry.data = evo_scalar_to_legacy_value(entry.data, offset);
+                        set_numeric_entry_type_from_payload(entry);
+                    }
+                    else if (entry.evoTypeID == 1)
+                    {
+                        const auto lenIt = entry.evoFields.find("len");
+                        if (lenIt == entry.evoFields.end())
+                        {
+                            throw std::runtime_error("Invalid Evo list metadata: missing len");
+                        }
+                        bool complexList = false;
+                        entry.data = evo_list_to_legacy(entry.data, lenIt->second, complexList);
+                        set_entry_type(entry, TIVarType{complexList ? "ComplexList" : "RealList"});
+                    }
+                    else if (entry.evoTypeID == 6)
+                    {
+                        const auto rowsIt = entry.evoFields.find("rows");
+                        const auto colsIt = entry.evoFields.find("cols");
+                        if (rowsIt == entry.evoFields.end() || colsIt == entry.evoFields.end())
+                        {
+                            throw std::runtime_error("Invalid Evo matrix metadata: missing dimensions");
+                        }
+                        entry.data = evo_matrix_to_legacy(entry.data, rowsIt->second, colsIt->second);
+                        set_entry_type(entry, TIVarType{"Matrix"});
+                    }
+                    else if (entry.evoTypeID == 5)
+                    {
+                        entry.data = evo_image_to_legacy(entry.data);
+                        set_entry_type(entry, TIVarType{"Image"});
+                    }
+                    else if (entry.evoTypeID == 4)
+                    {
+                        entry.data = evo_picture_to_legacy(entry.data);
+                        set_entry_type(entry, TIVarType{"Picture"});
+                    }
+                    else if (entry.evoTypeID == 8 && !entry.evoDataIsRawCBOR)
+                    {
+                        set_entry_type(entry, TIVarType{"AppVar"});
+                        entry.determineFullType();
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Evo conversion is not supported for type " + std::to_string(entry.evoTypeID) + " variables");
+                    }
+
+                    const std::string displayName = decode_evo_name(entry.evoTypeID, entry.evoNameBytes);
+                    if (!displayName.empty())
+                    {
+                        entry.setVarName(displayName);
+                    }
+                    entry.evoFields.clear();
+                    entry.evoNameBytes.clear();
+                    entry.evoDataIsRawCBOR = false;
+                    entry.meta_length = (model.getFlags() & TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength;
+                    entry.evoTypeID = 0;
+                    entry.evoMetaVersion = 1;
+                    entry.evoMetaFlags = 0;
+                }
+            }
+        }
+
+        this->evoFormat = targetEvoFormat;
+        this->setCalcModel(model);
+        this->refreshMetadataFields();
     }
 
     void TIVarFile::setVarName(const std::string& name, uint16_t entryIdx)
@@ -927,6 +1277,10 @@ namespace tivars
 
     std::string TIVarFile::getReadableContent(const options_t& options, uint16_t entryIdx) const
     {
+        if (this->evoFormat)
+        {
+            return getEvoReadableContent(options, entryIdx);
+        }
         const auto& entry = this->entries[entryIdx];
         return std::get<1>(entry._type.getHandlers())(entry.data, options, this);
     }
@@ -941,6 +1295,11 @@ namespace tivars
 
     data_t TIVarFile::make_bin_data()
     {
+        if (this->evoFormat)
+        {
+            return make_evo_bin_data();
+        }
+
         data_t bin_data;
         bin_data.reserve(firstVarEntryOffset + this->header.entries_len);
 
@@ -1009,6 +1368,117 @@ namespace tivars
         return bin_data;
     }
 
+    data_t TIVarFile::make_evo_bin_data() const
+    {
+        if (this->entries.empty())
+        {
+            throw std::runtime_error("No Evo variable entry to serialize");
+        }
+
+        const auto& entry = this->entries[0];
+        const uint8_t evoTypeID = evo_type_from_type(entry._type, entry.evoTypeID);
+        const std::string displayName = entry_name_to_string(entry._type, entry.varname, sizeof(var_entry_t::varname));
+        const data_t nameBytes = !entry.evoNameBytes.empty() ? entry.evoNameBytes : encode_evo_name(evoTypeID, displayName);
+
+        data_t out;
+        out.push_back(0xBF);
+        append_cbor_text(out, "metaData");
+        out.push_back(0xBF);
+        append_cbor_key_uint(out, "type", evoTypeID);
+        append_cbor_key_uint(out, "version", entry.evoMetaVersion == 0 ? 1 : entry.evoMetaVersion);
+        append_cbor_key_uint(out, "flags", entry.evoMetaFlags);
+        append_cbor_text(out, "name");
+        append_cbor_bytes(out, nameBytes);
+        out.push_back(0xFF);
+
+        const std::vector<std::string> preferredFieldOrder = {
+            "version", "flags", "rows", "cols", "type", "len", "arraylen", "size"
+        };
+        std::unordered_set<std::string> emitted;
+        for (const std::string& key : preferredFieldOrder)
+        {
+            const auto it = entry.evoFields.find(key);
+            if (it != entry.evoFields.end())
+            {
+                append_cbor_key_uint(out, key, it->second);
+                emitted.insert(key);
+            }
+        }
+        for (const auto& [key, value] : entry.evoFields)
+        {
+            if (!emitted.contains(key))
+            {
+                append_cbor_key_uint(out, key, value);
+            }
+        }
+
+        if (!entry.data.empty() || entry.evoDataIsRawCBOR || entry.evoFields.contains("size"))
+        {
+            append_cbor_text(out, "data");
+            if (entry.evoDataIsRawCBOR)
+            {
+                out.insert(out.end(), entry.data.begin(), entry.data.end());
+            }
+            else
+            {
+                append_cbor_bytes(out, entry.data);
+            }
+        }
+
+        out.push_back(0xFF);
+        return out;
+    }
+
+    std::string TIVarFile::getEvoReadableContent(const options_t& options, uint16_t entryIdx) const
+    {
+        (void)options;
+        const auto& entry = this->entries[entryIdx];
+        nlohmann::ordered_json j;
+        j["type"] = entry.evoTypeID;
+        j["typeName"] = type_name_from_evo_type(entry.evoTypeID);
+        j["name"] = decode_evo_name(entry.evoTypeID, entry.evoNameBytes.empty() ? encode_evo_name(entry.evoTypeID, entry_name_to_string(entry._type, entry.varname, sizeof(var_entry_t::varname))) : entry.evoNameBytes);
+        j["metaData"] = {
+            {"version", entry.evoMetaVersion},
+            {"flags", entry.evoMetaFlags},
+            {"nameHex", bytes_to_hex_string(entry.evoNameBytes)},
+        };
+        for (const auto& [key, value] : entry.evoFields)
+        {
+            j[key] = value;
+        }
+        j["rawDataHex"] = bytes_to_hex_string(entry.data);
+        if (!entry.evoDataIsRawCBOR && (entry.evoTypeID == 2 || entry.evoTypeID == 7))
+        {
+            j["code"] = detokenize_evo_token_words(entry.data);
+        }
+        if (!entry.evoDataIsRawCBOR && entry.evoTypeID == 15)
+        {
+            try
+            {
+                const EvoPythonScriptInfo python = parse_evo_python_script_payload(entry.data);
+                j["python"] = {
+                    {"magicHex", bytes_to_hex_string(python.magic)},
+                    {"bodyLen", python.bodyLen},
+                    {"nameLen", python.nameLen},
+                    {"name", python.name},
+                    {"scriptLen", python.scriptLen},
+                    {"scriptType", python.scriptType},
+                    {"trailerHex", bytes_to_hex_string(python.trailer)},
+                    {"bodyHex", bytes_to_hex_string(python.body)},
+                };
+                if (python.bodyIsText)
+                {
+                    j["python"]["code"] = python.code;
+                }
+            }
+            catch (const std::exception& e)
+            {
+                j["pythonParseError"] = e.what();
+            }
+        }
+        return j.dump(4);
+    }
+
     /**
      * Writes a variable to an actual file on the FS
      * If the variable was already loaded from a file, it will be used and overwritten,
@@ -1036,8 +1506,16 @@ namespace tivars
             {
                 fileName = name + ".8xg";
             } else {
-                const int extIndex = std::max(0, this->calcModel.getOrderId());
-                fileName = name + "." + this->entries[0]._type.getExts()[extIndex];
+                if (this->evoFormat)
+                {
+                    const std::string evoExt = extension_from_evo_type(this->entries[0].evoTypeID);
+                    fileName = name + "." + (evoExt.empty() ? "8x?2" : evoExt);
+                }
+                else
+                {
+                    const int extIndex = std::max(0, this->calcModel.getOrderId());
+                    fileName = name + "." + this->entries[0]._type.getExts()[extIndex];
+                }
             }
             if (directory.empty())
             {
@@ -1063,8 +1541,10 @@ namespace tivars
         const data_t bin_data = make_bin_data();
         fwrite(&bin_data[0], sizeof(bin_data[0]), bin_data.size(), handle);
 
-        // Write checksum
-        const char buf[2] = {(char) (this->computedChecksum & 0xFF), (char) ((this->computedChecksum >> 8) & 0xFF)};
+        // Write checksum (Evo: big-endian, pre-Evo: little-endian)
+        const char lo = static_cast<char>(this->computedChecksum & 0xFF);
+        const char hi = static_cast<char>((this->computedChecksum >> 8) & 0xFF);
+        const char buf[2] = {this->evoFormat ? hi : lo, this->evoFormat ? lo : hi};
         fwrite(buf, sizeof(char), 2, handle);
 
         fclose(handle);
@@ -1118,6 +1598,8 @@ namespace tivars
                     .function("setContentFromString"     , select_overload<void(const std::string&)>(&tivars::TIVarFile::setContentFromString))
                     .function("getCalcModel"             , &tivars::TIVarFile::getCalcModel)
                     .function("setCalcModel"             , &tivars::TIVarFile::setCalcModel)
+                    .function("isEvoFormat"              , &tivars::TIVarFile::isEvoFormat)
+                    .function("convertToModel"           , select_overload<void(const std::string&)>(&tivars::TIVarFile::convertToModel))
                     .function("setVarName"               , select_overload<void(const std::string&)>(&tivars::TIVarFile::setVarName))
                     .function("setArchived"              , select_overload<void(bool)>(&tivars::TIVarFile::setArchived))
                     .function("isCorrupt"                , &tivars::TIVarFile::isCorrupt)
