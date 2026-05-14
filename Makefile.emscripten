@@ -15,7 +15,7 @@ endif
 # Emscripten stuff
 EMFLAGS := --bind -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME="'TIVarsLib'" -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=$(ASSERTIONS) -s DISABLE_EXCEPTION_CATCHING=0 -s EXPORTED_RUNTIME_METHODS="['FS','getExceptionMessage','decrementExceptionRefcount']" $(DEBUG_EMFLAGS)
 
-CXXFLAGS := $(OPTFLAGS) -std=c++2a -DTH_GDB_SUPPORT=1 -Ivendor/pugixml -W -Wall -Wextra
+CXXFLAGS := $(OPTFLAGS) -std=c++2a -DTH_GDB_SUPPORT=1 -Ivendor/pugixml -W -Wall -Wextra -fexceptions
 CFLAGS := $(OPTFLAGS) -std=c2x -W -Wall -Wextra
 LFLAGS := $(OPTFLAGS) $(EMFLAGS)
 
