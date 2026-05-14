@@ -57,7 +57,7 @@
       "type": "integer",
       "readOnly": true
     },
-    "dataHex": {
+    "rawDataHex": {
       "$ref": "#/definitions/hexString"
     },
     "unreadHex": {
@@ -109,9 +109,6 @@
       "items": {
         "type": "string"
       }
-    },
-    "rawDataHex": {
-      "$ref": "#/definitions/hexString"
     }
   },
   "additionalProperties": false

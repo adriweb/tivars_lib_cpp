@@ -311,7 +311,7 @@ namespace tivars::TypeHandlers
         {
             json out = {
                 {"type", record.type},
-                {"dataHex", to_hex_string(record.data)},
+                {"rawDataHex", to_hex_string(record.data)},
                 {"length", record.data.size() + 1},
             };
             if (record.type == metadataRecordTypeFilename)
@@ -347,12 +347,12 @@ namespace tivars::TypeHandlers
                         continue;
                     }
 
-                    if (recordJson.contains("dataHex"))
+                    if (recordJson.contains("rawDataHex"))
                     {
-                        const std::string hex = recordJson.at("dataHex").get<std::string>();
+                        const std::string hex = recordJson.at("rawDataHex").get<std::string>();
                         if (hex.size() % 2 != 0)
                         {
-                            throw std::invalid_argument("metadataRecords.dataHex must contain an even number of hex digits");
+                            throw std::invalid_argument("metadataRecords.rawDataHex must contain an even number of hex digits");
                         }
                         record.data.reserve(hex.size() / 2);
                         for (size_t i = 0; i < hex.size(); i += 2)
@@ -372,7 +372,7 @@ namespace tivars::TypeHandlers
                     }
                     else
                     {
-                        throw std::invalid_argument("metadataRecords entries need dataHex, name, or text");
+                        throw std::invalid_argument("metadataRecords entries need rawDataHex, name, or text");
                     }
 
                     records.push_back(record);

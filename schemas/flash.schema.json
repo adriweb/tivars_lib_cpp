@@ -41,11 +41,11 @@
           "type": "string",
           "pattern": "^[0-9A-Fa-f]{2}$"
         },
-        "dataHex": {
+        "rawDataHex": {
           "$ref": "#/definitions/hexStringOrEllipsis"
         }
       },
-      "required": ["address", "blockType", "dataHex"],
+      "required": ["address", "blockType", "rawDataHex"],
       "additionalProperties": false
     },
     "flashField": {
@@ -232,7 +232,7 @@
     "hasChecksum": {
       "type": "boolean"
     },
-    "calcDataHex": {
+    "rawDataHex": {
       "$ref": "#/definitions/hexStringOrEllipsis"
     },
     "license": {

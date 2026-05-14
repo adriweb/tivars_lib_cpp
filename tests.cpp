@@ -291,7 +291,7 @@ int main(int argc, char** argv)
         assert(flashAppJSON["blocks"].size() == 78);
         assert(flashAppJSON["blocks"][0]["address"] == "0000");
         assert(flashAppJSON["blocks"][0]["blockType"] == "02");
-        assert(flashAppJSON["blocks"][0]["dataHex"] == "0000");
+        assert(flashAppJSON["blocks"][0]["rawDataHex"] == "0000");
 
         TIFlashFile flashAppCE = TIFlashFile::loadFromFile("testData/SmartPad.8ek");
         const json flashAppCEJSON = json::parse(flashAppCE.getReadableContent());
@@ -342,9 +342,9 @@ int main(int argc, char** argv)
     "productId": 10,
     "hasChecksum": true,
     "blocks": [
-        {"address": "0000", "blockType": "02", "dataHex": "0000"},
-        {"address": "4000", "blockType": "00", "dataHex": "01020304"},
-        {"address": "0000", "blockType": "01", "dataHex": ""}
+        {"address": "0000", "blockType": "02", "rawDataHex": "0000"},
+        {"address": "4000", "blockType": "00", "rawDataHex": "01020304"},
+        {"address": "0000", "blockType": "01", "rawDataHex": ""}
     ]
 })");
         multiFlash.addHeader(TIVarType{"OperatingSystem"}, "BASE", TIModel{"84+CE"}, true);
@@ -358,7 +358,7 @@ int main(int argc, char** argv)
     "devices": [{"deviceType": 115, "typeId": 35}],
     "productId": 19,
     "hasChecksum": true,
-    "calcDataHex": "01020304A0"
+    "rawDataHex": "01020304A0"
 })", 1);
         const std::string multiFlashPath = multiFlash.saveToFile("/tmp/tivars_lib_cpp_multi_flash.8ek");
         TIFlashFile reloadedMultiFlash = TIFlashFile::loadFromFile(multiFlashPath);
@@ -1789,7 +1789,7 @@ End)";
     "unknownWord": 4660,
     "unknownAfterWordHex": "BB",
     "nameOffsetUnits": 3,
-    "dataHex": "01020304"
+    "rawDataHex": "01020304"
 })");
         const json cabriFileJSON = json::parse(cabriFile.getReadableContent());
         assert(cabriFileJSON["typeName"] == "CabriJrAppVar");
@@ -1801,7 +1801,7 @@ End)";
         assert(cabriFileJSON["unknownAfterWordHex"] == "BB");
         assert(cabriFileJSON["nameOffsetUnits"] == 3);
         assert(cabriFileJSON["nameOffset"] == 63);
-        assert(cabriFileJSON["dataHex"] == "01020304");
+        assert(cabriFileJSON["rawDataHex"] == "01020304");
 
         TIVarFile genericCabriFile = TIVarFile::createNew("AppVar", "GCBF", "83PCE");
         genericCabriFile.setContentFromString(cabriFile.getReadableContent());

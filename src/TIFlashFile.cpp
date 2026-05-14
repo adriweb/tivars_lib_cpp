@@ -794,7 +794,7 @@ namespace tivars
 
         if (header.binaryFlag == rawBinaryDataFlag)
         {
-            j["calcDataHex"] = (header.calcData.size() <= 256) ? toHex(header.calcData) : "...";
+            j["rawDataHex"] = (header.calcData.size() <= 256) ? toHex(header.calcData) : "...";
             try
             {
                 j["fields"] = parse_flash_fields(header.calcData, 0, header.calcData.size());
@@ -821,7 +821,7 @@ namespace tivars
                 j["blocks"].push_back({
                     {"address", toHex({static_cast<uint8_t>((address >> 8) & 0xFF), static_cast<uint8_t>(address & 0xFF)})},
                     {"blockType", dechex(blockType)},
-                    {"dataHex", toHex(data)},
+                    {"rawDataHex", toHex(data)},
                 });
             }
             try
@@ -928,14 +928,14 @@ namespace tivars
                 blocks.emplace_back(
                     static_cast<uint16_t>((addressBytes[0] << 8) | addressBytes[1]),
                     hexdec(item.at("blockType").get<std::string>()),
-                    parseHex(item.at("dataHex").get<std::string>())
+                    parseHex(item.at("rawDataHex").get<std::string>())
                 );
             }
             calcData = makeIntelData(blocks);
         }
-        else if (j.contains("calcDataHex"))
+        else if (j.contains("rawDataHex"))
         {
-            calcData = parseHex(j.at("calcDataHex").get<std::string>());
+            calcData = parseHex(j.at("rawDataHex").get<std::string>());
         }
         else if (type.getName() == "FlashLicense" && j.contains("license"))
         {

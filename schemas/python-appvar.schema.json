@@ -15,7 +15,7 @@
           "minimum": 0,
           "maximum": 255
         },
-        "dataHex": {
+        "rawDataHex": {
           "$ref": "#/definitions/hexString"
         },
         "name": {
@@ -32,7 +32,7 @@
       },
       "required": ["type"],
       "anyOf": [
-        { "required": ["dataHex"] },
+        { "required": ["rawDataHex"] },
         { "required": ["name"] },
         { "required": ["text"] }
       ],

@@ -499,7 +499,7 @@ namespace tivars::TypeHandlers
 
         data_t payload_from_json_or_raw(const json& j, StructuredAppVarSubtype subtype)
         {
-            if (j.contains("rawDataHex"))
+            if (j.contains("rawDataHex") && !(subtype == APPVAR_SUBTYPE_CABRIJR && j.contains("variant")))
             {
                 const data_t payload = parse_hex_string(j.at("rawDataHex").get<std::string>(), "rawDataHex");
                 if (subtype_from_data_or_throw(wrap_payload(payload)) != subtype)
@@ -663,9 +663,9 @@ namespace tivars::TypeHandlers
                             payload.push_back(unknownAfterWord[0]);
                             payload.push_back(static_cast<uint8_t>(j.value("nameOffsetUnits", 0) & 0xFF));
 
-                            if (j.contains("dataHex"))
+                            if (j.contains("rawDataHex"))
                             {
-                                vector_append(payload, parse_hex_string(j.at("dataHex").get<std::string>(), "dataHex"));
+                                vector_append(payload, parse_hex_string(j.at("rawDataHex").get<std::string>(), "rawDataHex"));
                             }
                         }
                         else
@@ -968,7 +968,10 @@ namespace tivars::TypeHandlers
                 titles.push_back(title);
             }
             out["titles"] = titles;
-            out["rawDataHex"] = to_hex_string(payload);
+            if (!out.contains("rawDataHex"))
+            {
+                out["rawDataHex"] = to_hex_string(payload);
+            }
             return out;
         }
 
@@ -1042,7 +1045,7 @@ namespace tivars::TypeHandlers
                     const uint8_t nameOffsetUnits = read_u8(payload, pos, "nameOffsetUnits");
                     out["nameOffsetUnits"] = nameOffsetUnits;
                     out["nameOffset"] = static_cast<uint16_t>(21 * nameOffsetUnits);
-                    out["dataHex"] = to_hex_string(data_t(payload.begin() + static_cast<ptrdiff_t>(pos), payload.end()));
+                    out["rawDataHex"] = to_hex_string(data_t(payload.begin() + static_cast<ptrdiff_t>(pos), payload.end()));
                 }
                 else
                 {
@@ -1105,7 +1108,10 @@ namespace tivars::TypeHandlers
                 throw std::invalid_argument("Invalid CabriJrAppVar variant");
             }
 
-            out["rawDataHex"] = to_hex_string(payload);
+            if (!out.contains("rawDataHex"))
+            {
+                out["rawDataHex"] = to_hex_string(payload);
+            }
             return out;
         }
 

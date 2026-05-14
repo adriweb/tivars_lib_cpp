@@ -232,7 +232,7 @@ namespace
                 const size_t omittedChars = str.size() - 256;
                 value = str.substr(0, 256) + "... [preview truncated, " + std::to_string(omittedChars) + " more characters]";
             }
-            else if ((key == "rawDataHex" || key == "calcDataHex" || key == "dataHex") && str.size() > 256)
+            else if (key == "rawDataHex" && str.size() > 256)
             {
                 value = str.substr(0, 256) + "... [preview truncated, " + std::to_string(str.size() / 2) + " bytes total]";
             }
