@@ -16,6 +16,7 @@
 #include <array>
 #include <vector>
 #include <tuple>
+#include <utility>
 
 #ifndef _WIN32
     #include <sys/stat.h>
@@ -63,6 +64,26 @@ struct ScopedStderrCapture
         return buffer.str();
     }
 };
+
+static std::string utf8_from_bmp_codepoint(uint16_t codepoint)
+{
+    if (codepoint < 0x80)
+    {
+        return std::string(1, static_cast<char>(codepoint));
+    }
+    if (codepoint < 0x800)
+    {
+        return {
+            static_cast<char>(0xC0 | (codepoint >> 6)),
+            static_cast<char>(0x80 | (codepoint & 0x3F)),
+        };
+    }
+    return {
+        static_cast<char>(0xE0 | (codepoint >> 12)),
+        static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)),
+        static_cast<char>(0x80 | (codepoint & 0x3F)),
+    };
+}
 
 static void assert_roundtrip_from_readable(TIVarFile& original, const options_t& readableOptions = options_t{})
 {
@@ -158,6 +179,21 @@ static void assert_evo_name_matches_legacy_token_source(uint8_t evoTypeID, const
     const EvoFormat::EvoTypeID type = EvoFormat::evo_type_id_from_value(evoTypeID);
     const data_t legacyData = TH_Tokenized::makeDataFromString(legacyTokenSource);
     assert(EvoFormat::encode_evo_name(type, displayName) == EvoFormat::legacy_tokenized_data_to_evo(legacyData));
+}
+
+static std::string assert_direct_evo_source_matches_ce_conversion(const std::string& source, const std::string& name)
+{
+    TIVarFile direct = TIVarFile::createNew("Program", name, "84Evo");
+    direct.setContentFromString(source);
+    assert(direct.isEvoFormat());
+
+    TIVarFile converted = TIVarFile::createNew("Program", name, "84+CE");
+    converted.setContentFromString(source);
+    converted.convertToModel(TIModel{"84Evo"});
+    assert(converted.isEvoFormat());
+
+    assert(direct.getRawContent() == converted.getRawContent());
+    return json::parse(direct.getReadableContent())["rawDataHex"];
 }
 
 static void assert_ce_evo_ce_roundtrip(const std::string& typeName, const std::string& name, const std::string& readableContent,
@@ -1301,6 +1337,7 @@ int main(int argc, char** argv)
         cout << "testPrgmQuotes.getReadableContent() : " << testPrgmQuotes.getReadableContent() << endl;
         assert(testPrgmQuotes.getReadableContent() == "Pause \"2 SECS\",2");
         assert_roundtrip_from_readable(testPrgmQuotes);
+        assert_direct_evo_source_matches_ce_conversion("Pause \"2 SECS\",2", "QUOTES");
 
         const data_t originalLegacyData = testPrgmQuotes.getRawContent();
         testPrgmQuotes.convertToModel(TIModel{"84Evo"});
@@ -1327,6 +1364,7 @@ int main(int argc, char** argv)
         negativeTokenProgram.setContentFromString("~");
         const data_t originalLegacyData = negativeTokenProgram.getRawContent();
         assert(negativeTokenProgram.getRawContentHexStr() == "0100b0");
+        assert(assert_direct_evo_source_matches_ce_conversion("~", "NEG2") == "2EE40000");
 
         negativeTokenProgram.convertToModel(TIModel{"84Evo"});
         assert(negativeTokenProgram.isEvoFormat());
@@ -1439,6 +1477,8 @@ int main(int argc, char** argv)
 
         for (const auto& [source, legacyHex, evoHex] : windowTokens)
         {
+            assert(assert_direct_evo_source_matches_ce_conversion(source, "WIN2") == evoHex);
+
             TIVarFile windowTokenProgram = TIVarFile::createNew("Program", "WIN", "84+CE");
             windowTokenProgram.setContentFromString(source);
             const data_t originalLegacyData = windowTokenProgram.getRawContent();
@@ -1469,6 +1509,8 @@ int main(int argc, char** argv)
 
         for (const auto& [source, legacyHex, evoHex] : plotStyleTokens)
         {
+            assert(assert_direct_evo_source_matches_ce_conversion(source, "PLOTST2") == evoHex);
+
             TIVarFile plotStyleProgram = TIVarFile::createNew("Program", "PLOTST", "84+CE");
             plotStyleProgram.setContentFromString(source);
             const data_t originalLegacyData = plotStyleProgram.getRawContent();
@@ -1490,6 +1532,7 @@ int main(int argc, char** argv)
         piProgram.setContentFromString("π");
         const data_t originalLegacyData = piProgram.getRawContent();
         assert(piProgram.getRawContentHexStr() == "0100ac");
+        assert(assert_direct_evo_source_matches_ce_conversion("π", "PICONST2") == "0DE40000");
 
         piProgram.convertToModel(TIModel{"84Evo"});
         assert(piProgram.isEvoFormat());
@@ -1506,6 +1549,7 @@ int main(int argc, char** argv)
         listNameProgram.setContentFromString("ʟ");
         const data_t originalLegacyData = listNameProgram.getRawContent();
         assert(listNameProgram.getRawContentHexStr() == "0100eb");
+        assert(assert_direct_evo_source_matches_ce_conversion("ʟ", "LISTNM2") == "36E80000");
 
         listNameProgram.convertToModel(TIModel{"84Evo"});
         assert(listNameProgram.isEvoFormat());
@@ -1517,8 +1561,11 @@ int main(int argc, char** argv)
     }
 
     {
+        const std::string source = "ClrDraw\nAxesOff\nText(0,0,\"abcdefghijklmnopqrstuvwxyz_𝑒𝑖\")\n√(1)\n₁₀^(1)\nWhile 1\nEnd";
+        assert_direct_evo_source_matches_ce_conversion(source, "TEXTTOK2");
+
         TIVarFile textTokenProgram = TIVarFile::createNew("Program", "TEXTTOK", "84+CE");
-        textTokenProgram.setContentFromString("ClrDraw\nAxesOff\nText(0,0,\"abcdefghijklmnopqrstuvwxyz_𝑒𝑖\")\n√(1)\n₁₀^(1)\nWhile 1\nEnd");
+        textTokenProgram.setContentFromString(source);
         const data_t originalLegacyData = textTokenProgram.getRawContent();
 
         textTokenProgram.convertToModel(TIModel{"84Evo"});
@@ -1615,6 +1662,98 @@ int main(int argc, char** argv)
     }
 
     {
+        const auto evo_token_data = [](uint16_t token) {
+            return data_t{
+                static_cast<uint8_t>(token & 0xFF),
+                static_cast<uint8_t>((token >> 8) & 0xFF),
+                0x00,
+                0x00
+            };
+        };
+        const auto legacy_token_data = [](uint16_t token) {
+            data_t data;
+            if (token > 0xFF)
+            {
+                data = {0x02, 0x00, static_cast<uint8_t>(token >> 8), static_cast<uint8_t>(token & 0xFF)};
+            }
+            else
+            {
+                data = {0x01, 0x00, static_cast<uint8_t>(token)};
+            }
+            return data;
+        };
+
+        const std::vector<std::pair<uint16_t, data_t>> evoToLegacyAliases = {
+            {0xE6AE, {0x02, 0x00, 0xEF, 0x79}},
+            {0xE93B, {0x02, 0x00, 0x62, 0x03}},
+            {0xE93C, {0x02, 0x00, 0x62, 0x2B}},
+            {0xE93D, {0x02, 0x00, 0x62, 0x2E}},
+            {0xE93E, {0x02, 0x00, 0xBB, 0xA6}},
+            {0xE941, {0x02, 0x00, 0x62, 0x2D}},
+            {0xE942, {0x02, 0x00, 0x62, 0x30}},
+            {0xE943, {0x02, 0x00, 0x62, 0x06}},
+            {0xE944, {0x02, 0x00, 0x62, 0x2C}},
+            {0xE945, {0x02, 0x00, 0x62, 0x2F}},
+            {0xE946, {0x02, 0x00, 0xBB, 0xCB}},
+            {0xE95C, {0x02, 0x00, 0x62, 0x27}},
+            {0xE9D6, {0x03, 0x00, 0xBB, 0xEC, 0x0A}},
+            {0xE9D7, {0x03, 0x00, 0xBB, 0xEC, 0xAF}},
+            {0xE9D8, {0x03, 0x00, 0xBB, 0xEC, 0x0B}},
+        };
+
+        for (const auto& [evoToken, expectedLegacyData] : evoToLegacyAliases)
+        {
+            ScopedStderrCapture stderrCapture;
+            assert(EvoFormat::evo_tokenized_data_to_legacy(evo_token_data(evoToken)) == expectedLegacyData);
+            assert(stderrCapture.str().find("Cannot convert Evo token") == std::string::npos);
+        }
+
+        const std::vector<std::pair<uint16_t, uint16_t>> privateDisplayAliases = {
+            {0xF000, 0x3B}, {0xF001, 0x45}, {0xF002, 0xBBB4}, {0xF003, 0xBBAF},
+            {0xF004, 0x2C}, {0xF005, 0xEB}, {0xF006, 0x632B}, {0xF007, 0x6221},
+            {0xF008, 0xBBAD}, {0xF009, 0x0A}, {0xF00A, 0x0E}, {0xF00B, 0xBBDF},
+            {0xF00C, 0xBBDE}, {0xF00D, 0x6203}, {0xF00E, 0x620C}, {0xF010, 0xB0},
+            {0xF011, 0x0C}, {0xF012, 0xBBEA}, {0xF013, 0x0D}, {0xF014, 0x0F},
+            {0xF018, 0xEF2E}, {0xF019, 0xBB9B}, {0xF01B, 0xBBF2}, {0xF01C, 0xBBF3},
+            {0xF01E, 0xBBED}, {0xF01F, 0xBBEE}, {0xF020, 0xBBF5}, {0xF022, 0xBBED},
+            {0xF023, 0x41}, {0xF024, 0xBBB0}, {0xF025, 0xBBD9}, {0xF02A, 0xEF1E},
+            {0xF042, 0xBBE0}, {0xF043, 0xBBE1}, {0xF044, 0xBBE2}, {0xF045, 0xBBE3},
+            {0xF046, 0xBBE4}, {0xF047, 0xBBE5}, {0xF048, 0xBBE6}, {0xF049, 0xBBE7},
+            {0xF04A, 0xBBE8}, {0xF04B, 0xBBE9}, {0xF04C, 0x7F}, {0xF060, 0x6D},
+            {0xF061, 0x6E},
+        };
+
+        for (const auto& [evoToken, legacyToken] : privateDisplayAliases)
+        {
+            ScopedStderrCapture stderrCapture;
+            assert(EvoFormat::evo_tokenized_data_to_legacy(evo_token_data(evoToken)) == legacy_token_data(legacyToken));
+            assert(stderrCapture.str().find("Cannot convert Evo token") == std::string::npos);
+        }
+
+        assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xE9D6)) == "►ʳ");
+        assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xE9D7)) == "►ᵍ");
+        assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xE9D8)) == "►º");
+        assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xF012)) == "₁₀");
+        assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xF029)) == "░");
+
+        assert(EvoFormat::legacy_tokenized_data_to_evo({0x02, 0x00, 0xEF, 0x79}) == evo_token_data(0xE6AE));
+        assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBAF)) == evo_token_data(0xF003));
+        assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBAD)) == evo_token_data(0xF008));
+        assert(EvoFormat::legacy_tokenized_data_to_evo({0x02, 0x00, 0xBB, 0xEA}) == evo_token_data(0xF012));
+        assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBF2)) == evo_token_data(0xF01B));
+        assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBF3)) == evo_token_data(0xF01C));
+        assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBF5)) == evo_token_data(0xF020));
+        assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xEF1E)) == evo_token_data(0xF02A));
+        assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0x45)) == evo_token_data(0xE804));
+        assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBB4)) == evo_token_data(0x0065));
+        assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBB9B)) == evo_token_data(0xF019));
+        assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBD5)) == evo_token_data(0x0060));
+        assert(EvoFormat::evo_tokenized_data_to_legacy(evo_token_data(0x0060)) == legacy_token_data(0xBBD5));
+        assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBE1)) == evo_token_data(0x2081));
+        assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBED)) == evo_token_data(0x2191));
+    }
+
+    {
         const std::string fromGradPath = "/tmp/tivars_evo_from_grad.8xp2";
         TIVarFile fromGradProgram = TIVarFile::createNew("Program", "GRAD", "84Evo");
         fromGradProgram.setContentFromString("°");
@@ -1660,10 +1799,176 @@ int main(int argc, char** argv)
         lowerStringProgram.convertToModel(TIModel{"84Evo"});
         assert(lowerStringProgram.isEvoFormat());
         assert(json::parse(lowerStringProgram.getReadableContent())["code"] == "Disp \"Hello World");
+        assert(lowerStringProgram.getRawContentHexStr().find("07e8") != std::string::npos);
+        assert(lowerStringProgram.getRawContentHexStr().find("16e8") != std::string::npos);
 
         lowerStringProgram.convertToModel(TIModel{"84+CE"});
         assert(!lowerStringProgram.isEvoFormat());
         assert(lowerStringProgram.getRawContent() == originalLegacyData);
+    }
+
+    {
+        const std::string source = "\"X\"→Str2\n"
+            "\"X+.10\"→Str3\n"
+            "\"X+.05\"→Str4\n"
+            "\"A(\"+Str2+\")+\"+\"B(\"+Str3+\")+C(\"+Str4+\")→Str5\n"
+            "0→X\n"
+            "expr(Str5)→D\n";
+        TIVarFile exprStringProgram = TIVarFile::createNew("Program", "PRGM", "84Evo");
+        exprStringProgram.setContentFromString(source);
+        const json readable = json::parse(exprStringProgram.getReadableContent());
+        assert(readable["code"] == source);
+        const std::string directEvoHex = readable["rawDataHex"];
+        assert(directEvoHex == "16E417E816E41DE4A1E81CE416E417E828E40BE402E401E416E41DE4A2E81CE416E417E828E40BE401E406E416E41DE4A3E81CE416E400E810E416E428E4A1E828E416E411E428E416E428E416E401E810E416E428E4A2E828E416E411E428E402E810E416E428E4A3E828E416E411E41DE4A4E81CE401E41DE417E81CE470E4A4E811E41DE403E81CE40000");
+        assert(directEvoHex.find("5800") == std::string::npos);
+        assert(directEvoHex.find("2B00") == std::string::npos);
+
+        TIVarFile convertedExprStringProgram = TIVarFile::createNew("Program", "PRGM", "84+CE");
+        convertedExprStringProgram.setContentFromString(source);
+        convertedExprStringProgram.convertToModel(TIModel{"84Evo"});
+        assert(json::parse(convertedExprStringProgram.getReadableContent())["rawDataHex"] == directEvoHex);
+    }
+
+    {
+        const std::string source = "ClrHome\n"
+            "Input \"STRING:\",Str0\n"
+            "Disp inString(Str0,\"=\")\n"
+            "Disp inString(Str0,\">\")\n"
+            "Disp inString(Str0,\"X\")\n";
+        TIVarFile inStringProgram = TIVarFile::createNew("Program", "PRGM2", "84Evo");
+        inStringProgram.setContentFromString(source);
+        const json readable = json::parse(inStringProgram.getReadableContent());
+        assert(readable["code"] == source);
+        const std::string directEvoHex = readable["rawDataHex"];
+        assert(directEvoHex == "D7E41CE4D0E416E412E813E811E808E80DE806E818E416E417E4A9E81CE4D3E478E4A9E817E416E47FE416E411E41CE4D3E478E4A9E817E416E481E416E411E41CE4D3E478E4A9E817E416E417E816E411E41CE40000");
+        assert(directEvoHex.find("3D00") == std::string::npos);
+        assert(directEvoHex.find("3E00") == std::string::npos);
+        assert(directEvoHex.find("5800") == std::string::npos);
+
+        TIVarFile convertedInStringProgram = TIVarFile::createNew("Program", "PRGM2", "84+CE");
+        convertedInStringProgram.setContentFromString(source);
+        convertedInStringProgram.convertToModel(TIModel{"84Evo"});
+        assert(json::parse(convertedInStringProgram.getReadableContent())["rawDataHex"] == directEvoHex);
+    }
+
+    {
+        const std::string source = "Pause \"PRESS ENTER\nDelVar S\n1→G\nFor(Y,0,250,250";
+
+        TIVarFile directEvoProgram = TIVarFile::createNew("Program", "LINETST", "84Evo");
+        directEvoProgram.setContentFromString(source);
+        const std::string directEvoHex = json::parse(directEvoProgram.getReadableContent())["rawDataHex"];
+        assert(directEvoHex.find("50005200450053005300200045004E00540045005200") == std::string::npos);
+        assert(directEvoHex.find("E0E412E8") != std::string::npos);
+        assert(directEvoHex.find("E402E41DE406E8") != std::string::npos);
+        assert(directEvoHex.find("C5E418E817E401E417E403E406E401E417E403E406E401E4") != std::string::npos);
+        assert(directEvoHex.find("E0E45300") == std::string::npos);
+
+        const std::string convertedEvoHex = assert_direct_evo_source_matches_ce_conversion(source, "LINETST2");
+        assert(convertedEvoHex.find("E0E412E8") != std::string::npos);
+        assert(convertedEvoHex.find("E0E45300") == std::string::npos);
+    }
+
+    {
+        TIVarFile rawUcs2Program = TIVarFile::createNew("Program", "UCS2", "84Evo");
+        rawUcs2Program.setContentFromData({0x48, 0x00, 0xE9, 0x00, 0x00, 0x00});
+        assert(json::parse(rawUcs2Program.getReadableContent())["code"] == "Hé");
+
+        rawUcs2Program.convertToModel(TIModel{"84+CE"});
+        assert(!rawUcs2Program.isEvoFormat());
+        assert(rawUcs2Program.getReadableContent() == "Hé");
+    }
+
+    {
+        TIVarFile rawControlUcs2Program = TIVarFile::createNew("Program", "CTL", "84Evo");
+        rawControlUcs2Program.setContentFromData({0x1F, 0x00, 0x7F, 0x00, 0x9F, 0x00, 0x00, 0x00});
+        const std::string code = json::parse(rawControlUcs2Program.getReadableContent())["code"];
+        assert(code.find("\\u001F") != std::string::npos);
+        assert(code.find("\\u007F") != std::string::npos);
+        assert(code.find("\\u009F") != std::string::npos);
+    }
+
+    {
+        TIVarFile rawYHatProgram = TIVarFile::createNew("Program", "YHAT", "84Evo");
+        rawYHatProgram.setContentFromData({0x76, 0x01, 0x77, 0x01, 0x78, 0x01, 0x00, 0x00});
+        const std::string code = json::parse(rawYHatProgram.getReadableContent())["code"];
+        assert(code.find("\\u0176") != std::string::npos);
+        assert(code.find("ŷ") != std::string::npos);
+        assert(code.find("\\u0178") != std::string::npos);
+    }
+
+    {
+        const std::vector<std::pair<uint16_t, uint16_t>> acceptedUcs2Ranges = {
+            {0x0394, 0x0394}, {0x03A3, 0x03A3}, {0x03A9, 0x03A9},
+            {0x03B1, 0x03B5}, {0x03B8, 0x03B8}, {0x03BB, 0x03BC},
+            {0x03C0, 0x03C1}, {0x03C3, 0x03C4}, {0x03C6, 0x03C7},
+            {0x2010, 0x2010}, {0x2026, 0x2026}, {0x2070, 0x2070},
+            {0x2074, 0x2079}, {0x2080, 0x2089}, {0x2122, 0x2122},
+            {0x2190, 0x2193}, {0x221A, 0x221A}, {0x2220, 0x2220},
+            {0x222B, 0x222B}, {0x2260, 0x2260}, {0x2264, 0x2265},
+            {0x238C, 0x238C}, {0x25A0, 0x25A0}, {0x25AB, 0x25AB},
+            {0x25B2, 0x25B2}, {0x25B6, 0x25B6}, {0x25B8, 0x25B8},
+            {0x25BC, 0x25BC}, {0x25C0, 0x25C0}, {0x25C2, 0x25C2},
+            {0xF000, 0xF032}, {0xF038, 0xF03A}, {0xF041, 0xF04D},
+            {0xF04F, 0xF058}, {0xF05B, 0xF061},
+        };
+
+        data_t rawData;
+        std::string expectedCode;
+        for (const auto& [first, last] : acceptedUcs2Ranges)
+        {
+            for (uint16_t codepoint = first; codepoint <= last; ++codepoint)
+            {
+                rawData.push_back(static_cast<uint8_t>(codepoint & 0xFF));
+                rawData.push_back(static_cast<uint8_t>((codepoint >> 8) & 0xFF));
+                expectedCode += EvoFormat::detokenize_evo_token_words({
+                    static_cast<uint8_t>(codepoint & 0xFF),
+                    static_cast<uint8_t>((codepoint >> 8) & 0xFF)
+                });
+            }
+        }
+        rawData.push_back(0x00);
+        rawData.push_back(0x00);
+
+        TIVarFile rawAcceptedUcs2Program = TIVarFile::createNew("Program", "UCS2OK", "84Evo");
+        rawAcceptedUcs2Program.setContentFromData(rawData);
+        assert(json::parse(rawAcceptedUcs2Program.getReadableContent())["code"] == expectedCode);
+
+        assert(EvoFormat::tokenize_evo_token_words(utf8_from_bmp_codepoint(0x25C2)) == data_t({0xC2, 0x25, 0x00, 0x00}));
+        assert(EvoFormat::tokenize_evo_token_words(utf8_from_bmp_codepoint(0xF061)) == data_t({0x61, 0xF0, 0x00, 0x00}));
+        assert(EvoFormat::tokenize_evo_token_words("\\u03C0") == data_t({0xC0, 0x03, 0x00, 0x00}));
+        assert(EvoFormat::tokenize_evo_token_words("\\uF000") == data_t({0x00, 0xF0, 0x00, 0x00}));
+        assert(EvoFormat::tokenize_evo_token_words("A͟") == data_t({0x27, 0xF0, 0x00, 0x00}));
+        assert(EvoFormat::tokenize_evo_token_words("◣̏") == data_t({0x57, 0xF0, 0x00, 0x00}));
+        assert(EvoFormat::tokenize_evo_token_words("Β") == data_t({0x5B, 0xF0, 0x00, 0x00}));
+        assert(EvoFormat::tokenize_evo_token_words("ᵍ") == data_t({0x53, 0xF0, 0x00, 0x00}));
+        assert(EvoFormat::tokenize_evo_token_words("░") == data_t({0x29, 0xF0, 0x00, 0x00}));
+        assert(EvoFormat::tokenize_evo_token_words("x̄") != data_t({0x0D, 0xF0, 0x00, 0x00}));
+        assert(EvoFormat::evo_tokenized_data_to_legacy({0xC0, 0x03, 0x00, 0x00}) == data_t({0x02, 0x00, 0xBB, 0xA7}));
+
+        ScopedStderrCapture stderrCapture;
+        TIVarFile retokenizedAcceptedUcs2Program = TIVarFile::createNew("Program", "UCS2RT", "84Evo");
+        retokenizedAcceptedUcs2Program.setContentFromString(expectedCode);
+        assert(stderrCapture.str().find("Cannot encode source text") == std::string::npos);
+
+        TIVarFile rawRejectedUcs2Program = TIVarFile::createNew("Program", "UCS2BAD", "84Evo");
+        rawRejectedUcs2Program.setContentFromData({0xFF, 0x02, 0x10, 0x20, 0x00, 0x00});
+        const std::string rejectedCode = json::parse(rawRejectedUcs2Program.getReadableContent())["code"];
+        assert(rejectedCode.find("\\u02FF") != std::string::npos);
+        assert(rejectedCode.find("\\u2010") == std::string::npos);
+    }
+
+    {
+        assert(EvoFormat::tokenize_evo_token_words("ŷ") == data_t({0x77, 0x01, 0x00, 0x00}));
+
+        TIVarFile directYHatProgram = TIVarFile::createNew("Program", "YHAT2", "84Evo");
+        directYHatProgram.setContentFromString("Disp \"ŷ\"");
+        const json readable = json::parse(directYHatProgram.getReadableContent());
+        assert(readable["code"] == "Disp \"ŷ\"");
+        assert(readable["rawDataHex"].get<std::string>().find("7701") != std::string::npos);
+
+        TIVarFile recreatedYHatProgram = TIVarFile::createNew("Program", "YHAT3", "84Evo");
+        recreatedYHatProgram.setContentFromString(directYHatProgram.getReadableContent());
+        assert(recreatedYHatProgram.getRawContent() == directYHatProgram.getRawContent());
     }
 
     {
@@ -1694,8 +1999,11 @@ Disp Str1
     }
 
     {
+        const std::string source = "seq(1,2,3)";
+        assert_direct_evo_source_matches_ce_conversion(source, "SEQTEST2");
+
         TIVarFile seqProgram = TIVarFile::createNew("Program", "SEQTEST", "84+CE");
-        seqProgram.setContentFromString("seq(1,2,3)");
+        seqProgram.setContentFromString(source);
         const data_t originalLegacyData = seqProgram.getRawContent();
         seqProgram.convertToModel(TIModel{"84Evo"});
         assert(seqProgram.isEvoFormat());
@@ -1707,6 +2015,8 @@ Disp Str1
     }
 
     {
+        assert(assert_direct_evo_source_matches_ce_conversion("eval(\"1+1\"", "EVALTOK3") == "E4E416E402E428E402E416E40000");
+
         TIVarFile evalProgram = TIVarFile::createNew("Program", "EVALTOK", "84+CE");
         evalProgram.setContentFromString("eval(\"1+1\"");
         const data_t originalLegacyData = evalProgram.getRawContent();
@@ -1714,15 +2024,42 @@ Disp Str1
 
         evalProgram.convertToModel(TIModel{"84Evo"});
         assert(evalProgram.isEvoFormat());
-        assert(json::parse(evalProgram.getReadableContent())["dataHex"] == "E4E416E402E428E402E416E40000");
+        assert(json::parse(evalProgram.getReadableContent())["rawDataHex"] == "E4E416E402E428E402E416E40000");
 
         evalProgram.convertToModel(TIModel{"84+CE"});
         assert(!evalProgram.isEvoFormat());
         assert(evalProgram.getRawContent() == originalLegacyData);
+
+        TIVarFile directEvoEvalProgram = TIVarFile::createNew("Program", "EVALTOK2", "84Evo");
+        directEvoEvalProgram.setContentFromString("eval(\"1+1\"");
+        assert(json::parse(directEvoEvalProgram.getReadableContent())["rawDataHex"] == "E4E416E402E428E402E416E40000");
+
+        assert(assert_direct_evo_source_matches_ce_conversion("Disp expr(\"{1,2,3}\"", "EXPRTOK3") == "D3E470E416E414E402E417E403E417E404E415E416E40000");
+
+        TIVarFile directEvoExprProgram = TIVarFile::createNew("Program", "EXPRTOK2", "84Evo");
+        directEvoExprProgram.setContentFromString("Disp expr(\"{1,2,3}\"");
+        assert(json::parse(directEvoExprProgram.getReadableContent())["rawDataHex"] == "D3E470E416E414E402E417E403E417E404E415E416E40000");
+
+        TIVarFile unterminatedExprProgram = TIVarFile::createNew("Program", "EXPRRAW", "84Evo");
+        unterminatedExprProgram.setContentFromString("expr(\"sin({1,2");
+        assert(json::parse(unterminatedExprProgram.getReadableContent())["rawDataHex"] == "70E416E43FE414E402E417E403E40000");
+
+        assert(assert_direct_evo_source_matches_ce_conversion("Send(\"{1,2,3}\"", "SENDTOK3") == "C7E616E414E402E417E403E417E404E415E416E40000");
+
+        TIVarFile sendProgram = TIVarFile::createNew("Program", "SENDTOK", "84+CE");
+        sendProgram.setContentFromString("Send(\"{1,2,3}\"");
+        sendProgram.convertToModel(TIModel{"84Evo"});
+        assert(json::parse(sendProgram.getReadableContent())["rawDataHex"] == "C7E616E414E402E417E403E417E404E415E416E40000");
+
+        TIVarFile directEvoSendProgram = TIVarFile::createNew("Program", "SENDTOK2", "84Evo");
+        directEvoSendProgram.setContentFromString("Send(\"{1,2,3}\"");
+        assert(json::parse(directEvoSendProgram.getReadableContent())["rawDataHex"] == "C7E616E414E402E417E403E417E404E415E416E40000");
     }
 
     {
         const std::string evoGraphSettingsSource = "Zθmin\nZθmax\nZTmin\nZTmax\nZ𝑛Max\nZ𝑛Min\nZTstep\nZθstep\nZPlotStep\nZXres\nIndpntAuto\nIndpntAsk\nDependAuto\nDependAsk\nThick\nDot-Thick\nTime\n'\ntcdf(";
+        assert_direct_evo_source_matches_ce_conversion(evoGraphSettingsSource, "EVOGRF2");
+
         TIVarFile graphSettingsProgram = TIVarFile::createNew("Program", "EVOGRF", "84+CE");
         graphSettingsProgram.setContentFromString(evoGraphSettingsSource);
         const data_t originalLegacyData = graphSettingsProgram.getRawContent();
@@ -1737,6 +2074,8 @@ Disp Str1
 
     {
         const std::string evoLinkDisplaySource = "Get(\nSend(\nG-T\nClear Entries";
+        assert_direct_evo_source_matches_ce_conversion(evoLinkDisplaySource, "EVOLNK2");
+
         TIVarFile linkDisplayProgram = TIVarFile::createNew("Program", "EVOLNK", "84+CE");
         linkDisplayProgram.setContentFromString(evoLinkDisplaySource);
         const data_t originalLegacyData = linkDisplayProgram.getRawContent();
