@@ -77,6 +77,7 @@ namespace tivars
         const uint32_t flags83pceep= flags83pce  | hasPython;
         const uint32_t flags84pcepy= flags84pce  | hasPython;
         const uint32_t flags82aep  = flags83pceep&~hasApps;
+        const uint32_t flags84evo  = (flags84pcse & ~hasClock) | hasPython | hasEvoASIC;
 
         // In case of duplicate ProductID for a given orderID, we first insert the default model for that ProductID
         insertModel(0,  flags82,     "82",      "**TI82**", 0,      VER_NONE);
@@ -94,6 +95,7 @@ namespace tivars
         insertModel(7,  flags83pce,  "83PCE",   "**TI83F*", 0x13,   VER_CE_ALL);
         insertModel(7,  flags83pceep,"83PCEEP", "**TI83F*", 0x13,   VER_CE_530);
         insertModel(8,  flags82aep,  "82AEP",   "**TI83F*", 0x15,   VER_CE_530);
+        insertModel(9,  flags84evo,  "84Evo",   "", 0,   VER_INVALID);
     }
 
     const std::unordered_map<std::string, TIModel>& TIModels::all()
