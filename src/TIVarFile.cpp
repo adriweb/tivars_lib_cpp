@@ -1079,7 +1079,13 @@ namespace tivars
 
     void TIVarFile::convertToModel(const TIModel& model)
     {
+        convertToModel(model, {});
+    }
+
+    void TIVarFile::convertToModel(const TIModel& model, const options_t& options)
+    {
         const bool targetEvoFormat = (model.getFlags() & TIFeatureFlags::hasEvoASIC) != 0;
+        const bool smartConversion = options.contains("smart") && options.at("smart") != 0;
         if (!model_supports_all_entries(model, this->entries))
         {
             throw std::runtime_error("This calculator model (" + model.getName() + ") does not support every variable entry in this file");
@@ -1102,7 +1108,7 @@ namespace tivars
                     entry.evoFields.clear();
                     if (is_evo_tokenized_entry(entry))
                     {
-                        entry.data = legacy_tokenized_data_to_evo(entry.data);
+                        entry.data = legacy_tokenized_data_to_evo(entry.data, smartConversion);
                         entry.evoFields["version"] = 1;
                         entry.evoFields["arraylen"] = entry.data.size() / 2;
                         entry.evoFields["size"] = entry.data.size();
@@ -1600,6 +1606,7 @@ namespace tivars
                     .function("setCalcModel"             , &tivars::TIVarFile::setCalcModel)
                     .function("isEvoFormat"              , &tivars::TIVarFile::isEvoFormat)
                     .function("convertToModel"           , select_overload<void(const std::string&)>(&tivars::TIVarFile::convertToModel))
+                    .function("convertToModel"           , select_overload<void(const std::string&, bool)>(&tivars::TIVarFile::convertToModel))
                     .function("setVarName"               , select_overload<void(const std::string&)>(&tivars::TIVarFile::setVarName))
                     .function("setArchived"              , select_overload<void(bool)>(&tivars::TIVarFile::setArchived))
                     .function("isCorrupt"                , &tivars::TIVarFile::isCorrupt)
