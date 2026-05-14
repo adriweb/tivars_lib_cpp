@@ -487,7 +487,6 @@ int main(int argc, char** argv)
         assert(TH_Matrix::getMinVersionFromData(makeCollectionData(0x1C)) == VER_CE_EXACTONLY);
     }
 
-#ifndef __EMSCRIPTEN__
     {
         // TH_TempEqu error handling: too short and inconsistent lengths
         try {
@@ -500,7 +499,6 @@ int main(int argc, char** argv)
             assert(false);
         } catch (const std::invalid_argument&) {}
     }
-#endif
 
     {
         // Alias tokenization: arcsin/asin variants should map to sin⁻¹(
@@ -1203,7 +1201,6 @@ int main(int argc, char** argv)
         assert(testReal.getReadableContent() == "-1.2345678901235e30");
     }
 
-#ifndef __EMSCRIPTEN__
     {
         try
         {
@@ -1216,7 +1213,6 @@ int main(int argc, char** argv)
             cout << "Caught expected exception: " << e.what() << endl;
         }
     }
-#endif
 
     {
         TIVarFile testReal42 = TIVarFile::createNew("Real", "R");
@@ -1343,7 +1339,6 @@ End)";
         assert(trim(testPrgmReindent.getReadableContent({{"prettify", true}, {"reindent", true}})) == "\"http://TIPlanet.org");
     }
 
-#ifndef __EMSCRIPTEN__
     {
         try
         {
@@ -1360,7 +1355,6 @@ End)";
             cout << "Caught expected exception: " << e.what() << endl;
         }
     }
-#endif
 
     assert(TIVarType{"ExactRealPi"}.getId() == 32);
 
@@ -1466,7 +1460,6 @@ End)";
         assert(matrixWithNewline.getReadableContent() == "[[1,2][3,4]]");
     }
 
-#ifndef __EMSCRIPTEN__
     {
         try
         {
@@ -1496,7 +1489,6 @@ End)";
         {
         }
     }
-#endif
 
     {
         TIVarFile testComplex = TIVarFile::loadFromFile("testData/Complex.8xc"); // -5 + 2i

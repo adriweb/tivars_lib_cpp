@@ -24,10 +24,14 @@ SOURCES := $(wildcard src/*.cpp) $(wildcard src/TypeHandlers/*.cpp) $(wildcard s
 OBJS = $(patsubst %.c, %.bc, $(patsubst %.cpp, %.bc, $(SOURCES)))
 
 OUTPUT := TIVarsLib
+TEST_OUTPUT := tivars_tests_wasm
 
 wasm:  $(OUTPUT).js
 
 all: wasm
+
+wasm-tests: $(TEST_OUTPUT).js
+	node --no-warnings scripts/run_wasm_tests.mjs
 
 %.bc: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -38,7 +42,16 @@ all: wasm
 $(OUTPUT).js: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $@
 
-clean:
-	$(RM) -f $(OBJS) $(OUTPUT).js* $(OUTPUT).was*
+tests_wasm.bc: tests.cpp
+	$(CXX) $(CXXFLAGS) -Dmain=tivars_tests_main -c $< -o $@
 
-.PHONY: all clean wasm
+scripts/wasm_tests_main.bc: scripts/wasm_tests_main.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(TEST_OUTPUT).js: $(filter-out src/main_emscripten.bc,$(OBJS)) tests_wasm.bc scripts/wasm_tests_main.bc
+	$(CXX) $(CXXFLAGS) $(OPTFLAGS) --bind -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME="'TIVarsTests'" -s NODERAWFS=1 -s EXIT_RUNTIME=1 -s ASSERTIONS=$(ASSERTIONS) -s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS="['callMain','getExceptionMessage','decrementExceptionRefcount']" $^ -o $@
+
+clean:
+	$(RM) -f $(OBJS) tests_wasm.bc scripts/wasm_tests_main.bc $(OUTPUT).js* $(OUTPUT).was* $(TEST_OUTPUT).js* $(TEST_OUTPUT).was*
+
+.PHONY: all clean wasm wasm-tests

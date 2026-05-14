@@ -60,6 +60,8 @@ Thumbs.db
 *.data
 *.bc
 *.js.mem
+tivars_tests_wasm.js
+tivars_tests_wasm.wasm
 
 # IDEs things
 **/.idea/

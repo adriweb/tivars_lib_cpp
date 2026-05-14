@@ -1047,6 +1047,25 @@ namespace tivars
 #ifdef __EMSCRIPTEN__
     #include <emscripten/bind.h>
     using namespace emscripten;
+
+    namespace
+    {
+        tivars::TIVarFile createNewFromStrings(const std::string& type, const std::string& name, const std::string& model)
+        {
+            return tivars::TIVarFile::createNew(tivars::TIVarType{type}, name, tivars::TIModel{model});
+        }
+
+        tivars::TIVarFile createNewFromStrings(const std::string& type, const std::string& name)
+        {
+            return tivars::TIVarFile::createNew(tivars::TIVarType{type}, name);
+        }
+
+        tivars::TIVarFile createNewFromString(const std::string& type)
+        {
+            return tivars::TIVarFile::createNew(tivars::TIVarType{type});
+        }
+    }
+
     EMSCRIPTEN_BINDINGS(_tivarfile) {
 
             register_map<std::string, int>("options_t");
@@ -1076,9 +1095,9 @@ namespace tivars
                     .function("saveVarToFile"            , select_overload<std::string(void)>(&tivars::TIVarFile::saveVarToFile))
 
                     .class_function("loadFromFile", &tivars::TIVarFile::loadFromFile, return_value_policy::take_ownership())
-                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&, const std::string&, const std::string&)>(&tivars::TIVarFile::createNew), return_value_policy::take_ownership())
-                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&, const std::string&)>(&tivars::TIVarFile::createNew), return_value_policy::take_ownership())
-                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&)>(&tivars::TIVarFile::createNew), return_value_policy::take_ownership())
+                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&, const std::string&, const std::string&)>(&createNewFromStrings), return_value_policy::take_ownership())
+                    .class_function("createNew", select_overload<tivars::TIVarFile(const std::string&, const std::string&)>(&createNewFromStrings), return_value_policy::take_ownership())
+                    .class_function("createNew", &createNewFromString, return_value_policy::take_ownership())
             ;
     }
 #endif
