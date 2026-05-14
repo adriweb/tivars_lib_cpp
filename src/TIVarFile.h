@@ -92,7 +92,9 @@ namespace tivars
 
         void setCalcModel(const TIModel& model);
         void convertToModel(const TIModel& model);
+        void convertToModel(const TIModel& model, const options_t& options);
         void convertToModel(const std::string& model) { convertToModel(TIModel{model}); }
+        void convertToModel(const std::string& model, bool smart) { convertToModel(TIModel{model}, {{"smart", smart ? 1 : 0}}); }
 
         void setVarName(const std::string& name, uint16_t entryIdx);
         void setVarName(const std::string& name);

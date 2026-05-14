@@ -45,6 +45,7 @@ int main(int argc, char** argv)
             ("l,lang", "Language", cxxopts::value<string>()->default_value("en"))
             ("a,archive", "Archive status", cxxopts::value<bool>())
             ("r,reindent", "Re-indent", cxxopts::value<bool>())
+            ("smart", "Use compatibility rewrites when converting 84+CE programs to 84Evo", cxxopts::value<bool>())
             ("accessible", "Use accessible token names for non-US-keyboard display tokens", cxxopts::value<bool>())
             ("p,prettify", "Prettify (display-oriented, may not roundtrip)", cxxopts::value<bool>())
             ("s,detect_strings", "Detect strings", cxxopts::value<bool>())
@@ -252,21 +253,22 @@ int main(int argc, char** argv)
 
                 if (iformat == VARFILE)
                 {
+                    const options_t conversionOptions = {{"smart", result["smart"].as<bool>() ? 1 : 0}};
                     if (result.count("name"))
                     {
                         file.setVarName(requestedName);
                     }
                     if (result.count("calc"))
                     {
-                        file.convertToModel(requestedModel);
+                        file.convertToModel(requestedModel, conversionOptions);
                     }
                     else if (oformat == VARFILE && isEvoVarExtension(extensionOf(opath)) && !file.isEvoFormat())
                     {
-                        file.convertToModel(TIModel{"84Evo"});
+                        file.convertToModel(TIModel{"84Evo"}, conversionOptions);
                     }
                     else if (oformat == VARFILE && isLegacyVarExtension(extensionOf(opath)) && file.isEvoFormat())
                     {
-                        file.convertToModel(TIModel{"84+CE"});
+                        file.convertToModel(TIModel{"84+CE"}, conversionOptions);
                     }
                 }
 

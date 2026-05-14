@@ -1428,14 +1428,23 @@ data_t evo_tokenized_data_to_legacy(const data_t& evoData)
     return legacy;
 }
 
-data_t legacy_tokenized_data_to_evo(const data_t& legacyData)
+data_t legacy_tokenized_data_to_evo(const data_t& legacyData, bool smartConversion)
 {
     if (legacyData.size() < 2)
     {
         throw std::invalid_argument("Invalid tokenized legacy data");
     }
 
+    static constexpr uint16_t legacyQuote = 0x2A;
+    static constexpr uint16_t legacyColon = 0x3E;
+    static constexpr uint16_t legacyNewLine = 0x3F;
+    static constexpr uint16_t legacyDelVar = 0xBB54;
+    static constexpr uint16_t evoNewLine = 0xE41C;
+
     data_t evo;
+    bool isWithinString = false;
+    bool delVarStatementOpen = false;
+    bool delVarHasArgument = false;
     for (size_t i = 2; i < legacyData.size();)
     {
         int incr = 1;
@@ -1448,6 +1457,14 @@ data_t legacy_tokenized_data_to_evo(const data_t& legacyData)
         const uint16_t legacyToken = incr == 2
             ? static_cast<uint16_t>((legacyData[i] << 8) | legacyData[i + 1])
             : legacyData[i];
+
+        if (smartConversion && !isWithinString && legacyToken == legacyDelVar && delVarStatementOpen && delVarHasArgument)
+        {
+            append_evo_token(evo, evoNewLine);
+            delVarStatementOpen = false;
+            delVarHasArgument = false;
+        }
+
         uint16_t evoToken = 0;
         if (!evo_token_for_legacy_token(legacyToken, evoToken))
         {
@@ -1457,6 +1474,30 @@ data_t legacy_tokenized_data_to_evo(const data_t& legacyData)
             evoToken = 0xE41B;
         }
         append_evo_token(evo, evoToken);
+
+        if (!isWithinString)
+        {
+            if (legacyToken == legacyColon || legacyToken == legacyNewLine)
+            {
+                delVarStatementOpen = false;
+                delVarHasArgument = false;
+            }
+            else if (legacyToken == legacyDelVar)
+            {
+                delVarStatementOpen = true;
+                delVarHasArgument = false;
+            }
+            else if (delVarStatementOpen)
+            {
+                delVarHasArgument = true;
+            }
+        }
+
+        if (legacyToken == legacyQuote)
+        {
+            isWithinString = !isWithinString;
+        }
+
         i += static_cast<size_t>(incr);
     }
     append_evo_token(evo, 0);

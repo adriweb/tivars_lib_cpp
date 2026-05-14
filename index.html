@@ -1,20 +1,516 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-<script type="module">
-    import TIVarsLib from './TIVarsLib.js';
-    const lib = await TIVarsLib();
-    const prgm = lib.TIVarFile.createNew("Program", "TEST");
-    prgm.setContentFromString("ClrHome:Disp \"Hello World!\"");
-    const filePath = prgm.saveVarToFile("", "MyTestProgram");
-    const file = lib.FS.readFile(filePath, {encoding: 'binary'});
-    console.log(file);
-</script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TI-Basic CE / Evo Program Converter</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f4f6f8;
+            --panel: #ffffff;
+            --text: #15171a;
+            --muted: #616975;
+            --line: #d8dde4;
+            --accent: #1864ab;
+            --accent-strong: #114f89;
+            --ok: #247a4b;
+            --warn: #9a5b13;
+            --error: #b42318;
+            --shadow: 0 20px 55px rgba(27, 31, 35, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            background:
+                linear-gradient(135deg, rgba(24, 100, 171, 0.10), transparent 38%),
+                linear-gradient(315deg, rgba(36, 122, 75, 0.08), transparent 34%),
+                var(--bg);
+            color: var(--text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        main {
+            width: min(1180px, calc(100vw - 32px));
+            min-height: 100vh;
+            margin: 0 auto;
+            padding: 32px 0;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 18px;
+        }
+
+        header {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.55rem, 3vw, 2.75rem);
+            line-height: 1.02;
+            font-weight: 760;
+            letter-spacing: 0;
+        }
+
+        .subtitle {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 0.98rem;
+        }
+
+        .status {
+            min-width: min(420px, 100%);
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.72);
+            color: var(--muted);
+            font-size: 0.93rem;
+            line-height: 1.4;
+        }
+
+        .status[data-tone="ok"] {
+            color: var(--ok);
+        }
+
+        .status[data-tone="warn"] {
+            color: var(--warn);
+        }
+
+        .status[data-tone="error"] {
+            color: var(--error);
+        }
+
+        .workspace {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: 320px minmax(0, 1fr);
+            gap: 18px;
+        }
+
+        .panel {
+            min-width: 0;
+            border: 1px solid rgba(216, 221, 228, 0.9);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.86);
+            box-shadow: var(--shadow);
+        }
+
+        .controls {
+            padding: 18px;
+            align-self: start;
+        }
+
+        .editor {
+            min-height: 0;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            overflow: hidden;
+        }
+
+        .row {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        label {
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        input[type="file"],
+        input[type="text"] {
+            width: 100%;
+            min-height: 42px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fff;
+            color: var(--text);
+            font: inherit;
+        }
+
+        input[type="file"] {
+            padding: 9px;
+        }
+
+        input[type="text"] {
+            padding: 0 12px;
+            text-transform: uppercase;
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0 2px;
+            color: var(--text);
+            font-size: 0.95rem;
+            line-height: 1.35;
+        }
+
+        .toggle input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+
+        .hint {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.86rem;
+            line-height: 1.4;
+        }
+
+        .actions {
+            display: grid;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        button {
+            min-height: 44px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            padding: 0 14px;
+            color: #fff;
+            background: var(--accent);
+            font: inherit;
+            font-weight: 720;
+            cursor: pointer;
+            transition: background 140ms ease, transform 140ms ease, opacity 140ms ease;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--accent-strong);
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            color: var(--text);
+            background: #eef2f6;
+            border-color: var(--line);
+        }
+
+        button.secondary:hover:not(:disabled) {
+            background: #e2e8f0;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .meta {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1px;
+            border-bottom: 1px solid var(--line);
+            background: var(--line);
+        }
+
+        .meta div {
+            min-width: 0;
+            padding: 13px 14px;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .meta strong {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.95rem;
+        }
+
+        .meta span {
+            display: block;
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 0.77rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 460px;
+            height: 100%;
+            resize: none;
+            border: 0;
+            padding: 18px;
+            outline: none;
+            background: #101418;
+            color: #eef6ff;
+            font: 15px/1.5 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            letter-spacing: 0;
+            tab-size: 4;
+        }
+
+        footer {
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        @media (max-width: 840px) {
+            main {
+                width: min(100vw - 22px, 680px);
+                padding: 18px 0;
+            }
+
+            header,
+            .workspace {
+                grid-template-columns: 1fr;
+                display: grid;
+            }
+
+            .status {
+                min-width: 0;
+            }
+
+            .meta {
+                grid-template-columns: 1fr;
+            }
+
+            textarea {
+                min-height: 52vh;
+            }
+        }
+    </style>
 </head>
 
 <body>
+<main>
+    <header>
+        <div>
+            <h1>TI-Basic Program Converter</h1>
+            <p class="subtitle">Convert TI-84 Plus CE and TI-84 Evo program files in the browser.</p>
+        </div>
+        <div id="status" class="status">Loading tivars_lib_cpp...</div>
+    </header>
 
+    <section class="workspace">
+        <aside class="panel controls">
+            <div class="row">
+                <label for="fileInput">Program file</label>
+                <input id="fileInput" type="file" accept=".8xp,.8xp2">
+            </div>
+
+            <div class="row">
+                <label for="programName">Program name</label>
+                <input id="programName" type="text" maxlength="8" value="PROGRAM" autocomplete="off" spellcheck="false">
+            </div>
+
+            <label class="toggle" for="smartConversion">
+                <input id="smartConversion" type="checkbox" checked>
+                <span>Smart CE to Evo conversion</span>
+            </label>
+            <p class="hint">Adds Evo-safe DelVar separators where CE programs used compact syntax that no longer parses the same way.</p>
+
+            <div class="actions">
+                <button id="saveCe" type="button" disabled>Save as 8xp</button>
+                <button id="saveEvo" type="button" disabled>Save as 8xp2</button>
+            </div>
+        </aside>
+
+        <section class="panel editor">
+            <div class="meta">
+                <div>
+                    <strong id="loadedName">No file loaded</strong>
+                    <span>File</span>
+                </div>
+                <div>
+                    <strong id="loadedFormat">-</strong>
+                    <span>Format</span>
+                </div>
+                <div>
+                    <strong id="loadedSize">-</strong>
+                    <span>Size</span>
+                </div>
+            </div>
+            <textarea id="programText" spellcheck="false" placeholder="Load a .8xp or .8xp2 file, or type a program here."></textarea>
+        </section>
+    </section>
+
+    <footer>Files stay local; conversion runs in WebAssembly in this page. Powered by <a href="https://github.com/adriweb/tivars_lib_cpp" target="_blank">tivars_lib_cpp</a>. See also: <a href="/pb" target="_blank"><b>Project Builder</b></a>, a fully-featured online TI-Basic IDE.</footer>
+</main>
+
+<script type="module">
+    import TIVarsLib from './TIVarsLib.js';
+
+    const elements = {
+        fileInput: document.getElementById('fileInput'),
+        programName: document.getElementById('programName'),
+        smartConversion: document.getElementById('smartConversion'),
+        saveCe: document.getElementById('saveCe'),
+        saveEvo: document.getElementById('saveEvo'),
+        status: document.getElementById('status'),
+        loadedName: document.getElementById('loadedName'),
+        loadedFormat: document.getElementById('loadedFormat'),
+        loadedSize: document.getElementById('loadedSize'),
+        programText: document.getElementById('programText'),
+    };
+
+    let lib = null;
+
+    const setStatus = (message, tone = '') => {
+        elements.status.textContent = message;
+        elements.status.dataset.tone = tone;
+    };
+
+    const setButtonsEnabled = (enabled) => {
+        elements.saveCe.disabled = !enabled;
+        elements.saveEvo.disabled = !enabled;
+    };
+
+    const formatError = (error) => {
+        if (lib?.getExceptionMessage) {
+            try {
+                const message = lib.getExceptionMessage(error);
+                if (Array.isArray(message)) return message.filter(Boolean).join(': ');
+                if (message) return String(message);
+            } catch {
+                // Fall back to regular JS error formatting below.
+            }
+        }
+        return error?.message || String(error);
+    };
+
+    const sanitizeProgramName = (name) => {
+        const clean = name.replace(/\.[^.]+$/, '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+        return clean || 'PROGRAM';
+    };
+
+    const formatBytes = (bytes) => {
+        if (bytes < 1024) return `${bytes} B`;
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    };
+
+    const extractProgramCode = (file) => {
+        const readable = file.getReadableContent();
+        if (!file.isEvoFormat()) return readable;
+
+        const parsed = JSON.parse(readable);
+        if (typeof parsed.code !== 'string') {
+            throw new Error('This Evo file does not expose TI-Basic program code.');
+        }
+        return parsed.code;
+    };
+
+    const downloadBytes = (bytes, filename) => {
+        const blob = new Blob([bytes], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const readOutput = (path) => {
+        const data = lib.FS.readFile(path, { encoding: 'binary' });
+        return data instanceof Uint8Array ? data : Uint8Array.from(data, c => c.charCodeAt(0) & 0xFF);
+    };
+
+    const saveProgram = (targetEvo) => {
+        const name = sanitizeProgramName(elements.programName.value);
+        elements.programName.value = name;
+
+        const program = lib.TIVarFile.createNew('Program', name, '84+CE');
+        program.setContentFromString(elements.programText.value);
+        if (targetEvo) {
+            program.convertToModel('84Evo', elements.smartConversion.checked);
+        }
+
+        const virtualPath = program.saveVarToFile('', name);
+        const output = readOutput(virtualPath);
+        downloadBytes(output, `${name}.${targetEvo ? '8xp2' : '8xp'}`);
+        setStatus(`Saved ${name}.${targetEvo ? '8xp2' : '8xp'}.`, 'ok');
+    };
+
+    const loadProgram = async (browserFile) => {
+        const ext = browserFile.name.toLowerCase().endsWith('.8xp2') ? '8xp2' : browserFile.name.toLowerCase().endsWith('.8xp') ? '8xp' : '';
+        if (!ext) {
+            throw new Error('Select a .8xp or .8xp2 program file.');
+        }
+
+        const virtualPath = `/input-${Date.now()}.${ext}`;
+        const bytes = new Uint8Array(await browserFile.arrayBuffer());
+        lib.FS.writeFile(virtualPath, bytes);
+
+        const file = lib.TIVarFile.loadFromFile(virtualPath);
+        const code = extractProgramCode(file);
+        const name = sanitizeProgramName(browserFile.name);
+
+        elements.programText.value = code;
+        elements.programName.value = name;
+        elements.loadedName.textContent = browserFile.name;
+        elements.loadedFormat.textContent = file.isEvoFormat() ? '84 Evo 8xp2' : '84 Plus CE 8xp';
+        elements.loadedSize.textContent = formatBytes(browserFile.size);
+        setButtonsEnabled(true);
+        setStatus(`Loaded ${browserFile.name}.`, 'ok');
+    };
+
+    elements.fileInput.addEventListener('change', async () => {
+        const file = elements.fileInput.files?.[0];
+        if (!file) return;
+
+        try {
+            setStatus(`Loading ${file.name}...`);
+            await loadProgram(file);
+        } catch (error) {
+            setButtonsEnabled(elements.programText.value.length > 0);
+            setStatus(formatError(error), 'error');
+        }
+    });
+
+    elements.programText.addEventListener('input', () => {
+        setButtonsEnabled(elements.programText.value.length > 0);
+    });
+
+    elements.programName.addEventListener('input', () => {
+        elements.programName.value = sanitizeProgramName(elements.programName.value);
+    });
+
+    elements.saveCe.addEventListener('click', () => {
+        try {
+            saveProgram(false);
+        } catch (error) {
+            setStatus(formatError(error), 'error');
+        }
+    });
+
+    elements.saveEvo.addEventListener('click', () => {
+        try {
+            saveProgram(true);
+        } catch (error) {
+            setStatus(formatError(error), 'error');
+        }
+    });
+
+    try {
+        lib = await TIVarsLib();
+        setButtonsEnabled(elements.programText.value.length > 0);
+        setStatus('Ready. Load a .8xp or .8xp2 file.', 'ok');
+    } catch (error) {
+        setStatus(formatError(error), 'error');
+    }
+</script>
 </body>
 
 </html>

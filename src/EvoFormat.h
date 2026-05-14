@@ -71,7 +71,7 @@ namespace tivars::EvoFormat
     std::string detokenize_evo_token_words(const data_t& data);
     bool is_evo_tokenized_entry(const TIVarFile::var_entry_t& entry);
     data_t evo_tokenized_data_to_legacy(const data_t& evoData);
-    data_t legacy_tokenized_data_to_evo(const data_t& legacyData);
+    data_t legacy_tokenized_data_to_evo(const data_t& legacyData, bool smartConversion = false);
 
     data_t evo_scalar_to_legacy_value(const data_t& evoData, size_t& offset);
     data_t legacy_value_to_evo_expression(const data_t& legacyValue);
