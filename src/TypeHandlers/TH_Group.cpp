@@ -220,6 +220,7 @@ namespace tivars::TypeHandlers
         }
 
         data_t data(minimumDataByteCount, 0x00);
+        data.reserve(minimumDataByteCount + entries.size() * (fixedNameByteCount + 6));
         for (const json& entry : entries)
         {
             if (!entry.is_object())

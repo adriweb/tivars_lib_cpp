@@ -1098,6 +1098,7 @@ namespace tivars
     data_t TIFlashFile::makeHeaderBytes(const flash_header_t& header)
     {
         data_t bytes;
+        bytes.reserve(headerByteCountWithoutChecksum + header.calcData.size() + (header.hasChecksum ? checksumByteCount : 0));
         const std::string nullPad(1, '\0');
         const std::string magic = str_pad(header.magic, magicByteCount, nullPad).substr(0, magicByteCount);
         bytes.insert(bytes.end(), magic.begin(), magic.end());
@@ -1116,6 +1117,7 @@ namespace tivars
         bytes.insert(bytes.end(), paddedName.begin(), paddedName.end());
 
         data_t devicesField;
+        devicesField.reserve(deviceFieldByteCount);
         for (const auto& device : header.devices)
         {
             devicesField.push_back(device.first);

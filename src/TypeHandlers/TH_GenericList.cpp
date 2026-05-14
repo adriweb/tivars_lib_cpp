@@ -46,9 +46,13 @@ namespace tivars::TypeHandlers
             throw std::invalid_argument("Invalid input string. Needs to be a valid real or complex list");
         }
 
-        const auto handler = (type == 0x00) ? &TH_GenericReal::makeDataFromString : &TH_GenericComplex::makeDataFromString;
+        const bool isRealList = type == TIVarType{"Real"}.getId();
+        const auto handler = isRealList ? &TH_GenericReal::makeDataFromString : &TH_GenericComplex::makeDataFromString;
+        const size_t valueByteCount = isRealList ? TH_GenericReal::dataByteCount : TH_GenericComplex::dataByteCount;
 
-        data_t data(2); // reserve 2 bytes for size fields
+        data_t data;
+        data.reserve(2 + numCount * valueByteCount);
+        data.resize(2); // leave 2 bytes for item count
 
         data[0] = (uint8_t) (numCount & 0xFF);
         data[1] = (uint8_t) ((numCount >> 8) & 0xFF);

@@ -19,8 +19,6 @@ namespace tivars::TypeHandlers
         (void)options;
         (void)_ctx;
 
-        data_t data(2); // reserve 2 bytes for size fields
-
         const std::string trimmed = trim(str);
         if (trimmed.length() < 5 || trimmed.substr(0, 2) != "[[" || trimmed.substr(trimmed.length()-2, 2) != "]]")
         {
@@ -58,6 +56,10 @@ namespace tivars::TypeHandlers
             }
             matrix[counter++] = tmp;
         }
+
+        data_t data;
+        data.reserve(2 + rowCount * colCount * TH_GenericReal::dataByteCount);
+        data.resize(2); // leave 2 bytes for dimensions
 
         data[0] = (uint8_t)(colCount & 0xFF);
         data[1] = (uint8_t)(rowCount & 0xFF);

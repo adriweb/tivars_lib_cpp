@@ -906,6 +906,7 @@ namespace tivars
     data_t TIVarFile::make_bin_data()
     {
         data_t bin_data;
+        bin_data.reserve(firstVarEntryOffset + this->header.entries_len);
 
         // Header
         {

@@ -904,10 +904,10 @@ namespace tivars::TypeHandlers
                 if (j.contains("rawDataHex"))
                 {
                     data_t payload = hex_to_bytes(j.at("rawDataHex").get<std::string>());
-                    data_t data = {
-                        static_cast<uint8_t>(payload.size() & 0xFF),
-                        static_cast<uint8_t>((payload.size() >> 8) & 0xFF)
-                    };
+                    data_t data;
+                    data.reserve(2 + payload.size());
+                    data.push_back(static_cast<uint8_t>(payload.size() & 0xFF));
+                    data.push_back(static_cast<uint8_t>((payload.size() >> 8) & 0xFF));
                     tivars::vector_append(data, payload);
                     return data;
                 }
@@ -936,8 +936,9 @@ namespace tivars::TypeHandlers
             str_new = str;
         }
 
-        // two bytes reserved for the size. Filled later
-        data.push_back(0); data.push_back(0);
+        // two bytes left for the size. Filled later
+        data.reserve(2 + str_new.size());
+        data.resize(2);
 
         scan_source_tokens(str_new, detect_strings,
                            [&](const std::string&, uint16_t tokenValue)

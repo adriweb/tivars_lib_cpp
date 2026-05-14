@@ -419,7 +419,9 @@ namespace tivars::TypeHandlers
         GDB gdb{};
         from_json(json::parse(str), gdb);
 
-        data_t data(2); // reserve 2 bytes for size fields, filled later
+        data_t data;
+        data.reserve(dataByteCountMinimum);
+        data.resize(2); // leave 2 bytes for size fields, filled later
 
         data.push_back(0); // always 0
         data.push_back(gdb.graphMode);
