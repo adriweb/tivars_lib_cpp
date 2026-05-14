@@ -1332,6 +1332,41 @@ int main(int argc, char** argv)
     }
 
     {
+        const auto makeCompactDelVarProgram = []()
+        {
+            TIVarFile program = TIVarFile::createNew("Program", "DELVAR", "84+CE");
+            program.setContentFromString("DelVar ADelVar BDelVar C");
+            return program;
+        };
+
+        TIVarFile compactDelVarProgram = makeCompactDelVarProgram();
+        const data_t compactLegacyData = compactDelVarProgram.getRawContent();
+        assert(compactDelVarProgram.getRawContentHexStr() == "0900bb5441bb5442bb5443");
+
+        TIVarFile nonSmartDelVarProgram = makeCompactDelVarProgram();
+        nonSmartDelVarProgram.convertToModel(TIModel{"84Evo"});
+        json nonSmartDelVarJSON = json::parse(nonSmartDelVarProgram.getReadableContent());
+        assert(nonSmartDelVarJSON["rawDataHex"] == "E0E400E8E0E401E8E0E402E80000");
+        nonSmartDelVarProgram.convertToModel(TIModel{"84+CE"});
+        assert(nonSmartDelVarProgram.getRawContent() == compactLegacyData);
+
+        TIVarFile smartDelVarProgram = makeCompactDelVarProgram();
+        smartDelVarProgram.convertToModel(TIModel{"84Evo"}, {{"smart", 1}});
+        json smartDelVarJSON = json::parse(smartDelVarProgram.getReadableContent());
+        assert(smartDelVarJSON["rawDataHex"] == "E0E400E81CE4E0E401E81CE4E0E402E80000");
+        assert(smartDelVarJSON["code"] == "DelVar A\nDelVar B\nDelVar C");
+        smartDelVarProgram.convertToModel(TIModel{"84+CE"});
+        assert(smartDelVarProgram.getReadableContent({{"reindent", false}}) == "DelVar A\nDelVar B\nDelVar C");
+
+        TIVarFile separatedDelVarProgram = TIVarFile::createNew("Program", "DELSEP", "84+CE");
+        separatedDelVarProgram.setContentFromString("DelVar A:DelVar B\nDelVar C");
+        separatedDelVarProgram.convertToModel(TIModel{"84Evo"}, {{"smart", 1}});
+        json separatedDelVarJSON = json::parse(separatedDelVarProgram.getReadableContent());
+        assert(separatedDelVarJSON["rawDataHex"] == "E0E400E818E4E0E401E81CE4E0E402E80000");
+        assert(separatedDelVarJSON["code"] == "DelVar A:DelVar B\nDelVar C");
+    }
+
+    {
         TIVarFile rawEvoProgram = TIVarFile::createNew("Program", "RAWEVO", "84Evo");
         rawEvoProgram.setContentFromData({0x2E, 0xE4, 0x00, 0x00});
         json rawEvoJSON = json::parse(rawEvoProgram.getReadableContent());
