@@ -61,7 +61,7 @@ namespace tivars::TypeHandlers
         memberOptions["_type"] = 0x00;
         memberOptions["_autoType"] = 1;
         const data_t* previous = nullptr;
-        if (_ctx)
+        if (_ctx && !_ctx->isEvoFormat())
         {
             const auto entryOption = options.find("_entryIdx");
             const size_t entryIdx = entryOption == options.end() ? 0 : static_cast<size_t>(entryOption->second);

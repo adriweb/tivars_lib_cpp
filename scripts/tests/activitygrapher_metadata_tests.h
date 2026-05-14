@@ -125,6 +125,11 @@ namespace activitygrapher_tests
         metadata_require(archivedReload.getVarEntries()[0].archivedFlag == 0x80,
                          "Normalizing 11-byte metadata lost the archive flag");
 
+        auto convertedFile = tivars::TIVarFile::loadFromFile(output);
+        convertedFile.convertToModel(tivars::TIModel{"83"});
+        convertedFile.saveVarToFile(output);
+        metadata_check_saved(output, 11, 1);
+        metadata_require(metadata_read(output).size() == 81, "Non-flash conversion metadata size is unexpected");
         std::remove(input.c_str());
         std::remove(output.c_str());
     }

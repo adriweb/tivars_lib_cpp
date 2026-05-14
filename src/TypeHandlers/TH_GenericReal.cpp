@@ -18,8 +18,8 @@ namespace tivars::TypeHandlers
 {
     bool detail::supportsNumericSubtype(uint8_t subtype, const TIVarFile* context)
     {
-        // Raw codecs have no target.
-        if (!context) return true;
+        // Raw codecs have no target; Evo uses these values as conversion intermediates.
+        if (!context || context->isEvoFormat()) return true;
         const auto& model = context->getCalcModel();
         const bool exactMath = (model.getFlags() & hasExactMath) != 0;
         const auto version = model.getMinVersion();
