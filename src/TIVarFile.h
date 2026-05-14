@@ -41,6 +41,14 @@ namespace tivars
             uint8_t  archivedFlag  = 0; // present only if calcFlags >= TIFeatureFlags::hasFlash
             uint16_t data_length2 = 0; // same as data_length
             data_t data;
+            /**********/
+            uint8_t evoTypeID = 0;
+            uint8_t evoMetaVersion = 1;
+            uint8_t evoMetaFlags = 0;
+            std::map<std::string, uint64_t> evoFields;
+            data_t evoNameBytes;
+            bool evoDataIsRawCBOR = false;
+            /**********/
 
             TIVarType _type{}; // has "full" type information (useful for appvars that have a "sub"type)
             void setArchived(bool archived) { archivedFlag = (archived ? 0x80 : 0); }
@@ -65,6 +73,7 @@ namespace tivars
         const TIModel& getCalcModel() const { return calcModel; }
         uint16_t getInstanceChecksum() const { return computedChecksum; }
         bool hasMultipleEntries() const { return entries.size() > 1; }
+        bool isEvoFormat() const { return evoFormat; }
 
         static TIVarFile loadFromFile(const std::string& filePath);
 
@@ -82,6 +91,8 @@ namespace tivars
         void setContentFromString(const std::string& str);
 
         void setCalcModel(const TIModel& model);
+        void convertToModel(const TIModel& model);
+        void convertToModel(const std::string& model) { convertToModel(TIModel{model}); }
 
         void setVarName(const std::string& name, uint16_t entryIdx);
         void setVarName(const std::string& name);
@@ -112,9 +123,12 @@ namespace tivars
 
         void makeHeaderFromFile();
         void makeVarEntriesFromFile();
+        void makeEvoVarEntryFromFile();
 
         uint16_t computeChecksumFromInstanceData() const;
         uint16_t computeChecksumFromFileData() const;
+        uint16_t computeEvoChecksumFromInstanceData() const;
+        uint16_t computeEvoChecksumFromFileData() const;
 
         // Extends BinaryFile.
         uint16_t get_two_bytes_swapped() const
@@ -131,8 +145,11 @@ namespace tivars
         uint16_t     fileChecksum     = 0;
         bool         fromFile         = false;
         bool         corrupt          = false;
+        bool         evoFormat        = false;
 
         data_t make_bin_data();
+        data_t make_evo_bin_data() const;
+        std::string getEvoReadableContent(const options_t& options, uint16_t entryIdx) const;
 
     };
 }

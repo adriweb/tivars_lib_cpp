@@ -26,6 +26,9 @@ enum FileType
 enum FileType getType(const cxxopts::ParseResult& options, const string& filename, const string& option);
 bool isFlashType(const TIVarType& type);
 bool isFlashExtension(const string& extension);
+bool isEvoVarExtension(const string& extension);
+bool isLegacyVarExtension(const string& extension);
+string extensionOf(const string& path);
 string lowercase(string value);
 
 int main(int argc, char** argv)
@@ -238,6 +241,10 @@ int main(int argc, char** argv)
                         return 1;
                     }
                 }
+                else if (oformat == VARFILE && isEvoVarExtension(extensionOf(opath)))
+                {
+                    requestedModel = TIModel{"84Evo"};
+                }
 
                 TIVarFile file = iformat == VARFILE
                                ? TIVarFile::loadFromFile(ipath)
@@ -251,7 +258,15 @@ int main(int argc, char** argv)
                     }
                     if (result.count("calc"))
                     {
-                        file.setCalcModel(requestedModel);
+                        file.convertToModel(requestedModel);
+                    }
+                    else if (oformat == VARFILE && isEvoVarExtension(extensionOf(opath)) && !file.isEvoFormat())
+                    {
+                        file.convertToModel(TIModel{"84Evo"});
+                    }
+                    else if (oformat == VARFILE && isLegacyVarExtension(extensionOf(opath)) && file.isEvoFormat())
+                    {
+                        file.convertToModel(TIModel{"84+CE"});
                     }
                 }
 
@@ -403,12 +418,56 @@ string lowercase(string value)
     return value;
 }
 
+string extensionOf(const string& path)
+{
+    const auto pos = path.find_last_of('.');
+    if (pos == string::npos)
+    {
+        return "";
+    }
+    return lowercase(path.substr(pos + 1));
+}
+
 bool isFlashExtension(const string& extension)
 {
     const string lowered = lowercase(extension);
     for (const string& flashExtension : {"82u", "8xu", "8cu", "8eu", "8pu", "8yu", "8xk", "8ck", "8ek", "8xq", "8cq"})
     {
         if (lowered == flashExtension)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool isEvoVarExtension(const string& extension)
+{
+    const string lowered = lowercase(extension);
+    if (!TIVarTypes::isValidName(lowered))
+    {
+        return false;
+    }
+
+    const TIVarType type{lowered};
+    const auto& exts = type.getExts();
+    return exts.size() > 9 && lowercase(exts[9]) == lowered;
+}
+
+bool isLegacyVarExtension(const string& extension)
+{
+    const string lowered = lowercase(extension);
+    if (!TIVarTypes::isValidName(lowered))
+    {
+        return false;
+    }
+
+    const TIVarType type{lowered};
+    const auto& exts = type.getExts();
+    const size_t legacyExtCount = std::min<size_t>(9, exts.size());
+    for (size_t i = 0; i < legacyExtCount; i++)
+    {
+        if (!exts[i].empty() && lowercase(exts[i]) == lowered)
         {
             return true;
         }
