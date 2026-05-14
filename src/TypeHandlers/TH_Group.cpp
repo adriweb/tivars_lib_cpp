@@ -33,22 +33,6 @@ namespace tivars::TypeHandlers
                  | (static_cast<uint16_t>(data[offset + 1]) << 8);
         }
 
-        data_t parse_hex(const std::string& hex)
-        {
-            if (hex.size() % 2 != 0)
-            {
-                throw std::invalid_argument("GroupObject hex strings must have an even number of digits");
-            }
-
-            data_t data;
-            data.reserve(hex.size() / 2);
-            for (size_t i = 0; i < hex.size(); i += 2)
-            {
-                data.push_back(hexdec(hex.substr(i, 2)));
-            }
-            return data;
-        }
-
         std::string to_hex(const data_t& data)
         {
             std::string out;
@@ -171,7 +155,7 @@ namespace tivars::TypeHandlers
         {
             if (entry.contains("nameHex"))
             {
-                data_t rawName = parse_hex(entry.at("nameHex").get<std::string>());
+                data_t rawName = hex_string_to_bytes(entry.at("nameHex").get<std::string>(), "nameHex");
                 rawName.resize(8, 0x00);
                 return rawName;
             }
@@ -239,7 +223,7 @@ namespace tivars::TypeHandlers
             data_t entryData;
             if (entry.contains("rawDataHex"))
             {
-                entryData = parse_hex(entry.at("rawDataHex").get<std::string>());
+                entryData = hex_string_to_bytes(entry.at("rawDataHex").get<std::string>(), "rawDataHex");
             }
             else if (entry.contains("readableContent"))
             {

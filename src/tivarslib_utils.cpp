@@ -6,12 +6,14 @@
  */
 
 #include "tivarslib_utils.h"
+#include <cctype>
 #include <cstdlib>
 #include <iomanip>
 #include <sstream>
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <stdexcept>
 
 using namespace std::string_literals;
 
@@ -84,6 +86,27 @@ namespace
 unsigned char hexdec(const std::string& str)
 {
     return (unsigned char) stoul(str, nullptr, 16);
+}
+
+data_t hex_string_to_bytes(const std::string& hex, const char* fieldName)
+{
+    if ((hex.size() % 2) != 0)
+    {
+        throw std::invalid_argument(std::string(fieldName) + " must contain an even number of hex digits");
+    }
+
+    data_t out;
+    out.reserve(hex.size() / 2);
+    for (size_t i = 0; i < hex.size(); i += 2)
+    {
+        if (!std::isxdigit(static_cast<unsigned char>(hex[i])) ||
+            !std::isxdigit(static_cast<unsigned char>(hex[i + 1])))
+        {
+            throw std::invalid_argument(std::string(fieldName) + " must be valid hexadecimal");
+        }
+        out.push_back(hexdec(hex.substr(i, 2)));
+    }
+    return out;
 }
 
 std::string dechex(unsigned char i, bool zeropad)

@@ -177,22 +177,6 @@ namespace tivars
             return format_unix_timestamp(static_cast<uint32_t>(base + seconds));
         }
 
-        data_t decode_hex_string(const std::string& hex)
-        {
-            if (hex.size() % 2 != 0)
-            {
-                return {};
-            }
-
-            data_t out;
-            out.reserve(hex.size() / 2);
-            for (size_t i = 0; i < hex.size(); i += 2)
-            {
-                out.push_back(hexdec(hex.substr(i, 2)));
-            }
-            return out;
-        }
-
         bool parse_revision_parts(const std::string& revision, int& major, int& minor)
         {
             const size_t dotPos = revision.find('.');
@@ -301,7 +285,7 @@ namespace tivars
 
             if (const auto it = found.find(0x80D); it != found.end() && it->second.contains("rawDataHex"))
             {
-                const data_t bytes = decode_hex_string(it->second.at("rawDataHex").get<std::string>());
+                const data_t bytes = hex_string_to_bytes(it->second.at("rawDataHex").get<std::string>(), "rawDataHex");
                 if (bytes.size() >= 3)
                 {
                     patch = bytes[0];
@@ -313,7 +297,7 @@ namespace tivars
 
             if (const auto it = found.find(0x812); it != found.end() && it->second.contains("rawDataHex"))
             {
-                const data_t bytes = decode_hex_string(it->second.at("rawDataHex").get<std::string>());
+                const data_t bytes = hex_string_to_bytes(it->second.at("rawDataHex").get<std::string>(), "rawDataHex");
                 std::string ascii(bytes.begin(), bytes.end());
                 if (const size_t nulPos = ascii.find('\0'); nulPos != std::string::npos)
                 {
@@ -372,7 +356,7 @@ namespace tivars
 
             if (const auto it = found.find(0x803); it != found.end() && it->second.contains("rawDataHex"))
             {
-                const data_t bytes = decode_hex_string(it->second.at("rawDataHex").get<std::string>());
+                const data_t bytes = hex_string_to_bytes(it->second.at("rawDataHex").get<std::string>(), "rawDataHex");
                 if (!bytes.empty())
                 {
                     build = 0;
@@ -388,7 +372,7 @@ namespace tivars
             }
             else if (const auto it = found.find(0x813); it != found.end() && it->second.contains("rawDataHex"))
             {
-                const data_t bytes = decode_hex_string(it->second.at("rawDataHex").get<std::string>());
+                const data_t bytes = hex_string_to_bytes(it->second.at("rawDataHex").get<std::string>(), "rawDataHex");
                 if (!bytes.empty())
                 {
                     build = 0;
@@ -1282,18 +1266,7 @@ namespace tivars
 
     data_t TIFlashFile::parseHex(const std::string& hex)
     {
-        if (hex.size() % 2 != 0)
-        {
-            throw std::invalid_argument("Hex strings must have an even number of digits");
-        }
-
-        data_t data;
-        data.reserve(hex.size() / 2);
-        for (size_t i = 0; i < hex.size(); i += 2)
-        {
-            data.push_back(hexdec(hex.substr(i, 2)));
-        }
-        return data;
+        return hex_string_to_bytes(hex, "Hex string");
     }
 
     std::string TIFlashFile::toHex(const data_t& data)

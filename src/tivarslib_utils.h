@@ -34,6 +34,8 @@ void vector_append(std::vector<T>& vec, const std::vector<T>& other)
 
 unsigned char hexdec(const std::string& str);
 
+data_t hex_string_to_bytes(const std::string& hex, const char* fieldName = "hex string");
+
 std::string dechex(unsigned char i, bool zeropad = true);
 
 std::string strtoupper(const std::string& str);

@@ -269,17 +269,7 @@ namespace tivars::TypeHandlers
 
         data_t parse_payload_hex(const std::string& hex)
         {
-            if (hex.size() % 2 != 0)
-            {
-                throw std::invalid_argument("rawDataHex must contain an even number of hex digits");
-            }
-
-            data_t payload;
-            payload.reserve(hex.size() / 2);
-            for (size_t i = 0; i < hex.size(); i += 2)
-            {
-                payload.push_back(hexdec(hex.substr(i, 2)));
-            }
+            const data_t payload = hex_string_to_bytes(hex, "rawDataHex");
 
             if (payload.size() < minimumPayloadByteCount || !is_valid_magic(payload.data()))
             {
@@ -349,16 +339,7 @@ namespace tivars::TypeHandlers
 
                     if (recordJson.contains("rawDataHex"))
                     {
-                        const std::string hex = recordJson.at("rawDataHex").get<std::string>();
-                        if (hex.size() % 2 != 0)
-                        {
-                            throw std::invalid_argument("metadataRecords.rawDataHex must contain an even number of hex digits");
-                        }
-                        record.data.reserve(hex.size() / 2);
-                        for (size_t i = 0; i < hex.size(); i += 2)
-                        {
-                            record.data.push_back(hexdec(hex.substr(i, 2)));
-                        }
+                        record.data = hex_string_to_bytes(recordJson.at("rawDataHex").get<std::string>(), "metadataRecords.rawDataHex");
                     }
                     else if (recordJson.contains("name"))
                     {

@@ -8,7 +8,6 @@
 #include "TypeHandlers.h"
 #include "../tivarslib_utils.h"
 
-#include <cctype>
 #include <stdexcept>
 
 namespace tivars::TypeHandlers
@@ -18,30 +17,29 @@ namespace tivars::TypeHandlers
         (void)options;
         (void)_ctx;
 
-        const size_t length = str.size();
-        const size_t bytes  = length / 2;
-        bool formatOk = (length % 2) == 0;
-        for (const char c : str)
+        if (str.empty())
         {
-            if (!std::isxdigit(static_cast<unsigned char>(c)))
-            {
-                formatOk = false;
-                break;
-            }
+            throw std::invalid_argument("Invalid input string. Needs to be a valid hex data block");
         }
 
-        if (length == 0 || !formatOk || bytes > 0xFFFF)
+        data_t payload;
+        try
+        {
+            payload = hex_string_to_bytes(str, "input string");
+        }
+        catch (const std::invalid_argument&)
+        {
+            throw std::invalid_argument("Invalid input string. Needs to be a valid hex data block");
+        }
+
+        const size_t bytes = payload.size();
+        if (bytes > 0xFFFF)
         {
             throw std::invalid_argument("Invalid input string. Needs to be a valid hex data block");
         }
 
         data_t data = { (uint8_t)(bytes & 0xFF), (uint8_t)((bytes >> 8) & 0xFF) };
-
-        for (size_t i = 0; i < length; i += 2)
-        {
-            data.push_back(hexdec(str.substr(i, 2)));
-        }
-
+        vector_append(data, payload);
         return data;
     }
 

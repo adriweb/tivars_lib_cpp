@@ -14,7 +14,6 @@
 #include "../tivarslib_utils.h"
 
 #include <array>
-#include <cctype>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
@@ -236,30 +235,6 @@ namespace tivars::TypeHandlers
             }
 
             return static_cast<size_t>(width) * static_cast<size_t>(height);
-        }
-
-        data_t parse_hex_string(const std::string& str, const char* fieldName)
-        {
-            if (str.size() % 2 != 0)
-            {
-                throw std::invalid_argument(std::string(fieldName) + " must contain an even number of hex digits");
-            }
-
-            data_t out;
-            out.reserve(str.size() / 2);
-            for (const char c : str)
-            {
-                if (!std::isxdigit(static_cast<unsigned char>(c)))
-                {
-                    throw std::invalid_argument(std::string(fieldName) + " must be valid hexadecimal");
-                }
-            }
-
-            for (size_t i = 0; i < str.size(); i += 2)
-            {
-                out.push_back(hexdec(str.substr(i, 2)));
-            }
-            return out;
         }
 
         data_t decode_python_image_rle(uint32_t width, uint32_t height, const data_t& imageData)
@@ -501,7 +476,7 @@ namespace tivars::TypeHandlers
         {
             if (j.contains("rawDataHex") && !(subtype == APPVAR_SUBTYPE_CABRIJR && j.contains("variant")))
             {
-                const data_t payload = parse_hex_string(j.at("rawDataHex").get<std::string>(), "rawDataHex");
+                const data_t payload = hex_string_to_bytes(j.at("rawDataHex").get<std::string>(), "rawDataHex");
                 if (subtype_from_data_or_throw(wrap_payload(payload)) != subtype)
                 {
                     throw std::invalid_argument("rawDataHex does not match the requested structured AppVar subtype");
@@ -519,7 +494,7 @@ namespace tivars::TypeHandlers
                     data_t menuData;
                     if (j.contains("menuDefinitionsHex"))
                     {
-                        menuData = parse_hex_string(j.at("menuDefinitionsHex").get<std::string>(), "menuDefinitionsHex");
+                        menuData = hex_string_to_bytes(j.at("menuDefinitionsHex").get<std::string>(), "menuDefinitionsHex");
                     }
                     else
                     {
@@ -537,7 +512,7 @@ namespace tivars::TypeHandlers
                     vector_append(payload, menuData);
                     if (j.contains("compiledDataHex"))
                     {
-                        vector_append(payload, parse_hex_string(j.at("compiledDataHex").get<std::string>(), "compiledDataHex"));
+                        vector_append(payload, hex_string_to_bytes(j.at("compiledDataHex").get<std::string>(), "compiledDataHex"));
                     }
                     return payload;
                 }
@@ -566,7 +541,7 @@ namespace tivars::TypeHandlers
 
                     if (j.contains("imageDataHex"))
                     {
-                        vector_append(payload, parse_hex_string(j.at("imageDataHex").get<std::string>(), "imageDataHex"));
+                        vector_append(payload, hex_string_to_bytes(j.at("imageDataHex").get<std::string>(), "imageDataHex"));
                     }
                     return payload;
                 }
@@ -625,7 +600,7 @@ namespace tivars::TypeHandlers
 
                     if (j.contains("payloadHex"))
                     {
-                        vector_append(payload, parse_hex_string(j.at("payloadHex").get<std::string>(), "payloadHex"));
+                        vector_append(payload, hex_string_to_bytes(j.at("payloadHex").get<std::string>(), "payloadHex"));
                     }
                     return payload;
                 }
@@ -644,7 +619,7 @@ namespace tivars::TypeHandlers
                         if (structure == 0x04)
                         {
                             const data_t unknownBeforeWord = j.contains("unknownBeforeWordHex")
-                                ? parse_hex_string(j.at("unknownBeforeWordHex").get<std::string>(), "unknownBeforeWordHex")
+                                ? hex_string_to_bytes(j.at("unknownBeforeWordHex").get<std::string>(), "unknownBeforeWordHex")
                                 : data_t{0x00};
                             if (unknownBeforeWord.size() != 1)
                             {
@@ -654,7 +629,7 @@ namespace tivars::TypeHandlers
                             append_le16(payload, static_cast<uint16_t>(j.value("unknownWord", 0) & 0xFFFF));
 
                             const data_t unknownAfterWord = j.contains("unknownAfterWordHex")
-                                ? parse_hex_string(j.at("unknownAfterWordHex").get<std::string>(), "unknownAfterWordHex")
+                                ? hex_string_to_bytes(j.at("unknownAfterWordHex").get<std::string>(), "unknownAfterWordHex")
                                 : data_t{0x00};
                             if (unknownAfterWord.size() != 1)
                             {
@@ -665,13 +640,13 @@ namespace tivars::TypeHandlers
 
                             if (j.contains("rawDataHex"))
                             {
-                                vector_append(payload, parse_hex_string(j.at("rawDataHex").get<std::string>(), "rawDataHex"));
+                                vector_append(payload, hex_string_to_bytes(j.at("rawDataHex").get<std::string>(), "rawDataHex"));
                             }
                         }
                         else
                         {
                             const data_t unread = j.contains("unreadHex")
-                                ? parse_hex_string(j.at("unreadHex").get<std::string>(), "unreadHex")
+                                ? hex_string_to_bytes(j.at("unreadHex").get<std::string>(), "unreadHex")
                                 : data_t{0x00};
                             if (unread.size() != 1)
                             {
@@ -693,7 +668,7 @@ namespace tivars::TypeHandlers
                             payload.push_back(static_cast<uint8_t>(blocks.size()));
                             for (const json& block : blocks)
                             {
-                                const data_t blockData = parse_hex_string(block.get<std::string>(), "blocksHex");
+                                const data_t blockData = hex_string_to_bytes(block.get<std::string>(), "blocksHex");
                                 if (blockData.size() != cabriJrCompressedBlockByteCount)
                                 {
                                     throw std::invalid_argument("Each blocksHex entry must contain exactly 18 bytes");
@@ -707,7 +682,7 @@ namespace tivars::TypeHandlers
                             }
                             if (j.contains("trailingDataHex"))
                             {
-                                vector_append(payload, parse_hex_string(j.at("trailingDataHex").get<std::string>(), "trailingDataHex"));
+                                vector_append(payload, hex_string_to_bytes(j.at("trailingDataHex").get<std::string>(), "trailingDataHex"));
                             }
                         }
                     }
@@ -716,7 +691,7 @@ namespace tivars::TypeHandlers
                         payload.push_back(cabriJrVariantLanguage);
 
                         const data_t unknown = j.contains("unknownHex")
-                            ? parse_hex_string(j.at("unknownHex").get<std::string>(), "unknownHex")
+                            ? hex_string_to_bytes(j.at("unknownHex").get<std::string>(), "unknownHex")
                             : data_t{0x01, 0x5F};
                         if (unknown.size() != cabriJrLanguageUnknownByteCount)
                         {
@@ -749,7 +724,7 @@ namespace tivars::TypeHandlers
                     payload.insert(payload.end(), NOTEFOLIO_MAGIC.begin(), NOTEFOLIO_MAGIC.end());
 
                     const data_t reserved = j.contains("reservedHex")
-                        ? parse_hex_string(j.at("reservedHex").get<std::string>(), "reservedHex")
+                        ? hex_string_to_bytes(j.at("reservedHex").get<std::string>(), "reservedHex")
                         : data_t(notefolioReservedByteCount, 0x00);
                     if (reserved.size() != notefolioReservedByteCount)
                     {
@@ -768,7 +743,7 @@ namespace tivars::TypeHandlers
                     data_t textData;
                     if (j.contains("textDataHex"))
                     {
-                        textData = parse_hex_string(j.at("textDataHex").get<std::string>(), "textDataHex");
+                        textData = hex_string_to_bytes(j.at("textDataHex").get<std::string>(), "textDataHex");
                     }
                     else
                     {
@@ -794,7 +769,7 @@ namespace tivars::TypeHandlers
                     append_le16(payload, static_cast<uint16_t>(storedTextLength));
 
                     const data_t headerUnknown = j.contains("headerUnknownHex")
-                        ? parse_hex_string(j.at("headerUnknownHex").get<std::string>(), "headerUnknownHex")
+                        ? hex_string_to_bytes(j.at("headerUnknownHex").get<std::string>(), "headerUnknownHex")
                         : data_t(notefolioHeaderUnknownByteCount, 0x00);
                     if (headerUnknown.size() != notefolioHeaderUnknownByteCount)
                     {
@@ -805,7 +780,7 @@ namespace tivars::TypeHandlers
 
                     if (j.contains("trailingDataHex"))
                     {
-                        vector_append(payload, parse_hex_string(j.at("trailingDataHex").get<std::string>(), "trailingDataHex"));
+                        vector_append(payload, hex_string_to_bytes(j.at("trailingDataHex").get<std::string>(), "trailingDataHex"));
                     }
                     return payload;
                 }

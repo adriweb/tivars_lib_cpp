@@ -13,7 +13,6 @@
 #include "../json.hpp"
 #include "../tivarslib_utils.h"
 
-#include <cctype>
 #include <stdexcept>
 
 using namespace std::string_literals;
@@ -48,29 +47,6 @@ namespace tivars::TypeHandlers
             return result;
         }
 
-        data_t parse_hex_string(const std::string& str, const char* fieldName)
-        {
-            if (str.size() % 2 != 0)
-            {
-                throw std::invalid_argument(std::string(fieldName) + " must contain an even number of hex digits");
-            }
-
-            for (const char c : str)
-            {
-                if (!std::isxdigit(static_cast<unsigned char>(c)))
-                {
-                    throw std::invalid_argument(std::string(fieldName) + " must be valid hexadecimal");
-                }
-            }
-
-            data_t out;
-            out.reserve(str.size() / 2);
-            for (size_t i = 0; i < str.size(); i += 2)
-            {
-                out.push_back(hexdec(str.substr(i, 2)));
-            }
-            return out;
-        }
     }
 
     TH_Backup::backup_contents_t TH_Backup::parseInternal(const data_t& data)
@@ -156,14 +132,14 @@ namespace tivars::TypeHandlers
 
         const json j = json::parse(str);
         backup_contents_t contents;
-        contents.data1 = parse_hex_string(j.at("data1Hex").get<std::string>(), "data1Hex");
-        contents.data2 = parse_hex_string(j.at("data2Hex").get<std::string>(), "data2Hex");
-        contents.data3 = parse_hex_string(j.at("data3Hex").get<std::string>(), "data3Hex");
+        contents.data1 = hex_string_to_bytes(j.at("data1Hex").get<std::string>(), "data1Hex");
+        contents.data2 = hex_string_to_bytes(j.at("data2Hex").get<std::string>(), "data2Hex");
+        contents.data3 = hex_string_to_bytes(j.at("data3Hex").get<std::string>(), "data3Hex");
         contents.addressOfData2 = static_cast<uint16_t>(j.value("addressOfData2", 0));
         if (j.contains("data4Hex"))
         {
             contents.hasData4 = true;
-            contents.data4 = parse_hex_string(j.at("data4Hex").get<std::string>(), "data4Hex");
+            contents.data4 = hex_string_to_bytes(j.at("data4Hex").get<std::string>(), "data4Hex");
         }
 
         return buildInternal(contents);

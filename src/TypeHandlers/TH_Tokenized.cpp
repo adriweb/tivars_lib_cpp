@@ -258,29 +258,6 @@ static std::string bytes_to_hex(const data_t& data)
     return result;
 }
 
-static data_t hex_to_bytes(const std::string& str)
-{
-    if (str.size() % 2 != 0)
-    {
-        throw std::invalid_argument("rawDataHex must contain an even number of hex digits");
-    }
-
-    data_t out;
-    out.reserve(str.size() / 2);
-    for (const char c : str)
-    {
-        if (!std::isxdigit(static_cast<unsigned char>(c)))
-        {
-            throw std::invalid_argument("rawDataHex must be valid hexadecimal");
-        }
-    }
-    for (size_t i = 0; i < str.size(); i += 2)
-    {
-        out.push_back(tivars::hexdec(str.substr(i, 2)));
-    }
-    return out;
-}
-
 static uint16_t read_be16(const data_t& data, size_t offset)
 {
     if (offset + 1 >= data.size())
@@ -903,7 +880,7 @@ namespace tivars::TypeHandlers
                 const json j = json::parse(trimmed);
                 if (j.contains("rawDataHex"))
                 {
-                    data_t payload = hex_to_bytes(j.at("rawDataHex").get<std::string>());
+                    data_t payload = tivars::hex_string_to_bytes(j.at("rawDataHex").get<std::string>(), "rawDataHex");
                     data_t data;
                     data.reserve(2 + payload.size());
                     data.push_back(static_cast<uint8_t>(payload.size() & 0xFF));

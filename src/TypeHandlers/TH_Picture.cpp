@@ -10,7 +10,6 @@
 #include "../json.hpp"
 #include "../tivarslib_utils.h"
 
-#include <cctype>
 #include <stdexcept>
 
 using json = nlohmann::ordered_json;
@@ -45,30 +44,6 @@ namespace tivars::TypeHandlers
                 throw std::invalid_argument("Invalid picture/image data. Needs at least 2 bytes");
             }
             return static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8);
-        }
-
-        data_t parse_hex_string(const std::string& str, const char* fieldName)
-        {
-            if (str.size() % 2 != 0)
-            {
-                throw std::invalid_argument(std::string(fieldName) + " must contain an even number of hex digits");
-            }
-
-            for (const char c : str)
-            {
-                if (!std::isxdigit(static_cast<unsigned char>(c)))
-                {
-                    throw std::invalid_argument(std::string(fieldName) + " must be valid hexadecimal");
-                }
-            }
-
-            data_t data;
-            data.reserve(str.size() / 2);
-            for (size_t i = 0; i < str.size(); i += 2)
-            {
-                data.push_back(hexdec(str.substr(i, 2)));
-            }
-            return data;
         }
 
         data_t make_mono_picture_preview_rgb(const data_t& data)
@@ -167,7 +142,7 @@ namespace tivars::TypeHandlers
             throw std::runtime_error("Picture/Image string -> data requires a JSON object with rawDataHex");
         }
 
-        data_t data = parse_hex_string(j.at("rawDataHex").get<std::string>(), "rawDataHex");
+        data_t data = hex_string_to_bytes(j.at("rawDataHex").get<std::string>(), "rawDataHex");
         const json parsed = json::parse(makeStringFromData(data, {}, _ctx));
 
         if (j.contains("typeName") && j.at("typeName").get<std::string>() != parsed.at("typeName").get<std::string>())
