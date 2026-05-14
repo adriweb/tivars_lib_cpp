@@ -25,6 +25,7 @@ namespace tivars
         hasEZ80CPU   = 0b001000000, // (1 << 6);
         hasExactMath = 0b010000000, // (1 << 7);
         hasPython    = 0b100000000, // (1 << 8);
+        hasEvoASIC   =0b1000000000, // (1 << 9);
     };
 
     class TIModels
