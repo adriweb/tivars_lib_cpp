@@ -533,6 +533,12 @@ namespace tivars::TypeHandlers
             return std::string_view("[]{}|^_").find(c) != std::string_view::npos;
         }
 
+        static bool starts_evaluated_string(uint16_t token)
+        {
+            return token == 0xE7     // Send(
+                || token == 0xBB2A;  // expr(
+        }
+
         template<typename OnToken, typename OnSkipped>
         static void scan_source_tokens_impl(const std::string& str, bool detect_strings, TokenScanState& state, OnToken&& onToken, OnSkipped&& onSkipped)
         {
@@ -584,7 +590,7 @@ namespace tivars::TypeHandlers
                         state.isInCustomName = true;
                     } else if (currChar == "\"") {
                         state.isWithinString = !state.isWithinString;
-                        state.inEvaluatedString = state.isWithinString && state.lastTokenBytes == 0xE7; // Send(
+                        state.inEvaluatedString = state.isWithinString && starts_evaluated_string(state.lastTokenBytes);
                     } else if (currChar == "\n" ||
                         source_has_literal_at(str, strCursorPos, "→") || source_has_literal_at(str, strCursorPos, "->"))
                     {
