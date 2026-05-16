@@ -1751,6 +1751,16 @@ int main(int argc, char** argv)
         assert(EvoFormat::evo_tokenized_data_to_legacy(evo_token_data(0x0060)) == legacy_token_data(0xBBD5));
         assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBE1)) == evo_token_data(0x2081));
         assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBED)) == evo_token_data(0x2191));
+
+        const std::vector<std::pair<uint16_t, uint16_t>> evaluatedStringStarterTokens = {
+            {0xE470, 0xBB2A}, // expr(
+            {0xE6C7, 0x00E7}, // Send(
+        };
+        for (const auto& [evoToken, legacyToken] : evaluatedStringStarterTokens)
+        {
+            assert(EvoFormat::evo_tokenized_data_to_legacy(evo_token_data(evoToken)) == legacy_token_data(legacyToken));
+            assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(legacyToken)) == evo_token_data(evoToken));
+        }
     }
 
     {
@@ -2035,6 +2045,12 @@ Disp Str1
         assert(json::parse(directEvoEvalProgram.getReadableContent())["rawDataHex"] == "E4E416E402E428E402E416E40000");
 
         assert(assert_direct_evo_source_matches_ce_conversion("Disp expr(\"{1,2,3}\"", "EXPRTOK3") == "D3E470E416E414E402E417E403E417E404E415E416E40000");
+
+        TIVarFile exprProgram = TIVarFile::createNew("Program", "EXPRTOK", "84+CE");
+        exprProgram.setContentFromString("Disp expr(\"{1,2,3}\"");
+        assert(exprProgram.getRawContentHexStr() == "0c00debb2a2a08312b322b33092a");
+        exprProgram.convertToModel(TIModel{"84Evo"});
+        assert(json::parse(exprProgram.getReadableContent())["rawDataHex"] == "D3E470E416E414E402E417E403E417E404E415E416E40000");
 
         TIVarFile directEvoExprProgram = TIVarFile::createNew("Program", "EXPRTOK2", "84Evo");
         directEvoExprProgram.setContentFromString("Disp expr(\"{1,2,3}\"");
