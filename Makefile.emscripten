@@ -7,7 +7,7 @@ ifeq ($(DEBUG),1)
 	ASSERTIONS := 2
 	DEBUG_EMFLAGS := -s SAFE_HEAP=1
 else
-	OPTFLAGS := -O3 -flto
+	OPTFLAGS := -Oz -flto
 	ASSERTIONS := 0
 	DEBUG_EMFLAGS :=
 endif
@@ -15,7 +15,8 @@ endif
 # Emscripten stuff
 EMFLAGS := --bind -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME="'TIVarsLib'" -s NO_EXIT_RUNTIME=1 -s ASSERTIONS=$(ASSERTIONS) -s DISABLE_EXCEPTION_CATCHING=0 -s EXPORTED_RUNTIME_METHODS="['FS','getExceptionMessage','decrementExceptionRefcount']" $(DEBUG_EMFLAGS)
 
-CXXFLAGS := $(OPTFLAGS) -std=c++2a -DTH_GDB_SUPPORT=1 -Ivendor/pugixml -W -Wall -Wextra -fexceptions
+CPPFLAGS := -DTH_GDB_SUPPORT=1 -Ivendor/pugixml
+CXXFLAGS := $(OPTFLAGS) -std=c++2a -W -Wall -Wextra -fexceptions
 CFLAGS := $(OPTFLAGS) -std=c2x -W -Wall -Wextra
 LFLAGS := $(OPTFLAGS) $(EMFLAGS)
 
@@ -34,22 +35,22 @@ wasm-tests: $(TEST_OUTPUT).js
 	node --no-warnings scripts/run_wasm_tests.mjs
 
 %.bc: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 %.bc: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OUTPUT).js: $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $@
+	$(CXX) $(LFLAGS) $^ -o $@
 
 tests_wasm.bc: tests.cpp
-	$(CXX) $(CXXFLAGS) -Dmain=tivars_tests_main -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -Dmain=tivars_tests_main -c $< -o $@
 
 scripts/wasm_tests_main.bc: scripts/wasm_tests_main.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 $(TEST_OUTPUT).js: $(filter-out src/main_emscripten.bc,$(OBJS)) tests_wasm.bc scripts/wasm_tests_main.bc
-	$(CXX) $(CXXFLAGS) $(OPTFLAGS) --bind -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME="'TIVarsTests'" -s NODERAWFS=1 -s EXIT_RUNTIME=1 -s ASSERTIONS=$(ASSERTIONS) -s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS="['callMain','getExceptionMessage','decrementExceptionRefcount']" $^ -o $@
+	$(CXX) $(OPTFLAGS) --bind -s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME="'TIVarsTests'" -s NODERAWFS=1 -s EXIT_RUNTIME=1 -s ASSERTIONS=$(ASSERTIONS) -s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS="['callMain','getExceptionMessage','decrementExceptionRefcount']" $^ -o $@
 
 clean:
 	$(RM) -f $(OBJS) tests_wasm.bc scripts/wasm_tests_main.bc $(OUTPUT).js* $(OUTPUT).was* $(TEST_OUTPUT).js* $(TEST_OUTPUT).was*
