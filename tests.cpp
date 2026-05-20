@@ -2329,6 +2329,13 @@ Disp Str1
 
         const std::string evoSamples = "testData/evo/";
         assert_evo_to_legacy_readable(evoSamples + "L4.8xl2", "{-4+2i,-3i}");
+        if (file_exists(evoSamples + "L4.8xl2"))
+        {
+            TIVarFile evoComplexList = TIVarFile::loadFromFile(evoSamples + "L4.8xl2");
+            const json evoComplexListJSON = json::parse(evoComplexList.getReadableContent());
+            assert(evoComplexListJSON["typeName"] == "List");
+            assert(evoComplexListJSON["readableContent"] == "{-4+2i,-3i}");
+        }
         assert_evo_to_legacy_readable(evoSamples + "A.8xn2", "4-2i");
         assert_evo_to_legacy_readable(evoSamples + "more/L.8xn2", "1.5");
         assert_evo_to_legacy_readable(evoSamples + "more/S.8xn2", "1/3");

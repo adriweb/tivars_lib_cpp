@@ -79,6 +79,68 @@ namespace tivars
             return std::ranges::all_of(entries, [&model](const auto& entry) { return model.supportsType(entry._type); });
         }
 
+        bool make_evo_legacy_readable_view(const TIVarFile::var_entry_t& entry, const options_t& options, std::string& content)
+        {
+            TIVarFile::var_entry_t legacyEntry = entry;
+
+            if (!entry.evoDataIsRawCBOR && is_evo_tokenized_entry(entry))
+            {
+                legacyEntry.data = evo_tokenized_data_to_legacy(entry.data);
+            }
+            else if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::Real)
+            {
+                size_t offset = 0;
+                legacyEntry.data = evo_scalar_to_legacy_value(entry.data, offset);
+                set_numeric_entry_type_from_payload(legacyEntry);
+            }
+            else if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::List)
+            {
+                const auto lenIt = entry.evoFields.find("len");
+                if (lenIt == entry.evoFields.end())
+                {
+                    return false;
+                }
+
+                bool complexList = false;
+                legacyEntry.data = evo_list_to_legacy(entry.data, lenIt->second, complexList);
+                set_entry_type(legacyEntry, TIVarType{complexList ? "ComplexList" : "RealList"});
+            }
+            else if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::Matrix)
+            {
+                const auto rowsIt = entry.evoFields.find("rows");
+                const auto colsIt = entry.evoFields.find("cols");
+                if (rowsIt == entry.evoFields.end() || colsIt == entry.evoFields.end())
+                {
+                    return false;
+                }
+
+                legacyEntry.data = evo_matrix_to_legacy(entry.data, rowsIt->second, colsIt->second);
+                set_entry_type(legacyEntry, TIVarType{"Matrix"});
+            }
+            else if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::Image)
+            {
+                legacyEntry.data = evo_image_to_legacy(entry.data);
+                set_entry_type(legacyEntry, TIVarType{"Image"});
+            }
+            else if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::Picture)
+            {
+                legacyEntry.data = evo_picture_to_legacy(entry.data);
+                set_entry_type(legacyEntry, TIVarType{"Picture"});
+            }
+            else if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::AppVar)
+            {
+                set_entry_type(legacyEntry, TIVarType{"AppVar"});
+                legacyEntry.determineFullType();
+            }
+            else
+            {
+                return false;
+            }
+
+            content = std::get<1>(legacyEntry._type.getHandlers())(legacyEntry.data, options, nullptr);
+            return true;
+        }
+
         TIModel inferLoadedModel(const TIModel& currentModel, const std::vector<TIVarFile::var_entry_t>& entries)
         {
             if (entries.empty())
@@ -1458,6 +1520,18 @@ namespace tivars
             j[key] = value;
         }
         j["rawDataHex"] = bytes_to_hex_string(entry.data);
+        try
+        {
+            std::string readableContent;
+            if (make_evo_legacy_readable_view(entry, options, readableContent))
+            {
+                j["readableContent"] = readableContent;
+            }
+        }
+        catch (const std::exception&)
+        {
+            // Some Evo-only payloads do not have a legacy readable equivalent yet.
+        }
         if (!entry.evoDataIsRawCBOR && (entry.evoTypeID == EvoTypeID::Program || entry.evoTypeID == EvoTypeID::Equation))
         {
             j["code"] = detokenize_evo_token_words(entry.data);
