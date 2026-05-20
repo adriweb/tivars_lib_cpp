@@ -460,7 +460,7 @@ std::string decode_evo_name(EvoTypeID evoTypeID, const data_t& nameBytes)
     }
 
     const uint16_t first = words[0];
-    if (evoTypeID == EvoTypeID::RealList)
+    if (evoTypeID == EvoTypeID::List)
     {
         if (first >= 0xE830 && first <= 0xE835) return "L" + std::to_string(first - 0xE830 + 1);
         std::string out;
@@ -546,7 +546,7 @@ data_t encode_evo_name(EvoTypeID evoTypeID, std::string displayName)
         return out;
     };
 
-    if (evoTypeID == EvoTypeID::RealList)
+    if (evoTypeID == EvoTypeID::List)
     {
         if (upperName.size() == 2 && upperName[0] == 'L' && upperName[1] >= '1' && upperName[1] <= '6')
         {
