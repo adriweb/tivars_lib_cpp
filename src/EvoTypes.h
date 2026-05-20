@@ -19,7 +19,7 @@ namespace tivars::EvoFormat
     enum class EvoTypeID : uint8_t
     {
         Real = 0,
-        RealList = 1,
+        List = 1,
         Program = 2,
         GraphDataBase = 3,
         Picture = 4,
@@ -56,7 +56,7 @@ namespace tivars::EvoFormat
 
     inline constexpr std::array<EvoTypeInfo, evo_type_id_value(EvoTypeID::PythonScript) + 1> evoTypeInfos = {{
         {"Real",           "Real",           "8xn2",  {"Complex", "RealFraction", "ExactComplexFrac", "ExactRealRadical", "ExactComplexRadical", "ExactComplexPi", "ExactComplexPiFrac", "ExactRealPi", "ExactRealPiFrac"}},
-        {"RealList",       "RealList",       "8xl2",  {"ComplexList"}},
+        {"RealList",       "List",           "8xl2",  {"ComplexList"}},
         {"Program",        "Program",        "8xp2",  {"ProtectedProgram"}},
         {"GraphDataBase",  "GraphDataBase",  "8xd2",  {}},
         {"Picture",        "Picture",        "8ci2",  {}},
