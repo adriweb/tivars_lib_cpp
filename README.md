@@ -27,6 +27,23 @@ Several optional parameters for the functions are available. For instance, Frenc
 
 _Note: The code throws exceptions for you to catch in case of trouble._
 
+Graph DataBase (`.8xd`) readable JSON conversion is enabled automatically when the compiler/library support the required C++ features. If the host app does not need it, compile with `-DTH_GDB_SUPPORT=0` to force that implementation off:
+
+```sh
+c++ -std=c++20 -DTH_GDB_SUPPORT=0 -Ipath/to/tivars-dist \
+    path/to/tivars-dist/tivars_lib_cpp.cpp \
+    app.cpp \
+    -o app
+```
+
+With CMake, the equivalent override is:
+
+```sh
+cmake -S . -B build -DTIVARS_GDB_SUPPORT=OFF
+```
+
+If `TIVARS_GDB_SUPPORT` is not set, CMake leaves `TH_GDB_SUPPORT` undefined and the header auto-detects support. `ON` and `OFF` map to `TH_GDB_SUPPORT=1` and `TH_GDB_SUPPORT=0`.
+
 #### In JavaScript (via Emscripten)
 
 Bindings are done for the necessary classes, so it should be pretty obvious.  

@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <cstring>
 
-#if defined(TH_GDB_SUPPORT) || defined(__cpp_lib_variant)
+#if TH_GDB_SUPPORT
 
 #include "../json.hpp"
 using json = nlohmann::ordered_json;
@@ -594,8 +594,6 @@ namespace tivars::TypeHandlers
 }
 
 #else
-
-#warning "Compiler is too old to handle the GDB VarType support code so it will be disabled"
 
 namespace tivars::TypeHandlers
 {

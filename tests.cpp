@@ -2462,7 +2462,7 @@ End)";
         assert(newRecallWindow.getRawContent() == recallWindow.getRawContent());
     }
 
-#if defined(TH_GDB_SUPPORT) || defined(__cpp_lib_variant)
+#if TH_GDB_SUPPORT
 /*
     {
         TIVarFile GDB1 = TIVarFile::loadFromFile("testData/GraphDataBase_Func.8xd");

@@ -10,6 +10,22 @@
 
 #include "../CommonTypes.h"
 
+#if !defined(TH_GDB_SUPPORT)
+#  if __cplusplus >= 201703L
+#    if defined(__has_include)
+#      if __has_include(<variant>)
+#        define TH_GDB_SUPPORT 1
+#      else
+#        define TH_GDB_SUPPORT 0
+#      endif
+#    else
+#      define TH_GDB_SUPPORT 1
+#    endif
+#  else
+#    define TH_GDB_SUPPORT 0
+#  endif
+#endif
+
 namespace tivars
 {
     class TIVarFile;
