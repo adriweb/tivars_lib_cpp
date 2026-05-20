@@ -14,6 +14,9 @@ OUTPUT := tivars_tests tivars_cli
 
 all: $(OUTPUT)
 
+amalgamated:
+	python3 scripts/amalgamate.py
+
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
@@ -29,4 +32,4 @@ tivars_cli: $(OBJS_CLI)
 clean:
 	$(RM) -f $(OBJS_TESTS) $(OBJS_CLI) $(OUTPUT)
 
-.PHONY: all clean
+.PHONY: all amalgamated clean

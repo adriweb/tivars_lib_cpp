@@ -27,6 +27,30 @@ Several optional parameters for the functions are available. For instance, Frenc
 
 _Note: The code throws exceptions for you to catch in case of trouble._
 
+#### Embedding in another C++ app
+
+For apps that want to vendor the library without Git submodules or a CMake integration, generate the amalgamated distribution files:
+
+```sh
+make amalgamated
+```
+
+This writes:
+
+- `dist/tivars_lib_cpp.hpp`
+- `dist/tivars_lib_cpp.cpp`
+
+Copy those two files into the host project and compile the `.cpp` once alongside the app:
+
+```sh
+c++ -std=c++20 -Ipath/to/tivars-dist \
+    path/to/tivars-dist/tivars_lib_cpp.cpp \
+    app.cpp \
+    -o app
+```
+
+The generated `.cpp` contains the vendored JSON/pugixml code and token tables, so no other files from this repo are needed.
+
 Graph DataBase (`.8xd`) readable JSON conversion is enabled automatically when the compiler/library support the required C++ features. If the host app does not need it, compile with `-DTH_GDB_SUPPORT=0` to force that implementation off:
 
 ```sh

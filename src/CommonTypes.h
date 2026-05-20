@@ -12,7 +12,10 @@
 #include <string>
 #include <map>
 
+#include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <tuple>
 
 using data_t = std::vector<uint8_t>;
 using options_t = std::map<std::string, int>;
