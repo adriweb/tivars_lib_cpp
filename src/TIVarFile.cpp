@@ -1172,7 +1172,7 @@ namespace tivars
                         entry.data = evo_scalar_to_legacy_value(entry.data, offset);
                         set_numeric_entry_type_from_payload(entry);
                     }
-                    else if (entry.evoTypeID == EvoTypeID::RealList)
+                    else if (entry.evoTypeID == EvoTypeID::List)
                     {
                         const auto lenIt = entry.evoFields.find("len");
                         if (lenIt == entry.evoFields.end())

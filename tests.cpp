@@ -2460,7 +2460,7 @@ Disp Str1
 
         const std::array<std::tuple<EvoFormat::EvoTypeID, std::string, std::string, std::string>, 16> expectedEvoTypes = {{
             {EvoFormat::EvoTypeID::Real,           "Real",           "Real",           "8xn2"},
-            {EvoFormat::EvoTypeID::RealList,       "RealList",       "RealList",       "8xl2"},
+            {EvoFormat::EvoTypeID::List,           "RealList",       "List",           "8xl2"},
             {EvoFormat::EvoTypeID::Program,        "Program",        "Program",        "8xp2"},
             {EvoFormat::EvoTypeID::GraphDataBase,  "GraphDataBase",  "GraphDataBase",  "8xd2"},
             {EvoFormat::EvoTypeID::Picture,        "Picture",        "Picture",        "8ci2"},
@@ -2505,7 +2505,7 @@ Disp Str1
             {"ExactComplexPiFrac",   EvoFormat::EvoTypeID::Real},
             {"ExactRealPi",          EvoFormat::EvoTypeID::Real},
             {"ExactRealPiFrac",      EvoFormat::EvoTypeID::Real},
-            {"ComplexList",          EvoFormat::EvoTypeID::RealList},
+            {"ComplexList",          EvoFormat::EvoTypeID::List},
             {"ProtectedProgram",     EvoFormat::EvoTypeID::Program},
             {"SmartEquation",        EvoFormat::EvoTypeID::Equation},
             {"PythonAppVar",         EvoFormat::EvoTypeID::PythonScript},
