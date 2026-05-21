@@ -2340,6 +2340,33 @@ Disp Str1
         assert_evo_to_legacy_readable(evoSamples + "more/L.8xn2", "1.5");
         assert_evo_to_legacy_readable(evoSamples + "more/S.8xn2", "1/3");
         assert_evo_to_legacy_readable(evoSamples + "more/D.8xm2", "[[1,2][3,4]]");
+        if (file_exists(evoSamples + "F.8xm2"))
+        {
+            TIVarFile evoComplexMatrix = TIVarFile::loadFromFile(evoSamples + "F.8xm2");
+            const json evoComplexMatrixJSON = json::parse(evoComplexMatrix.getReadableContent());
+            assert(evoComplexMatrixJSON["readableContent"] == "[[1/3,9.8][-4,2i]]");
+        }
+        {
+            const auto append_le16 = [](data_t& data, uint16_t value) {
+                data.push_back(static_cast<uint8_t>(value & 0xFF));
+                data.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
+            };
+            const auto append_value = [](data_t& data, const data_t& value) {
+                const data_t evoValue = EvoFormat::legacy_value_to_evo_expression(value);
+                data.insert(data.end(), evoValue.begin(), evoValue.end());
+            };
+
+            data_t evoComplexMatrix;
+            append_le16(evoComplexMatrix, 0x00E5);
+            append_le16(evoComplexMatrix, 0x00E5);
+            append_value(evoComplexMatrix, TH_GenericReal::makeDataFromString("3", {{"_type", 0x00}}));
+            append_value(evoComplexMatrix, TH_GenericComplex::makeDataFromString("1+2i", {{"_type", 0x0C}}));
+            append_le16(evoComplexMatrix, 0x00D9);
+            append_le16(evoComplexMatrix, 0x00D9);
+            evoComplexMatrix.push_back(0);
+            evoComplexMatrix.push_back(0);
+            assert(EvoFormat::evo_matrix_to_readable(evoComplexMatrix, 1, 2) == "[[1+2i,3]]");
+        }
         assert_evo_to_legacy_readable(evoSamples + "more/X1T.8xy2", "2T");
         assert_evo_to_legacy_readable(evoSamples + "more/Y1T.8xy2", "⁻5.5T");
         assert_evo_to_legacy_readable(evoSamples + "more/X2T.8xy2", "cos(T/2");
