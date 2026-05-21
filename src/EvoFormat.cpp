@@ -2834,6 +2834,72 @@ data_t evo_matrix_to_legacy(const data_t& evoData, uint64_t rows, uint64_t cols)
     return legacy;
 }
 
+std::string evo_matrix_to_readable(const data_t& evoData, uint64_t rows, uint64_t cols, const options_t& options)
+{
+    if (rows == 0 || cols == 0 || rows > 255 || cols > 255 || evoData.size() < 4 || read_le16_at(evoData, 0) != 0x00E5)
+    {
+        throw std::invalid_argument("Invalid Evo matrix payload");
+    }
+
+    std::vector<std::string> cells(static_cast<size_t>(rows * cols));
+    size_t offset = 2;
+    for (size_t payloadRow = 0; payloadRow < rows; payloadRow++)
+    {
+        if (offset + 1 >= evoData.size() || read_le16_at(evoData, offset) != 0x00E5)
+        {
+            throw std::invalid_argument("Invalid Evo matrix row payload");
+        }
+        offset += 2;
+        for (size_t payloadCol = 0; payloadCol < cols; payloadCol++)
+        {
+            data_t value = evo_scalar_to_legacy_value(evoData, offset);
+            std::string readable;
+            if (value.size() == TypeHandlers::TH_GenericReal::dataByteCount)
+            {
+                readable = TypeHandlers::TH_GenericReal::makeStringFromData(value, options, nullptr);
+            }
+            else if (value.size() == TypeHandlers::TH_GenericComplex::dataByteCount)
+            {
+                readable = TypeHandlers::TH_GenericComplex::makeStringFromData(value, options, nullptr);
+            }
+            else
+            {
+                throw std::runtime_error("Unsupported Evo matrix cell payload");
+            }
+
+            const size_t displayRow = static_cast<size_t>(rows) - payloadRow - 1;
+            const size_t displayCol = static_cast<size_t>(cols) - payloadCol - 1;
+            cells[displayRow * static_cast<size_t>(cols) + displayCol] = readable;
+        }
+        if (offset + 1 >= evoData.size() || read_le16_at(evoData, offset) != 0x00D9)
+        {
+            throw std::invalid_argument("Invalid Evo matrix row terminator");
+        }
+        offset += 2;
+    }
+    if (offset + 1 >= evoData.size() || read_le16_at(evoData, offset) != 0x00D9)
+    {
+        throw std::invalid_argument("Invalid Evo matrix terminator");
+    }
+
+    std::string out = "[";
+    for (size_t row = 0; row < rows; row++)
+    {
+        out += "[";
+        for (size_t col = 0; col < cols; col++)
+        {
+            if (col > 0)
+            {
+                out += ",";
+            }
+            out += cells[row * static_cast<size_t>(cols) + col];
+        }
+        out += "]";
+    }
+    out += "]";
+    return out;
+}
+
 namespace
 {
     uint8_t get_4bpp_pixel(const data_t& data, size_t baseOffset, size_t rowStride, size_t x, size_t y)
