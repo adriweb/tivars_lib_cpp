@@ -80,6 +80,7 @@ namespace tivars::EvoFormat
     data_t evo_list_to_legacy(const data_t& evoData, uint64_t len, bool& complexList);
     data_t legacy_matrix_to_evo(const data_t& legacyData, std::map<std::string, uint64_t>& fields);
     data_t evo_matrix_to_legacy(const data_t& evoData, uint64_t rows, uint64_t cols);
+    std::string evo_matrix_to_readable(const data_t& evoData, uint64_t rows, uint64_t cols, const options_t& options = options_t());
     data_t legacy_picture_to_evo(const data_t& legacyData, std::map<std::string, uint64_t>& fields);
     data_t evo_picture_to_legacy(const data_t& evoData);
     data_t legacy_image_to_evo(const data_t& legacyData, std::map<std::string, uint64_t>& fields);

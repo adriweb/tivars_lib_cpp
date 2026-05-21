@@ -114,8 +114,8 @@ namespace tivars
                     return false;
                 }
 
-                legacyEntry.data = evo_matrix_to_legacy(entry.data, rowsIt->second, colsIt->second);
-                set_entry_type(legacyEntry, TIVarType{"Matrix"});
+                content = evo_matrix_to_readable(entry.data, rowsIt->second, colsIt->second, options);
+                return true;
             }
             else if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::Image)
             {
