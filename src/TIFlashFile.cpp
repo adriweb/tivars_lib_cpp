@@ -909,11 +909,11 @@ namespace tivars
                 {
                     throw std::invalid_argument("Flash block address must be a two-byte hex string");
                 }
-                blocks.emplace_back(
+                blocks.push_back(flash_block_t{
                     static_cast<uint16_t>((addressBytes[0] << 8) | addressBytes[1]),
                     hexdec(item.at("blockType").get<std::string>()),
                     parseHex(item.at("rawDataHex").get<std::string>())
-                );
+                });
             }
             calcData = makeIntelData(blocks);
         }
