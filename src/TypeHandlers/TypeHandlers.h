@@ -218,9 +218,19 @@ namespace tivars::TypeHandlers
     class STH_PythonAppVar : public TH_GenericAppVar
     {
         public:
+        struct python_payload_info
+        {
+            data_t magic;
+            std::string filename;
+            data_t scriptBytes;
+        };
+
         th();
         static const constexpr char ID_SCRIPT[] = "PYSC";
         static const constexpr char ID_CODE[] = "PYCD";
+        static data_t scriptBytesFromText(std::string text, bool appendTrailingCRLF = false);
+        static python_payload_info parsePayload(const data_t& data);
+        static data_t buildPayloadFromParts(const data_t& scriptBytes, const std::string& filename = "", data_t magic = data_t{});
     };
 
     class TH_GDB : public DummyHandler

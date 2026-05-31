@@ -22,23 +22,23 @@ using namespace std::string_literals;
 namespace tivars
 {
 
+void append_le16(data_t& out, uint16_t value)
+{
+    out.push_back(static_cast<uint8_t>(value & 0xFF));
+    out.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
+}
+
+void append_le32(data_t& out, uint32_t value)
+{
+    out.push_back(static_cast<uint8_t>(value & 0xFF));
+    out.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
+    out.push_back(static_cast<uint8_t>((value >> 16) & 0xFF));
+    out.push_back(static_cast<uint8_t>((value >> 24) & 0xFF));
+}
+
 namespace
 {
     constexpr long long dec2fracMaxDenominator = 100000;
-
-    void append_le16(data_t& out, uint16_t value)
-    {
-        out.push_back(static_cast<uint8_t>(value & 0xFF));
-        out.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
-    }
-
-    void append_le32(data_t& out, uint32_t value)
-    {
-        out.push_back(static_cast<uint8_t>(value & 0xFF));
-        out.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
-        out.push_back(static_cast<uint8_t>((value >> 16) & 0xFF));
-        out.push_back(static_cast<uint8_t>((value >> 24) & 0xFF));
-    }
 
     std::string base64_encode(const data_t& data)
     {
