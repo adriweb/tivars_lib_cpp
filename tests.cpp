@@ -3186,6 +3186,49 @@ End)";
         pythonBom.setContentFromString(std::string("\xEF\xBB\xBF") + "print(42)\n");
         assert(pythonBom.getReadableContent() == "print(42)\n");
 
+        const data_t pythonScriptBytes = STH_PythonAppVar::scriptBytesFromText(std::string("\xEF\xBB\xBF") + "print(1)\r\n", false);
+        assert(pythonScriptBytes == data_t({'p','r','i','n','t','(','1',')','\r','\n'}));
+        const data_t pythonScriptBytesWithCRLF = STH_PythonAppVar::scriptBytesFromText("print(2)\n\n", true);
+        assert(pythonScriptBytesWithCRLF == data_t({'p','r','i','n','t','(','2',')','\r','\n'}));
+
+        const data_t pythonPartsPayload = STH_PythonAppVar::buildPayloadFromParts(
+            data_t{'p','r','i','n','t','(','3',')','\n'},
+            "parts.py",
+            data_t{'P', 'Y', 'S', 'C'});
+        const STH_PythonAppVar::python_payload_info pythonParts = STH_PythonAppVar::parsePayload(pythonPartsPayload);
+        assert(pythonParts.magic == data_t({'P', 'Y', 'S', 'C'}));
+        assert(pythonParts.filename == "parts.py");
+        assert(pythonParts.scriptBytes == data_t({'p','r','i','n','t','(','3',')','\n'}));
+        assert(STH_PythonAppVar::makeStringFromData(pythonPartsPayload) == "print(3)\n");
+
+        const data_t pythonDefaultPayload = STH_PythonAppVar::buildPayloadFromParts(data_t{'x', '=', '1'});
+        const STH_PythonAppVar::python_payload_info pythonDefault = STH_PythonAppVar::parsePayload(pythonDefaultPayload);
+        assert(pythonDefault.magic == data_t({'P', 'Y', 'C', 'D'}));
+        assert(pythonDefault.filename.empty());
+        assert(pythonDefault.scriptBytes == data_t({'x', '=', '1'}));
+
+        bool invalidPythonPayloadRejected = false;
+        try
+        {
+            (void)STH_PythonAppVar::parsePayload(data_t{0x05, 0x00, 'P', 'Y', 'X', 'X', 0x00});
+        }
+        catch (const std::invalid_argument&)
+        {
+            invalidPythonPayloadRejected = true;
+        }
+        assert(invalidPythonPayloadRejected);
+
+        bool invalidPythonMagicRejected = false;
+        try
+        {
+            (void)STH_PythonAppVar::buildPayloadFromParts(data_t{'x'}, "", data_t{'P', 'Y', 'X', 'X'});
+        }
+        catch (const std::invalid_argument&)
+        {
+            invalidPythonMagicRejected = true;
+        }
+        assert(invalidPythonMagicRejected);
+
         TIVarFile pythonWithMetadata = TIVarFile::createNew("PythonAppVar", "METAPY", "83PCE");
         pythonWithMetadata.setContentFromString(R"({
     "typeName": "PythonAppVar",
@@ -3225,6 +3268,114 @@ End)";
         assert(oversizedPythonMetadataJSON["filename"] == "really_long_name.py");
         assert(oversizedPythonMetadataJSON["code"].get<std::string>().back() == '\n');
         assert(oversizedPythonMetadataJSON["code"].get<std::string>().size() == 65485);
+    }
+
+    {
+        TIVarFile evoPython = TIVarFile::createNew("PythonAppVar", "EVOPY", "84Evo");
+        evoPython.setContentFromString("print(\"evo\")\n");
+        assert(evoPython.isEvoFormat());
+        json evoPythonJSON = json::parse(evoPython.getReadableContent());
+        assert(evoPythonJSON["typeName"] == "PythonScript");
+        assert(evoPythonJSON["python"]["name"] == "EVOPY");
+        assert(evoPythonJSON["metaData"]["flags"] == 1);
+        assert(evoPythonJSON["version"] == 1);
+        assert(evoPythonJSON["python"]["code"] == "print(\"evo\")\n");
+        assert(evoPythonJSON["python"]["scriptHeader"] == 275);
+        assert(evoPythonJSON["python"]["dataLen"] == 36);
+        assert(evoPythonJSON["python"]["scriptLen"] == 13);
+        assert(evoPythonJSON["python"]["scriptType"] == 2);
+        assert(evoPythonJSON["python"]["trailerHex"] == "00");
+
+        data_t evoPythonPaddedPayload = EvoFormat::build_evo_python_script_payload("print(\"evo\")\n", "EVOPY");
+        evoPythonPaddedPayload.push_back(0x00);
+        evoPythonPaddedPayload.push_back(0x00);
+        const auto evoPythonPadded = EvoFormat::parse_evo_python_script_payload(evoPythonPaddedPayload);
+        assert(evoPythonPadded.dataLen + 2 == evoPythonPaddedPayload.size());
+        assert(evoPythonPadded.scriptLen == 13);
+        assert(evoPythonPadded.code == "print(\"evo\")\n");
+        assert(evoPythonPadded.trailer == data_t({0x00}));
+
+        TIVarFile evoPythonFromJSON = TIVarFile::createNew("PythonAppVar", "EVOPY2", "84Evo");
+        evoPythonFromJSON.setContentFromString(R"({
+    "typeName": "PythonScript",
+    "python": {
+        "name": "demo.py",
+        "scriptType": 7,
+        "code": "print(42)\n"
+    }
+})");
+        json evoPythonFromJSONJSON = json::parse(evoPythonFromJSON.getReadableContent());
+        assert(evoPythonFromJSONJSON["python"]["name"] == "demo.py");
+        assert(evoPythonFromJSONJSON["python"]["scriptType"] == 7);
+        assert(evoPythonFromJSONJSON["python"]["code"] == "print(42)\n");
+
+        TIVarFile evoPythonFromRawJSON = TIVarFile::createNew("PythonAppVar", "EVOPY3", "84Evo");
+        evoPythonFromRawJSON.setContentFromString(evoPythonFromJSONJSON.dump());
+        assert(evoPythonFromRawJSON.getRawContent() == evoPythonFromJSON.getRawContent());
+
+        TIVarFile helloEvoPython = TIVarFile::loadFromFile("testData/evo/HELLO.8xpy2");
+        assert(helloEvoPython.isEvoFormat());
+        json helloEvoPythonJSON = json::parse(helloEvoPython.getReadableContent());
+        assert(helloEvoPythonJSON["typeName"] == "PythonScript");
+        assert(helloEvoPythonJSON["python"]["name"] == "HELLO");
+        assert(helloEvoPythonJSON["python"]["scriptHeader"] == 275);
+        assert(helloEvoPythonJSON["python"]["dataLen"] == 282);
+        assert(helloEvoPythonJSON["python"]["scriptLen"] == 259);
+        assert(helloEvoPythonJSON["python"]["scriptType"] == 2);
+        assert(helloEvoPythonJSON["python"]["trailerHex"] == "00");
+        assert(helloEvoPythonJSON["python"]["code"].get<std::string>().rfind("# Version 2 EN\r\n", 0) == 0);
+    }
+
+    {
+        TIVarFile legacyPython = TIVarFile::createNew("PythonAppVar", "PYLEG", "83PCE");
+        legacyPython.setContentFromString(R"({
+    "typeName": "PythonAppVar",
+    "filename": "hello.py",
+    "code": "print(\"legacy\")\n",
+    "appendTrailingCRLF": true
+})");
+        const data_t originalLegacyPythonData = legacyPython.getRawContent();
+
+        legacyPython.convertToModel(TIModel{"84Evo"});
+        assert(legacyPython.isEvoFormat());
+        json convertedEvoPythonJSON = json::parse(legacyPython.getReadableContent());
+        assert(convertedEvoPythonJSON["typeName"] == "PythonScript");
+        assert(convertedEvoPythonJSON["python"]["name"] == "hello.py");
+        assert(convertedEvoPythonJSON["python"]["code"] == "print(\"legacy\")\r\n");
+
+        legacyPython.convertToModel(TIModel{"83PCE"});
+        assert(!legacyPython.isEvoFormat());
+        assert(legacyPython.getVarEntries()[0]._type.getName() == "PythonAppVar");
+        assert(legacyPython.getRawContent() == originalLegacyPythonData);
+        assert(legacyPython.getReadableContent({{"metadata", true}}).find("\"filename\": \"hello.py\"") != std::string::npos);
+    }
+
+    {
+        TIVarFile legacyPython = TIVarFile::createNew("PythonAppVar", "NONAME", "83PCE");
+        legacyPython.setContentFromString("print(\"no filename\")\n");
+        const data_t originalLegacyPythonData = legacyPython.getRawContent();
+        legacyPython.convertToModel(TIModel{"84Evo"});
+        assert(json::parse(legacyPython.getReadableContent())["python"]["name"] == "NONAME");
+        legacyPython.convertToModel(TIModel{"83PCE"});
+        assert(legacyPython.getRawContent() == originalLegacyPythonData);
+        const json legacyMetadata = json::parse(legacyPython.getReadableContent({{"metadata", true}}));
+        assert(!legacyMetadata.contains("filename"));
+    }
+
+    {
+        TIVarFile evoPython = TIVarFile::createNew("PythonAppVar", "TOLEG", "84Evo");
+        evoPython.setContentFromString(R"({
+    "python": {
+        "name": "toleg.py",
+        "code": "print(\"to legacy\")\n"
+    }
+})");
+        evoPython.convertToModel(TIModel{"83PCE"});
+        assert(!evoPython.isEvoFormat());
+        assert(evoPython.getVarEntries()[0]._type.getName() == "PythonAppVar");
+        assert(evoPython.getReadableContent() == "print(\"to legacy\")\n");
+        const json legacyMetadata = json::parse(evoPython.getReadableContent({{"metadata", true}}));
+        assert(legacyMetadata["filename"] == "toleg.py");
     }
 
     {

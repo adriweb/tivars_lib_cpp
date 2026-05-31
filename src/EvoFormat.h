@@ -20,8 +20,8 @@ namespace tivars::EvoFormat
 {
     struct EvoPythonScriptInfo
     {
-        data_t magic;
-        uint32_t bodyLen = 0;
+        uint32_t scriptHeader = 0;
+        uint32_t dataLen = 0;
         uint32_t nameLen = 0;
         std::string name;
         uint16_t scriptLen = 0;
@@ -66,6 +66,9 @@ namespace tivars::EvoFormat
     EvoTypeID evo_type_from_type(const TIVarType& type);
     std::string bytes_to_hex_string(const data_t& data);
     EvoPythonScriptInfo parse_evo_python_script_payload(const data_t& data);
+    data_t build_evo_python_script_payload(const std::string& source, std::string defaultName = "");
+    data_t legacy_python_appvar_to_evo_python_script(const data_t& legacyData, std::string defaultName = "");
+    data_t evo_python_script_to_legacy_python_appvar(const data_t& evoData, std::string defaultName = "");
 
     std::string detokenize_evo_token_words(const data_t& data);
     data_t tokenize_evo_token_words(const std::string& source, const options_t& options = options_t());

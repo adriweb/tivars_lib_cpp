@@ -132,6 +132,12 @@ namespace tivars
                 set_entry_type(legacyEntry, TIVarType{"AppVar"});
                 legacyEntry.determineFullType();
             }
+            else if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::PythonScript)
+            {
+                const std::string displayName = decode_evo_name(entry.evoTypeID, entry.evoNameBytes);
+                legacyEntry.data = evo_python_script_to_legacy_python_appvar(entry.data, displayName);
+                set_entry_type(legacyEntry, TIVarType{"PythonAppVar"});
+            }
             else
             {
                 return false;
@@ -581,7 +587,7 @@ namespace tivars
         {
             entry.evoTypeID = evo_type_from_type(type);
             entry.evoMetaVersion = 1;
-            entry.evoMetaFlags = (entry.evoTypeID == EvoTypeID::Image || entry.evoTypeID == EvoTypeID::Picture) ? 1 : 0;
+            entry.evoMetaFlags = (entry.evoTypeID == EvoTypeID::Image || entry.evoTypeID == EvoTypeID::Picture || entry.evoTypeID == EvoTypeID::PythonScript) ? 1 : 0;
             entry.evoFields["version"] = 1;
         }
         entry.data_length2 = 0; // will have to be overwritten later
@@ -1090,7 +1096,12 @@ namespace tivars
     {
         auto& entry = this->entries[entryIdx];
         data_t data;
-        if (this->evoFormat && is_evo_tokenized_entry(entry))
+        if (this->evoFormat && entry.evoTypeID == EvoTypeID::PythonScript)
+        {
+            const std::string displayName = entry_name_to_string(entry._type, entry.varname, sizeof(var_entry_t::varname));
+            data = build_evo_python_script_payload(str, displayName);
+        }
+        else if (this->evoFormat && is_evo_tokenized_entry(entry))
         {
             data = tokenize_evo_token_words(str, options);
         }
@@ -1208,6 +1219,10 @@ namespace tivars
                     else if (entry._type.getName() == "AppVar" || entry._type.getName() == "PythonAppVar")
                     {
                         entry.evoFields["version"] = 1;
+                        if (entry._type.getName() == "PythonAppVar")
+                        {
+                            entry.data = legacy_python_appvar_to_evo_python_script(entry.data, displayName);
+                        }
                         entry.evoFields["size"] = entry.data.size();
                     }
                     else
@@ -1217,7 +1232,7 @@ namespace tivars
 
                     entry.evoTypeID = evoTypeID;
                     entry.evoMetaVersion = entry.evoMetaVersion == 0 ? 1 : entry.evoMetaVersion;
-                    entry.evoMetaFlags = (evoTypeID == EvoTypeID::Image || evoTypeID == EvoTypeID::Picture) ? 1 : entry.evoMetaFlags;
+                    entry.evoMetaFlags = (evoTypeID == EvoTypeID::Image || evoTypeID == EvoTypeID::Picture || evoTypeID == EvoTypeID::PythonScript) ? 1 : entry.evoMetaFlags;
                     entry.evoNameBytes = encode_evo_name(evoTypeID, displayName);
                     entry.evoDataIsRawCBOR = false;
                     entry.meta_length = 0;
@@ -1270,6 +1285,12 @@ namespace tivars
                     {
                         set_entry_type(entry, TIVarType{"AppVar"});
                         entry.determineFullType();
+                    }
+                    else if (entry.evoTypeID == EvoTypeID::PythonScript && !entry.evoDataIsRawCBOR)
+                    {
+                        const std::string displayName = decode_evo_name(entry.evoTypeID, entry.evoNameBytes);
+                        entry.data = evo_python_script_to_legacy_python_appvar(entry.data, displayName);
+                        set_entry_type(entry, TIVarType{"PythonAppVar"});
                     }
                     else
                     {
@@ -1542,8 +1563,8 @@ namespace tivars
             {
                 const EvoPythonScriptInfo python = parse_evo_python_script_payload(entry.data);
                 j["python"] = {
-                    {"magicHex", bytes_to_hex_string(python.magic)},
-                    {"bodyLen", python.bodyLen},
+                    {"scriptHeader", python.scriptHeader},
+                    {"dataLen", python.dataLen},
                     {"nameLen", python.nameLen},
                     {"name", python.name},
                     {"scriptLen", python.scriptLen},

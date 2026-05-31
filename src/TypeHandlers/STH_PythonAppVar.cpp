@@ -346,14 +346,9 @@ namespace tivars::TypeHandlers
                         const std::string name = recordJson.at("name").get<std::string>();
                         record.data.assign(name.begin(), name.end());
                     }
-                    else if (recordJson.contains("text"))
-                    {
-                        const std::string text = recordJson.at("text").get<std::string>();
-                        record.data.assign(text.begin(), text.end());
-                    }
                     else
                     {
-                        throw std::invalid_argument("metadataRecords entries need rawDataHex, name, or text");
+                        throw std::invalid_argument("metadataRecords entries need rawDataHex or name");
                     }
 
                     records.push_back(record);
@@ -364,50 +359,13 @@ namespace tivars::TypeHandlers
         }
     }
 
-    data_t STH_PythonAppVar::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
+    data_t STH_PythonAppVar::scriptBytesFromText(std::string text, bool appendTrailingCRLF)
     {
-        (void)options;
-        (void)_ctx;
-
-        const std::string trimmed = trim(str);
-        if (!trimmed.empty() && trimmed.front() == '{')
-        {
-            const json j = json::parse(trimmed);
-            if (j.contains("rawDataHex"))
-            {
-                return parse_payload_hex(j.at("rawDataHex").get<std::string>());
-            }
-
-            const std::string magic = j.value("magic", default_magic());
-            const std::vector<python_metadata_record_t> records = metadata_records_from_json(j);
-
-            std::string text;
-            if (j.contains("code"))
-            {
-                text = j.at("code").get<std::string>();
-            }
-            else if (j.contains("script"))
-            {
-                text = j.at("script").get<std::string>();
-            }
-            else if (j.contains("text"))
-            {
-                text = j.at("text").get<std::string>();
-            }
-
-            const bool appendTrailingCRLF = j.contains("appendTrailingCRLF") && j.at("appendTrailingCRLF").get<bool>();
-            const data_t scriptBytes = script_bytes_from_text(text, appendTrailingCRLF);
-            return build_payload(magic, records, scriptBytes, appendTrailingCRLF);
-        }
-
-        const data_t scriptBytes = script_bytes_from_text(str, false);
-        return build_payload(default_magic(), {}, scriptBytes);
+        return script_bytes_from_text(std::move(text), appendTrailingCRLF);
     }
 
-    std::string STH_PythonAppVar::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
+    STH_PythonAppVar::python_payload_info STH_PythonAppVar::parsePayload(const data_t& data)
     {
-        (void)_ctx;
-
         const size_t byteCount = data.size();
         const size_t lengthDat = byteCount - sizePrefixByteCount;
 
@@ -427,6 +385,76 @@ namespace tivars::TypeHandlers
             throw std::invalid_argument("Invalid data array. Magic header 'PYCD' or 'PYSC' not found");
         }
 
+        size_t scriptOffset = 0;
+        const std::vector<python_metadata_record_t> records = parse_metadata_records(data, scriptOffset);
+
+        python_payload_info info;
+        info.magic.assign(data.begin() + sizePrefixByteCount,
+                          data.begin() + static_cast<ptrdiff_t>(sizePrefixByteCount + magicByteCount));
+        for (const auto& record : records)
+        {
+            if (record.type == metadataRecordTypeFilename && info.filename.empty())
+            {
+                info.filename.assign(record.data.begin(), record.data.end());
+            }
+        }
+        info.scriptBytes.assign(data.begin() + static_cast<ptrdiff_t>(scriptOffset), data.end());
+        return info;
+    }
+
+    data_t STH_PythonAppVar::buildPayloadFromParts(const data_t& scriptBytes, const std::string& filename, data_t magic)
+    {
+        if (magic.empty())
+        {
+            const std::string defaultMagic = default_magic();
+            magic.assign(defaultMagic.begin(), defaultMagic.end());
+        }
+        if (magic.size() != magicByteCount || !is_valid_magic(magic.data()))
+        {
+            throw std::invalid_argument("Python AppVar magic must be PYCD or PYSC");
+        }
+
+        std::vector<python_metadata_record_t> records;
+        if (!filename.empty())
+        {
+            records.push_back({metadataRecordTypeFilename, data_t(filename.begin(), filename.end())});
+        }
+
+        return build_payload(std::string(magic.begin(), magic.end()), records, scriptBytes);
+    }
+
+    data_t STH_PythonAppVar::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
+    {
+        (void)options;
+        (void)_ctx;
+
+        const std::string trimmed = trim(str);
+        if (!trimmed.empty() && trimmed.front() == '{')
+        {
+            const json j = json::parse(trimmed);
+            if (j.contains("rawDataHex"))
+            {
+                return parse_payload_hex(j.at("rawDataHex").get<std::string>());
+            }
+
+            const std::string magic = j.value("magic", default_magic());
+            const std::vector<python_metadata_record_t> records = metadata_records_from_json(j);
+
+            const std::string text = j.at("code").get<std::string>();
+            const bool appendTrailingCRLF = j.contains("appendTrailingCRLF") && j.at("appendTrailingCRLF").get<bool>();
+            const data_t scriptBytes = scriptBytesFromText(text, appendTrailingCRLF);
+            return build_payload(magic, records, scriptBytes, appendTrailingCRLF);
+        }
+
+        const data_t scriptBytes = scriptBytesFromText(str, false);
+        return build_payload(default_magic(), {}, scriptBytes);
+    }
+
+    std::string STH_PythonAppVar::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
+    {
+        (void)_ctx;
+
+        (void)parsePayload(data);
         size_t scriptOffset = 0;
         const std::vector<python_metadata_record_t> records = parse_metadata_records(data, scriptOffset);
         const data_t scriptBytes(data.begin() + static_cast<ptrdiff_t>(scriptOffset), data.end());

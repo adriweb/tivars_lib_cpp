@@ -29,6 +29,8 @@ namespace tivars::EvoFormat
 {
     namespace
     {
+        constexpr uint32_t evo_python_script_header = 0x113;
+
         std::string normalize_theta_chars(std::string name)
         {
             for (const auto& token : {"θ", "Θ", "ϴ", "ᶿ"})
@@ -703,22 +705,70 @@ namespace
         }
         return out;
     }
+
+    data_t json_hex_bytes(const json& j, const std::string& key)
+    {
+        return hex_string_to_bytes(j.at(key).get<std::string>(), key.c_str());
+    }
+
+    data_t python_script_body_from_text(std::string text)
+    {
+        return TypeHandlers::STH_PythonAppVar::scriptBytesFromText(std::move(text));
+    }
+
+    data_t build_evo_python_script_payload_from_parts(std::string name,
+                                                      const data_t& body,
+                                                      uint8_t scriptType,
+                                                      const data_t& trailer)
+    {
+        if (name.empty())
+        {
+            name = "script.py";
+        }
+        if (name.size() > 255)
+        {
+            throw std::invalid_argument("Evo PythonScript name is too long");
+        }
+        if (body.size() > 0xFFFF)
+        {
+            throw std::invalid_argument("Evo PythonScript body is too large");
+        }
+
+        data_t payload;
+        payload.reserve(12 + name.size() + 1 + 4 + body.size() + trailer.size());
+        append_le32(payload, evo_python_script_header);
+        append_le32(payload, static_cast<uint32_t>(12 + name.size() + 1 + 4 + body.size() + trailer.size()));
+        append_le32(payload, static_cast<uint32_t>(name.size()));
+        payload.insert(payload.end(), name.begin(), name.end());
+        payload.push_back(0x00);
+        append_le16(payload, static_cast<uint16_t>(body.size()));
+        payload.push_back(0x00);
+        payload.push_back(scriptType);
+        payload.insert(payload.end(), body.begin(), body.end());
+        payload.insert(payload.end(), trailer.begin(), trailer.end());
+        return payload;
+    }
+
 }
 
 EvoPythonScriptInfo parse_evo_python_script_payload(const data_t& data)
 {
-    if (data.size() < 21)
+    if (data.size() < 18)
     {
         throw std::invalid_argument("Invalid Evo Python script payload: too short");
     }
 
     EvoPythonScriptInfo info;
-    info.magic.assign(data.begin(), data.begin() + 4);
-    info.bodyLen = read_le32(data, 4);
+    info.scriptHeader = read_le32(data, 0);
+    info.dataLen = read_le32(data, 4);
     info.nameLen = read_le32(data, 8);
     if (info.nameLen == 0 || info.nameLen > 255 || 12 + info.nameLen + 1 + 4 > data.size())
     {
         throw std::invalid_argument("Invalid Evo Python script payload: bad name length");
+    }
+    if (info.dataLen > data.size())
+    {
+        throw std::invalid_argument("Invalid Evo Python script payload: bad data length");
     }
 
     const size_t nameOffset = 12;
@@ -733,16 +783,92 @@ EvoPythonScriptInfo parse_evo_python_script_payload(const data_t& data)
     info.scriptLen = read_le16(data, bodyLenOffset);
     info.scriptType = data[bodyLenOffset + 3];
     const size_t bodyOffset = bodyLenOffset + 4;
-    if (bodyOffset + info.scriptLen > data.size())
+    if (info.scriptHeader != evo_python_script_header)
+    {
+        throw std::invalid_argument("Invalid Evo Python script payload: bad script header");
+    }
+    if (bodyOffset + info.scriptLen > info.dataLen)
     {
         throw std::invalid_argument("Invalid Evo Python script payload: script body exceeds payload");
     }
 
     info.body.assign(data.begin() + static_cast<ptrdiff_t>(bodyOffset), data.begin() + static_cast<ptrdiff_t>(bodyOffset + info.scriptLen));
-    info.trailer.assign(data.begin() + static_cast<ptrdiff_t>(bodyOffset + info.scriptLen), data.end());
+    info.trailer.assign(data.begin() + static_cast<ptrdiff_t>(bodyOffset + info.scriptLen), data.begin() + static_cast<ptrdiff_t>(info.dataLen));
     info.code = printable_ascii_string(data, bodyOffset, info.scriptLen);
     info.bodyIsText = !info.code.empty();
     return info;
+}
+
+data_t build_evo_python_script_payload(const std::string& source, std::string defaultName)
+{
+    std::string name = defaultName.empty() ? "script.py" : defaultName;
+    data_t body;
+    data_t trailer = {0x00};
+    uint8_t scriptType = 2;
+
+    const std::string trimmed = trim(source);
+    if (!trimmed.empty() && trimmed.front() == '{')
+    {
+        const json root = json::parse(trimmed);
+        if (root.contains("rawDataHex"))
+        {
+            data_t raw = json_hex_bytes(root, "rawDataHex");
+            (void)parse_evo_python_script_payload(raw);
+            return raw;
+        }
+
+        const json* payloadJson = &root;
+        if (root.contains("python") && root.at("python").is_object())
+        {
+            payloadJson = &root.at("python");
+        }
+
+        if (payloadJson->contains("name"))
+        {
+            name = payloadJson->at("name").get<std::string>();
+        }
+        else if (root.contains("filename"))
+        {
+            name = root.at("filename").get<std::string>();
+        }
+        else if (root.contains("name"))
+        {
+            name = root.at("name").get<std::string>();
+        }
+
+        if (payloadJson->contains("scriptType"))
+        {
+            scriptType = static_cast<uint8_t>(payloadJson->at("scriptType").get<int>() & 0xFF);
+        }
+        if (payloadJson->contains("trailerHex"))
+        {
+            trailer = json_hex_bytes(*payloadJson, "trailerHex");
+        }
+
+        const std::string code = payloadJson->contains("code")
+            ? payloadJson->at("code").get<std::string>()
+            : root.at("code").get<std::string>();
+        body = python_script_body_from_text(code);
+
+        return build_evo_python_script_payload_from_parts(std::move(name), body, scriptType, trailer);
+    }
+
+    body = python_script_body_from_text(source);
+    return build_evo_python_script_payload_from_parts(std::move(name), body, scriptType, trailer);
+}
+
+data_t legacy_python_appvar_to_evo_python_script(const data_t& legacyData, std::string defaultName)
+{
+    const auto legacy = TypeHandlers::STH_PythonAppVar::parsePayload(legacyData);
+    std::string name = !legacy.filename.empty() ? legacy.filename : std::move(defaultName);
+    return build_evo_python_script_payload_from_parts(std::move(name), legacy.scriptBytes, 2, {0x00});
+}
+
+data_t evo_python_script_to_legacy_python_appvar(const data_t& evoData, std::string defaultName)
+{
+    const EvoPythonScriptInfo python = parse_evo_python_script_payload(evoData);
+    const std::string filename = (!defaultName.empty() && python.name == defaultName) ? "" : python.name;
+    return TypeHandlers::STH_PythonAppVar::buildPayloadFromParts(python.body, filename);
 }
 
 struct EvoTokenInfo
@@ -2296,12 +2422,6 @@ static uint16_t read_le16_at(const data_t& data, size_t offset)
         throw std::invalid_argument("Unexpected end of Evo data");
     }
     return static_cast<uint16_t>(data[offset] | (data[offset + 1] << 8));
-}
-
-static void append_le16(data_t& data, uint16_t word)
-{
-    data.push_back(static_cast<uint8_t>(word & 0xFF));
-    data.push_back(static_cast<uint8_t>((word >> 8) & 0xFF));
 }
 
 static std::vector<uint16_t> evo_words(const data_t& data)
