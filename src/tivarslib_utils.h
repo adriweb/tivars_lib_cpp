@@ -36,6 +36,9 @@ unsigned char hexdec(const std::string& str);
 
 data_t hex_string_to_bytes(const std::string& hex, const char* fieldName = "hex string");
 
+void append_le16(data_t& out, uint16_t value);
+void append_le32(data_t& out, uint32_t value);
+
 std::string dechex(unsigned char i, bool zeropad = true);
 
 std::string strtoupper(const std::string& str);
