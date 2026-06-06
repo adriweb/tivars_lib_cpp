@@ -402,6 +402,21 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
     const auto asciiString = [&]() {
         return std::string(reinterpret_cast<const char*>(nameBytes), asciiLen);
     };
+    const auto tiNameBodyString = [](const uint8_t* bytes, size_t len) {
+        std::string out;
+        for (size_t i = 0; i < len; i++)
+        {
+            if (bytes[i] == 0x5B)
+            {
+                out += "θ";
+            }
+            else
+            {
+                out.push_back(static_cast<char>(bytes[i]));
+            }
+        }
+        return out;
+    };
     const auto printableAsciiString = [&]() {
         for (size_t i = 0; i < asciiLen; i++)
         {
@@ -411,6 +426,29 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
             }
         }
         return asciiString();
+    };
+    const auto printableTINameString = [&]() {
+        for (size_t i = 0; i < asciiLen; i++)
+        {
+            if (nameBytes[i] < 0x20 || nameBytes[i] > 0x7E)
+            {
+                return std::string();
+            }
+        }
+        return tiNameBodyString(nameBytes, asciiLen);
+    };
+    const auto hasTINameCharacters = [&]() {
+        switch (typeId)
+        {
+            case 0x05: // Program
+            case 0x06: // ProtectedProgram
+            case 0x15: // AppVar
+            case 0x17: // GroupObject
+            case 0x26: // AppIDList
+                return true;
+            default:
+                return false;
+        }
     };
     const auto validCustomListNameBody = [&]() {
         if (asciiLen == 0 || asciiLen > 5 || std::isdigit(static_cast<unsigned char>(nameBytes[0])))
@@ -479,11 +517,11 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
 
         const auto listNulPos = static_cast<const uint8_t*>(memchr(nameBytes + 1, '\0', size - 1));
         const size_t listLen = listNulPos ? static_cast<size_t>(listNulPos - (nameBytes + 1)) : (size - 1);
-        return std::string(reinterpret_cast<const char*>(nameBytes + 1), listLen);
+        return tiNameBodyString(nameBytes + 1, listLen);
     }
     if ((typeId == 0x01 || typeId == 0x0D) && validCustomListNameBody())
     {
-        return asciiString();
+        return tiNameBodyString(nameBytes, asciiLen);
     }
 
     if (typeId == 0x02 && first == 0x5C && second <= 0x09)
@@ -557,9 +595,9 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
         return "Image"s + digit;
     }
 
-    if (typeId == 0x05 || typeId == 0x06 || typeId == 0x15 || typeId == 0x17 || typeId == 0x26)
+    if (hasTINameCharacters())
     {
-        return printableAsciiString();
+        return printableTINameString();
     }
 
     if (first >= 'A' && first <= 'Z')

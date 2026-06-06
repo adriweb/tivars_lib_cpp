@@ -2010,6 +2010,7 @@ End)";
         const auto& firstVarEntry = testTheta.getVarEntries()[0];
         cout << "testTheta firstVarEntry varname : " << firstVarEntry.varname << endl;
         assert(std::equal(firstVarEntry.varname, firstVarEntry.varname + 8, testThetaVarName));
+        assert(entry_name_to_string(firstVarEntry._type, firstVarEntry.varname) == "θθθθ");
         assert(sanitize_for_host_filename("θ/Y₀") == "θ_Y0T");
     }
 
@@ -2044,6 +2045,11 @@ End)";
         TIVarFile customDigitList = TIVarFile::createNew("RealList", "A1B2C");
         const uint8_t expectedCustomDigitList[8] = {0x5D, 'A', '1', 'B', '2', 'C'};
         assert(std::equal(customDigitList.getVarEntries()[0].varname, customDigitList.getVarEntries()[0].varname + 8, expectedCustomDigitList));
+
+        TIVarFile customThetaList = TIVarFile::createNew("RealList", "θA");
+        const uint8_t expectedCustomThetaList[8] = {0x5D, 0x5B, 'A'};
+        assert(std::equal(customThetaList.getVarEntries()[0].varname, customThetaList.getVarEntries()[0].varname + 8, expectedCustomThetaList));
+        assert(entry_name_to_string(customThetaList.getVarEntries()[0]._type, customThetaList.getVarEntries()[0].varname) == "θA");
 
         TIVarFile namedComplexList = TIVarFile::createNew("ComplexList", "AB12");
         const uint8_t expectedNamedComplexList[8] = {0x5D, 'A', 'B', '1', '2'};
@@ -2120,6 +2126,8 @@ End)";
         assert(std::equal(malformedEntry.varname, malformedEntry.varname + 8, expectedComplexListName));
         assert(entry_name_to_string(malformedEntry._type, malformedEntry.varname) == "DEF");
         assert(entry_name_to_string(TIVarType{"ComplexList"}, &malformed[nameOffset]) == "DEF");
+        const uint8_t malformedThetaName[8] = {0x5B, 'E', 'F'};
+        assert(entry_name_to_string(TIVarType{"ComplexList"}, malformedThetaName) == "θEF");
         assert(malformedComplexList.getReadableContent() == "{9i,8,1+7i}");
 
         const std::string resavedPath = malformedComplexList.saveVarToFile("/tmp", "");
@@ -2382,6 +2390,26 @@ End)";
         const std::string thetaRealPath = expected_sanitized_save_path(thetaReal, "8xn");
         assert(thetaReal.saveVarToFile("/tmp", "") == thetaRealPath);
         assert(remove(thetaRealPath.c_str()) == 0);
+
+        TIVarFile thetaProgram = TIVarFile::createNew("Program", "θA");
+        thetaProgram.setContentFromString("Disp 42");
+        const std::string thetaProgramPath = expected_sanitized_save_path(thetaProgram, "8xp");
+        assert(thetaProgramPath == "/tmp/θA.8xp");
+        assert(thetaProgram.saveVarToFile("/tmp", "") == thetaProgramPath);
+        assert(remove(thetaProgramPath.c_str()) == 0);
+
+        TIVarFile thetaAppVar = TIVarFile::createNew("AppVar", "θDATA", "83PCE");
+        thetaAppVar.setContentFromString("DEADBEEF");
+        const std::string thetaAppVarPath = expected_sanitized_save_path(thetaAppVar, "8xv");
+        assert(thetaAppVarPath == "/tmp/θDATA.8xv");
+        assert(thetaAppVar.saveVarToFile("/tmp", "") == thetaAppVarPath);
+        assert(remove(thetaAppVarPath.c_str()) == 0);
+
+        const uint8_t thetaGroupName[8] = {0x5B, 'G', 'R', 'P'};
+        assert(entry_name_to_string(TIVarType{"GroupObject"}, thetaGroupName) == "θGRP");
+
+        const uint8_t thetaIdListName[8] = {0x5B, 'I', 'D'};
+        assert(entry_name_to_string(TIVarType{"AppIDList"}, thetaIdListName) == "θID");
 
         TIVarFile namedGroup = TIVarFile::createNew("GroupObject", "GROUP123", "83PCE");
         namedGroup.setContentFromString(R"({
