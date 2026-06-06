@@ -7,6 +7,7 @@
 
 #include "TIVarFile.h"
 
+#include <algorithm>
 #include <iomanip>
 
 #include "tivarslib_utils.h"
@@ -271,6 +272,41 @@ namespace tivars
             }
             name = std::string(1, 0x5D) + upperName;
             return true;
+        }
+
+        bool is_custom_list_name_body(const std::string& name)
+        {
+            const auto nulPos = static_cast<const char*>(memchr(name.data(), '\0', name.size()));
+            const size_t len = nulPos ? static_cast<size_t>(nulPos - name.data()) : name.size();
+            if (len == 0 || len > 5 || std::isdigit(static_cast<unsigned char>(name[0])))
+            {
+                return false;
+            }
+            for (size_t i = 0; i < len; i++)
+            {
+                if (!is_name_char(name[i]))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        std::string canonicalize_loaded_var_name(const TIVarType& type, const std::string& name)
+        {
+            if ((type.getName() == "RealList" || type.getName() == "ComplexList")
+                && !name.empty()
+                && static_cast<uint8_t>(name[0]) != 0x5D
+                && is_custom_list_name_body(name))
+            {
+                const auto nulPos = static_cast<const char*>(memchr(name.data(), '\0', name.size()));
+                const size_t len = nulPos ? static_cast<size_t>(nulPos - name.data()) : name.size();
+                std::string canonical(sizeof(TIVarFile::var_entry_t::varname), '\0');
+                canonical[0] = static_cast<char>(0x5D);
+                std::copy_n(name.begin(), len, canonical.begin() + 1);
+                return canonical;
+            }
+            return name;
         }
 
         bool normalize_matrix_name(std::string& name)
@@ -552,8 +588,8 @@ namespace tivars
             // Now that we have the data, we can retrieve the (full) type...
             entry.determineFullType();
 
-            // We preserve the raw on-file varname bytes on load instead of re-normalizing through setVarName().
-            std::ranges::copy(varNameFromFile, entry.varname);
+            // Preserve raw on-file bytes except for list files missing the custom-list marker.
+            std::ranges::copy(canonicalize_loaded_var_name(entry._type, varNameFromFile), entry.varname);
 
             this->entries.push_back(entry);
         }

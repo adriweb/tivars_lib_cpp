@@ -412,6 +412,21 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
         }
         return asciiString();
     };
+    const auto validCustomListNameBody = [&]() {
+        if (asciiLen == 0 || asciiLen > 5 || std::isdigit(static_cast<unsigned char>(nameBytes[0])))
+        {
+            return false;
+        }
+        for (size_t i = 0; i < asciiLen; i++)
+        {
+            const uint8_t c = nameBytes[i];
+            if (!std::isdigit(c) && (c < 'A' || c > 'Z') && c != 0x5B)
+            {
+                return false;
+            }
+        }
+        return true;
+    };
     const auto canonicalize_equation_name = [&](uint8_t& outSecond) {
         if (first == 0x5E)
         {
@@ -465,6 +480,10 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
         const auto listNulPos = static_cast<const uint8_t*>(memchr(nameBytes + 1, '\0', size - 1));
         const size_t listLen = listNulPos ? static_cast<size_t>(listNulPos - (nameBytes + 1)) : (size - 1);
         return std::string(reinterpret_cast<const char*>(nameBytes + 1), listLen);
+    }
+    if ((typeId == 0x01 || typeId == 0x0D) && validCustomListNameBody())
+    {
+        return asciiString();
     }
 
     if (typeId == 0x02 && first == 0x5C && second <= 0x09)

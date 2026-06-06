@@ -13,7 +13,12 @@
 #include <sstream>
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 #include <array>
+#include <vector>
+#include <tuple>
+#include <utility>
+#include <iterator>
 
 #ifndef _WIN32
     #include <sys/stat.h>
@@ -126,6 +131,13 @@ static void write_binary_file(const std::string& path, const data_t& data)
     assert(file.good());
     file.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
     assert(file.good());
+}
+
+static data_t read_binary_file(const std::string& path)
+{
+    std::ifstream file(path, std::ios::binary);
+    assert(file.good());
+    return data_t(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 }
 
 static void assert_preview_bmp_data_url(const std::string& url, uint32_t width, uint32_t height)
@@ -2076,6 +2088,49 @@ End)";
         TIVarFile reloadedNamedList = TIVarFile::loadFromFile(savedNamedListPath);
         assert(reloadedNamedList.getRawContent() == namedListFromFile.getRawContent());
         assert(remove(savedNamedListPath.c_str()) == 0);
+    }
+
+    {
+        TIVarFile complexList = TIVarFile::createNew("ComplexList", "DEF");
+        complexList.setContentFromString("{9i,8,1+7i}");
+
+        const std::string malformedPath = complexList.saveVarToFile("/tmp", "DEF_MISSING_LIST_MARKER");
+        data_t malformed = read_binary_file(malformedPath);
+        const size_t nameOffset = TIVarFile::firstVarEntryOffset + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint8_t);
+        assert(malformed[nameOffset] == 0x5D);
+
+        malformed[nameOffset] = 'D';
+        malformed[nameOffset + 1] = 'E';
+        malformed[nameOffset + 2] = 'F';
+        std::fill(malformed.begin() + static_cast<ptrdiff_t>(nameOffset + 3), malformed.begin() + static_cast<ptrdiff_t>(nameOffset + 8), 0);
+
+        uint16_t checksum = 0;
+        for (size_t i = TIVarFile::firstVarEntryOffset; i < malformed.size() - 2; i++)
+        {
+            checksum += malformed[i];
+        }
+        malformed[malformed.size() - 2] = static_cast<uint8_t>(checksum & 0xFF);
+        malformed[malformed.size() - 1] = static_cast<uint8_t>((checksum >> 8) & 0xFF);
+        write_binary_file(malformedPath, malformed);
+
+        TIVarFile malformedComplexList = TIVarFile::loadFromFile(malformedPath);
+        const uint8_t expectedComplexListName[8] = {0x5D, 'D', 'E', 'F'};
+        const auto& malformedEntry = malformedComplexList.getVarEntries()[0];
+        assert(!malformedComplexList.isCorrupt());
+        assert(std::equal(malformedEntry.varname, malformedEntry.varname + 8, expectedComplexListName));
+        assert(entry_name_to_string(malformedEntry._type, malformedEntry.varname) == "DEF");
+        assert(entry_name_to_string(TIVarType{"ComplexList"}, &malformed[nameOffset]) == "DEF");
+        assert(malformedComplexList.getReadableContent() == "{9i,8,1+7i}");
+
+        const std::string resavedPath = malformedComplexList.saveVarToFile("/tmp", "");
+        assert(resavedPath == "/tmp/DEF.8xl");
+        const data_t resaved = read_binary_file(resavedPath);
+        assert(resaved[nameOffset] == 0x5D);
+        assert(resaved[nameOffset + 1] == 'D');
+        assert(resaved[nameOffset + 2] == 'E');
+        assert(resaved[nameOffset + 3] == 'F');
+        assert(remove(malformedPath.c_str()) == 0);
+        assert(remove(resavedPath.c_str()) == 0);
     }
 
     {
