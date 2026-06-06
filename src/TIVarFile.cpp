@@ -180,7 +180,7 @@ namespace tivars
             }
             if (typeName == "RealList" || typeName == "ComplexList")
             {
-                return make_indexed_var_name(0x5D, 0x00);
+                return make_indexed_var_name(TypeHandlers::TH_GenericList::listNameMarker, 0x00);
             }
             if (typeName == "Matrix")
             {
@@ -224,7 +224,7 @@ namespace tivars
 
         bool normalize_list_name(std::string& name)
         {
-            if (!name.empty() && static_cast<uint8_t>(name[0]) == 0x5D)
+            if (!name.empty() && static_cast<uint8_t>(name[0]) == TypeHandlers::TH_GenericList::listNameMarker)
             {
                 if (name.size() == 1)
                 {
@@ -251,12 +251,12 @@ namespace tivars
             const std::string upperName = uppercase_ascii(name);
             if (upperName == "IDLIST")
             {
-                name = make_indexed_var_name(0x5D, 0x40);
+                name = make_indexed_var_name(TypeHandlers::TH_GenericList::listNameMarker, 0x40);
                 return true;
             }
             if (upperName.size() == 2 && upperName[0] == 'L' && upperName[1] >= '1' && upperName[1] <= '6')
             {
-                name = make_indexed_var_name(0x5D, static_cast<uint8_t>(upperName[1] - '1'));
+                name = make_indexed_var_name(TypeHandlers::TH_GenericList::listNameMarker, static_cast<uint8_t>(upperName[1] - '1'));
                 return true;
             }
             if (upperName.empty() || upperName.size() > 5 || std::isdigit(static_cast<unsigned char>(upperName[0])))
@@ -270,7 +270,7 @@ namespace tivars
                     return false;
                 }
             }
-            name = std::string(1, 0x5D) + upperName;
+            name = std::string(1, static_cast<char>(TypeHandlers::TH_GenericList::listNameMarker)) + upperName;
             return true;
         }
 
@@ -296,13 +296,13 @@ namespace tivars
         {
             if ((type.getName() == "RealList" || type.getName() == "ComplexList")
                 && !name.empty()
-                && static_cast<uint8_t>(name[0]) != 0x5D
+                && static_cast<uint8_t>(name[0]) != TypeHandlers::TH_GenericList::listNameMarker
                 && is_custom_list_name_body(name))
             {
                 const auto nulPos = static_cast<const char*>(memchr(name.data(), '\0', name.size()));
                 const size_t len = nulPos ? static_cast<size_t>(nulPos - name.data()) : name.size();
                 std::string canonical(sizeof(TIVarFile::var_entry_t::varname), '\0');
-                canonical[0] = static_cast<char>(0x5D);
+                canonical[0] = static_cast<char>(TypeHandlers::TH_GenericList::listNameMarker);
                 std::copy_n(name.begin(), len, canonical.begin() + 1);
                 return canonical;
             }

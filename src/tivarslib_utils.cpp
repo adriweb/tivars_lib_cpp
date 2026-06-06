@@ -15,6 +15,8 @@
 #include <limits>
 #include <stdexcept>
 
+#include "TypeHandlers/TypeHandlers.h"
+
 using namespace std::string_literals;
 
 namespace tivars
@@ -504,7 +506,7 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
         return false;
     };
 
-    if ((typeId == 0x01 || typeId == 0x0D) && first == 0x5D)
+    if ((typeId == 0x01 || typeId == 0x0D) && first == TypeHandlers::TH_GenericList::listNameMarker)
     {
         if (second <= 0x05)
         {

@@ -122,6 +122,7 @@ namespace tivars::TypeHandlers
     {
         public:
         th();
+        static const constexpr uint8_t listNameMarker = 0x5D;
     };
 
     class TH_Matrix : public DummyHandler

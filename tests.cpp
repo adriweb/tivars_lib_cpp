@@ -2027,32 +2027,32 @@ End)";
 
         TIVarFile listDefaultVar = TIVarFile::createNew("RealList");
         const auto& listDefault = listDefaultVar.getVarEntries()[0];
-        const uint8_t expectedListDefault[8] = {0x5D, 0x00};
+        const uint8_t expectedListDefault[8] = {TH_GenericList::listNameMarker, 0x00};
         assert(std::equal(listDefault.varname, listDefault.varname + 8, expectedListDefault));
 
         TIVarFile customList = TIVarFile::createNew("RealList", "abcde");
-        const uint8_t expectedCustomList[8] = {0x5D, 'A', 'B', 'C', 'D', 'E'};
+        const uint8_t expectedCustomList[8] = {TH_GenericList::listNameMarker, 'A', 'B', 'C', 'D', 'E'};
         assert(std::equal(customList.getVarEntries()[0].varname, customList.getVarEntries()[0].varname + 8, expectedCustomList));
 
         TIVarFile stdList = TIVarFile::createNew("RealList", "L6");
-        const uint8_t expectedStdList[8] = {0x5D, 0x05};
+        const uint8_t expectedStdList[8] = {TH_GenericList::listNameMarker, 0x05};
         assert(std::equal(stdList.getVarEntries()[0].varname, stdList.getVarEntries()[0].varname + 8, expectedStdList));
 
         TIVarFile idList = TIVarFile::createNew("RealList", "IDList");
-        const uint8_t expectedIdList[8] = {0x5D, 0x40};
+        const uint8_t expectedIdList[8] = {TH_GenericList::listNameMarker, 0x40};
         assert(std::equal(idList.getVarEntries()[0].varname, idList.getVarEntries()[0].varname + 8, expectedIdList));
 
         TIVarFile customDigitList = TIVarFile::createNew("RealList", "A1B2C");
-        const uint8_t expectedCustomDigitList[8] = {0x5D, 'A', '1', 'B', '2', 'C'};
+        const uint8_t expectedCustomDigitList[8] = {TH_GenericList::listNameMarker, 'A', '1', 'B', '2', 'C'};
         assert(std::equal(customDigitList.getVarEntries()[0].varname, customDigitList.getVarEntries()[0].varname + 8, expectedCustomDigitList));
 
         TIVarFile customThetaList = TIVarFile::createNew("RealList", "θA");
-        const uint8_t expectedCustomThetaList[8] = {0x5D, 0x5B, 'A'};
+        const uint8_t expectedCustomThetaList[8] = {TH_GenericList::listNameMarker, 0x5B, 'A'};
         assert(std::equal(customThetaList.getVarEntries()[0].varname, customThetaList.getVarEntries()[0].varname + 8, expectedCustomThetaList));
         assert(entry_name_to_string(customThetaList.getVarEntries()[0]._type, customThetaList.getVarEntries()[0].varname) == "θA");
 
         TIVarFile namedComplexList = TIVarFile::createNew("ComplexList", "AB12");
-        const uint8_t expectedNamedComplexList[8] = {0x5D, 'A', 'B', '1', '2'};
+        const uint8_t expectedNamedComplexList[8] = {TH_GenericList::listNameMarker, 'A', 'B', '1', '2'};
         assert(std::equal(namedComplexList.getVarEntries()[0].varname, namedComplexList.getVarEntries()[0].varname + 8, expectedNamedComplexList));
 
         bool threwInvalidList = false;
@@ -2080,7 +2080,7 @@ End)";
 
     {
         TIVarFile namedListFromFile = TIVarFile::loadFromFile("testData/LISTABC.8xl");
-        const uint8_t expectedNamedList[8] = {0x5D, 'A', 'B', 'C'};
+        const uint8_t expectedNamedList[8] = {TH_GenericList::listNameMarker, 'A', 'B', 'C'};
         assert(std::equal(namedListFromFile.getVarEntries()[0].varname, namedListFromFile.getVarEntries()[0].varname + 8, expectedNamedList));
         assert(namedListFromFile.saveVarToFile("/tmp", "") == "/tmp/ABC.8xl");
         assert(remove("/tmp/ABC.8xl") == 0);
@@ -2103,7 +2103,7 @@ End)";
         const std::string malformedPath = complexList.saveVarToFile("/tmp", "DEF_MISSING_LIST_MARKER");
         data_t malformed = read_binary_file(malformedPath);
         const size_t nameOffset = TIVarFile::firstVarEntryOffset + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint8_t);
-        assert(malformed[nameOffset] == 0x5D);
+        assert(malformed[nameOffset] == TH_GenericList::listNameMarker);
 
         malformed[nameOffset] = 'D';
         malformed[nameOffset + 1] = 'E';
@@ -2120,7 +2120,7 @@ End)";
         write_binary_file(malformedPath, malformed);
 
         TIVarFile malformedComplexList = TIVarFile::loadFromFile(malformedPath);
-        const uint8_t expectedComplexListName[8] = {0x5D, 'D', 'E', 'F'};
+        const uint8_t expectedComplexListName[8] = {TH_GenericList::listNameMarker, 'D', 'E', 'F'};
         const auto& malformedEntry = malformedComplexList.getVarEntries()[0];
         assert(!malformedComplexList.isCorrupt());
         assert(std::equal(malformedEntry.varname, malformedEntry.varname + 8, expectedComplexListName));
@@ -2133,7 +2133,7 @@ End)";
         const std::string resavedPath = malformedComplexList.saveVarToFile("/tmp", "");
         assert(resavedPath == "/tmp/DEF.8xl");
         const data_t resaved = read_binary_file(resavedPath);
-        assert(resaved[nameOffset] == 0x5D);
+        assert(resaved[nameOffset] == TH_GenericList::listNameMarker);
         assert(resaved[nameOffset + 1] == 'D');
         assert(resaved[nameOffset + 2] == 'E');
         assert(resaved[nameOffset + 3] == 'F');
