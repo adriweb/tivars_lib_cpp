@@ -76,7 +76,12 @@ namespace tivars
 
         bool model_supports_all_entries(const TIModel& model, const std::vector<TIVarFile::var_entry_t>& entries)
         {
-            return std::ranges::all_of(entries, [&model](const auto& entry) { return model.supportsType(entry._type); });
+            const bool targetEvoFormat = (model.getFlags() & TIFeatureFlags::hasEvoASIC) != 0;
+            return std::ranges::all_of(entries, [&model, targetEvoFormat](const auto& entry)
+            {
+                return model.supportsType(entry._type)
+                    || (targetEvoFormat && entry._type.getName() == "PythonImageAppVar");
+            });
         }
 
         bool make_evo_legacy_readable_view(const TIVarFile::var_entry_t& entry, const options_t& options, std::string& content)
@@ -1180,7 +1185,8 @@ namespace tivars
             {
                 if (targetEvoFormat)
                 {
-                    const EvoTypeID evoTypeID = evo_type_from_type(entry._type);
+                    const bool pythonImageAppVar = entry._type.getName() == "PythonImageAppVar";
+                    const EvoTypeID evoTypeID = pythonImageAppVar ? EvoTypeID::AppVar : evo_type_from_type(entry._type);
                     const std::string displayName = entry_name_to_string(entry._type, entry.varname, sizeof(var_entry_t::varname));
 
                     entry.evoFields.clear();
@@ -1216,12 +1222,16 @@ namespace tivars
                     {
                         entry.data = legacy_image_to_evo(entry.data, entry.evoFields);
                     }
-                    else if (entry._type.getName() == "AppVar" || entry._type.getName() == "PythonAppVar")
+                    else if (entry._type.getName() == "AppVar" || entry._type.getName() == "PythonAppVar" || pythonImageAppVar)
                     {
                         entry.evoFields["version"] = 1;
                         if (entry._type.getName() == "PythonAppVar")
                         {
                             entry.data = legacy_python_appvar_to_evo_python_script(entry.data, displayName);
+                        }
+                        else if (pythonImageAppVar)
+                        {
+                            entry.data = TypeHandlers::TH_StructuredAppVar::rebuildPythonImageAppVarForFormat(entry.data, true);
                         }
                         entry.evoFields["size"] = entry.data.size();
                     }
@@ -1285,6 +1295,10 @@ namespace tivars
                     {
                         set_entry_type(entry, TIVarType{"AppVar"});
                         entry.determineFullType();
+                        if (entry._type.getName() == "PythonImageAppVar")
+                        {
+                            entry.data = TypeHandlers::TH_StructuredAppVar::rebuildPythonImageAppVarForFormat(entry.data, false);
+                        }
                     }
                     else if (entry.evoTypeID == EvoTypeID::PythonScript && !entry.evoDataIsRawCBOR)
                     {

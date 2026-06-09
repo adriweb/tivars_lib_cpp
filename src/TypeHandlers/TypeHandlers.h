@@ -157,6 +157,7 @@ namespace tivars::TypeHandlers
     {
     public:
         th();
+        static data_t rebuildPythonImageAppVarForFormat(const data_t& data, bool targetEvoFormat);
     };
 
     class TH_Backup : public DummyHandler

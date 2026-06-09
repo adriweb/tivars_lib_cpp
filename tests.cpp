@@ -3401,6 +3401,103 @@ End)";
         rebuiltRealImage.setContentFromString(realPythonImage.getReadableContent());
         assert(rebuiltRealImage.getRawContent() == realPythonImage.getRawContent());
 
+        TIVarFile evoPythonImage = TIVarFile::createNew("AppVar", "TESTIM8C", "84Evo");
+        evoPythonImage.setContentFromString(realPythonImage.getReadableContent());
+        const data_t evoPythonImageRaw = evoPythonImage.getRawContent();
+        assert(evoPythonImageRaw.size() == 2 + 4 + 10 + realPythonImageJSON["palette"]["entryCount"].get<size_t>() * 2 + 154 * 42);
+        assert(evoPythonImageRaw[2] == 'I' && evoPythonImageRaw[3] == 'M' && evoPythonImageRaw[4] == '8' && evoPythonImageRaw[5] == 'C');
+        assert(evoPythonImageRaw[6] == 0x01 && evoPythonImageRaw[7] == 0x00);
+        assert(evoPythonImageRaw[8] == 154 && evoPythonImageRaw[9] == 0x00);
+        assert(evoPythonImageRaw[10] == 42 && evoPythonImageRaw[11] == 0x00);
+        const json evoPythonImageOuterJSON = json::parse(evoPythonImage.getReadableContent());
+        assert(evoPythonImageOuterJSON["typeName"] == "AppVar");
+        const json evoPythonImageJSON = json::parse(evoPythonImageOuterJSON["readableContent"].get<std::string>());
+        assert(evoPythonImageJSON["typeName"] == "PythonImageAppVar");
+        assert(evoPythonImageJSON["format"] == "EvoRawIndexed");
+        assert(evoPythonImageJSON["width"] == 154);
+        assert(evoPythonImageJSON["height"] == 42);
+        assert(evoPythonImageJSON["imageDataLength"] == 154 * 42);
+        assert_preview_bmp_data_url(evoPythonImageJSON["previewImageDataUrl"], 154, 42);
+        assert((read_preview_bmp_pixel_rgba(evoPythonImageJSON["previewImageDataUrl"], 20, 10) == std::array<uint8_t, 4>{66, 65, 66, 0xFF}));
+
+        TIVarFile convertedEvoPythonImage = TIVarFile::loadFromFile("testData/TESTIM8C.8xv");
+        convertedEvoPythonImage.convertToModel(TIModel{"84Evo"});
+        const json convertedEvoPythonImageOuterJSON = json::parse(convertedEvoPythonImage.getReadableContent());
+        const json convertedEvoPythonImageJSON = json::parse(convertedEvoPythonImageOuterJSON["readableContent"].get<std::string>());
+        assert(convertedEvoPythonImageJSON["typeName"] == "PythonImageAppVar");
+        assert(convertedEvoPythonImageJSON["format"] == "EvoRawIndexed");
+        assert(convertedEvoPythonImageJSON["imageDataLength"] == 154 * 42);
+
+        TIVarFile evoRawPythonImage = TIVarFile::createNew("AppVar", "RAWIMG", "84Evo");
+        evoRawPythonImage.setContentFromString(R"({
+    "typeName": "PythonImageAppVar",
+    "format": "EvoRawIndexed",
+    "magic": "IM8C",
+    "width": 4,
+    "height": 2,
+    "palette": {
+        "entryCount": 2,
+        "hasAlpha": false,
+        "transparentIndex": 0,
+        "entries": [0, 2016]
+    },
+    "imageDataHex": "0101010101010101"
+})");
+        evoRawPythonImage.convertToModel(TIModel{"83PCE"});
+        assert(!evoRawPythonImage.isEvoFormat());
+        assert(evoRawPythonImage.getVarEntries()[0]._type.getName() == "PythonImageAppVar");
+        const json ceFromEvoRawPythonImageJSON = json::parse(evoRawPythonImage.getReadableContent());
+        assert(!ceFromEvoRawPythonImageJSON.contains("format"));
+        assert(ceFromEvoRawPythonImageJSON["imageDataHex"] == "8601");
+        assert_preview_bmp_data_url(ceFromEvoRawPythonImageJSON["previewImageDataUrl"], 4, 2);
+        assert((read_preview_bmp_pixel_rgba(ceFromEvoRawPythonImageJSON["previewImageDataUrl"], 3, 1) == std::array<uint8_t, 4>{0, 255, 0, 0xFF}));
+
+        TIVarFile evoRlePythonImage = TIVarFile::createNew("AppVar", "RLEIMG", "84Evo");
+        evoRlePythonImage.setContentFromString(R"({
+    "typeName": "PythonImageAppVar",
+    "format": "EvoRle",
+    "magic": "IM8C",
+    "width": 4,
+    "height": 2,
+    "palette": {
+        "entryCount": 2,
+        "hasAlpha": false,
+        "transparentIndex": 0,
+        "entries": [0, 2016]
+    },
+    "imageDataHex": "8601"
+})");
+        const data_t evoRlePythonImageRaw = evoRlePythonImage.getRawContent();
+        assert((evoRlePythonImageRaw == data_t({
+            0x14, 0x00, 'I', 'M', '8', 'C',
+            0x02, 0x00, 0x04, 0x00, 0x02, 0x00,
+            0x00, 0x00, 0x02, 0x00,
+            0x00, 0x00, 0xE0, 0x07,
+            0x86, 0x01
+        })));
+        const json evoRlePythonImageOuterJSON = json::parse(evoRlePythonImage.getReadableContent());
+        const json evoRlePythonImageJSON = json::parse(evoRlePythonImageOuterJSON["readableContent"].get<std::string>());
+        assert(evoRlePythonImageJSON["typeName"] == "PythonImageAppVar");
+        assert(evoRlePythonImageJSON["format"] == "EvoRle");
+        assert(evoRlePythonImageJSON["width"] == 4);
+        assert(evoRlePythonImageJSON["height"] == 2);
+        assert(evoRlePythonImageJSON["imageDataLength"] == 2);
+        assert(evoRlePythonImageJSON["imageDataHex"] == "8601");
+        assert_preview_bmp_data_url(evoRlePythonImageJSON["previewImageDataUrl"], 4, 2);
+        assert((read_preview_bmp_pixel_rgba(evoRlePythonImageJSON["previewImageDataUrl"], 0, 0) == std::array<uint8_t, 4>{0, 255, 0, 0xFF}));
+        assert((read_preview_bmp_pixel_rgba(evoRlePythonImageJSON["previewImageDataUrl"], 3, 1) == std::array<uint8_t, 4>{0, 255, 0, 0xFF}));
+
+        TIVarFile ceFromEvoRlePythonImage = TIVarFile::createNew("AppVar", "RLEIMG", "84Evo");
+        ceFromEvoRlePythonImage.setContentFromString(evoRlePythonImageJSON.dump());
+        ceFromEvoRlePythonImage.convertToModel(TIModel{"83PCE"});
+        assert(!ceFromEvoRlePythonImage.isEvoFormat());
+        assert(ceFromEvoRlePythonImage.getVarEntries()[0]._type.getName() == "PythonImageAppVar");
+        const json ceFromEvoRlePythonImageJSON = json::parse(ceFromEvoRlePythonImage.getReadableContent());
+        assert(!ceFromEvoRlePythonImageJSON.contains("format"));
+        assert(ceFromEvoRlePythonImageJSON["imageDataHex"] == "8601");
+        assert_preview_bmp_data_url(ceFromEvoRlePythonImageJSON["previewImageDataUrl"], 4, 2);
+        assert((read_preview_bmp_pixel_rgba(ceFromEvoRlePythonImageJSON["previewImageDataUrl"], 3, 1) == std::array<uint8_t, 4>{0, 255, 0, 0xFF}));
+
         TIVarFile girlNoAlphaImage = TIVarFile::loadFromFile("testData/GIRL_150_noalpha.8xv");
         assert(girlNoAlphaImage.getVarEntries()[0]._type.getName() == "PythonImageAppVar");
         const json girlNoAlphaJSON = json::parse(girlNoAlphaImage.getReadableContent());

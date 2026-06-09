@@ -11,6 +11,7 @@
 #include "TypeHandlers.h"
 
 #include "../json.hpp"
+#include "../TIVarFile.h"
 #include "../tivarslib_utils.h"
 
 #include <array>
@@ -38,6 +39,8 @@ namespace tivars::TypeHandlers
         constexpr uint8_t pythonRecordTypeFilename = 0x01;
         constexpr uint8_t pythonRecordTypeMenuDefinitions = 0x02;
         constexpr uint8_t pythonImagePaletteMarker = 0x01;
+        constexpr uint16_t evoPythonImageRawIndexedFormat = 0x0001;
+        constexpr uint16_t evoPythonImageRleFormat = 0x0002;
         constexpr size_t studyCardsTitleCount = 4;
         constexpr size_t studyCardsSettingsNameByteCount = 9;
         constexpr size_t cellSheetNameByteCount = 8;
@@ -278,6 +281,104 @@ namespace tivars::TypeHandlers
             return decoded;
         }
 
+        data_t encode_python_image_rle(uint32_t width, uint32_t height, data_t imageIndices)
+        {
+            const size_t expectedPixels = python_image_pixel_count(width, height);
+            imageIndices.resize(expectedPixels, 0);
+
+            data_t encoded;
+            size_t pos = 0;
+            while (pos < imageIndices.size())
+            {
+                size_t repeated = 1;
+                while (pos + repeated < imageIndices.size()
+                    && repeated < 129
+                    && imageIndices[pos + repeated] == imageIndices[pos])
+                {
+                    repeated++;
+                }
+
+                if (repeated >= 2)
+                {
+                    encoded.push_back(static_cast<uint8_t>(0x80 | (repeated - 2)));
+                    encoded.push_back(imageIndices[pos]);
+                    pos += repeated;
+                    continue;
+                }
+
+                const size_t literalStart = pos++;
+                while (pos < imageIndices.size() && pos - literalStart < 128)
+                {
+                    repeated = 1;
+                    while (pos + repeated < imageIndices.size()
+                        && repeated < 129
+                        && imageIndices[pos + repeated] == imageIndices[pos])
+                    {
+                        repeated++;
+                    }
+
+                    if (repeated >= 2)
+                    {
+                        break;
+                    }
+                    pos++;
+                }
+
+                const size_t literalLength = pos - literalStart;
+                encoded.push_back(static_cast<uint8_t>(literalLength - 1));
+                encoded.insert(encoded.end(),
+                               imageIndices.begin() + static_cast<ptrdiff_t>(literalStart),
+                               imageIndices.begin() + static_cast<ptrdiff_t>(literalStart + literalLength));
+            }
+
+            return encoded;
+        }
+
+        uint16_t evo_python_image_format_from_json(const json& j)
+        {
+            if (!j.contains("format"))
+            {
+                return evoPythonImageRawIndexedFormat;
+            }
+
+            const json& format = j.at("format");
+            if (format.is_number_unsigned() || format.is_number_integer())
+            {
+                const int value = format.get<int>();
+                if (value == evoPythonImageRawIndexedFormat || value == evoPythonImageRleFormat)
+                {
+                    return static_cast<uint16_t>(value);
+                }
+            }
+            else if (format.is_string())
+            {
+                const std::string value = format.get<std::string>();
+                if (value == "EvoRawIndexed")
+                {
+                    return evoPythonImageRawIndexedFormat;
+                }
+                if (value == "EvoRle" || value == "EvoRLE" || value == "EvoCompressed")
+                {
+                    return evoPythonImageRleFormat;
+                }
+            }
+
+            throw std::invalid_argument("Unsupported Evo PythonImageAppVar format");
+        }
+
+        const char* evo_python_image_format_name(uint16_t format)
+        {
+            switch (format)
+            {
+                case evoPythonImageRawIndexedFormat:
+                    return "EvoRawIndexed";
+                case evoPythonImageRleFormat:
+                    return "EvoRle";
+                default:
+                    return "EvoUnknown";
+            }
+        }
+
         data_t make_python_image_preview_rgba(uint32_t width,
                                               uint32_t height,
                                               bool hasAlpha,
@@ -380,6 +481,124 @@ namespace tivars::TypeHandlers
             append_uleb128(payload, static_cast<uint32_t>(data.size() + 1));
             payload.push_back(type);
             vector_append(payload, data);
+        }
+
+        uint32_t json_u32(const json& j, const char* key)
+        {
+            const int value = j.at(key).get<int>();
+            if (value < 0)
+            {
+                throw std::invalid_argument(std::string(key) + " must be non-negative");
+            }
+            return static_cast<uint32_t>(value);
+        }
+
+        data_t python_image_palette_entries_from_json(const json& palette)
+        {
+            const json& entries = palette.at("entries");
+            if (!entries.is_array() || entries.empty() || entries.size() > 256)
+            {
+                throw std::invalid_argument("palette.entries must contain between 1 and 256 values");
+            }
+
+            data_t packed;
+            packed.reserve(entries.size() * 2);
+            for (const json& value : entries)
+            {
+                append_le16(packed, static_cast<uint16_t>(value.get<int>()));
+            }
+            return packed;
+        }
+
+        data_t make_evo_python_image_payload(const json& j)
+        {
+            const uint32_t width = json_u32(j, "width");
+            const uint32_t height = json_u32(j, "height");
+            if (width > 0xFFFF || height > 0xFFFF)
+            {
+                throw std::invalid_argument("Evo PythonImageAppVar dimensions must fit in 16 bits");
+            }
+
+            const json& palette = j.at("palette");
+            const data_t packedPalette = python_image_palette_entries_from_json(palette);
+            const bool hasAlpha = palette.at("hasAlpha").get<bool>();
+            const uint8_t transparentIndex = static_cast<uint8_t>(palette.at("transparentIndex").get<int>());
+            const uint16_t evoFormat = evo_python_image_format_from_json(j);
+
+            data_t imageData;
+            if (evoFormat == evoPythonImageRleFormat)
+            {
+                if (j.contains("imageDataHex"))
+                {
+                    imageData = hex_string_to_bytes(j.at("imageDataHex").get<std::string>(), "imageDataHex");
+                }
+                else
+                {
+                    imageData = encode_python_image_rle(width, height, {});
+                }
+            }
+            else
+            {
+                if (j.contains("format") && j.contains("imageDataHex"))
+                {
+                    imageData = hex_string_to_bytes(j.at("imageDataHex").get<std::string>(), "imageDataHex");
+                    imageData.resize(python_image_pixel_count(width, height), 0);
+                }
+                else if (j.contains("imageDataHex"))
+                {
+                    const data_t compressedImageData = hex_string_to_bytes(j.at("imageDataHex").get<std::string>(), "imageDataHex");
+                    imageData = decode_python_image_rle(width, height, compressedImageData);
+                }
+                else
+                {
+                    imageData.resize(python_image_pixel_count(width, height), 0);
+                }
+            }
+
+            data_t payload;
+            payload.insert(payload.end(), PYTHON_IMAGE_MAGIC, PYTHON_IMAGE_MAGIC + magicByteCount);
+            append_le16(payload, evoFormat);
+            append_le16(payload, static_cast<uint16_t>(width));
+            append_le16(payload, static_cast<uint16_t>(height));
+            payload.push_back(static_cast<uint8_t>(hasAlpha ? 1 : 0));
+            payload.push_back(transparentIndex);
+            append_le16(payload, static_cast<uint16_t>(packedPalette.size() / 2));
+            vector_append(payload, packedPalette);
+            vector_append(payload, imageData);
+            return payload;
+        }
+
+        data_t make_ce_python_image_payload(const json& j)
+        {
+            const uint32_t width = json_u32(j, "width");
+            const uint32_t height = json_u32(j, "height");
+
+            const json& palette = j.at("palette");
+            const data_t packedPalette = python_image_palette_entries_from_json(palette);
+            const size_t entryCount = packedPalette.size() / 2;
+
+            data_t imageData;
+            const std::string format = j.value("format", std::string{});
+            if (format == "EvoRawIndexed" && j.contains("imageDataHex"))
+            {
+                imageData = encode_python_image_rle(width, height, hex_string_to_bytes(j.at("imageDataHex").get<std::string>(), "imageDataHex"));
+            }
+            else if (j.contains("imageDataHex"))
+            {
+                imageData = hex_string_to_bytes(j.at("imageDataHex").get<std::string>(), "imageDataHex");
+            }
+
+            data_t payload;
+            payload.insert(payload.end(), PYTHON_IMAGE_MAGIC, PYTHON_IMAGE_MAGIC + magicByteCount);
+            append_le24(payload, width);
+            append_le24(payload, height);
+            payload.push_back(pythonImagePaletteMarker);
+            payload.push_back(static_cast<uint8_t>(palette.at("hasAlpha").get<bool>() ? 1 : 0));
+            payload.push_back(static_cast<uint8_t>(palette.at("transparentIndex").get<int>()));
+            payload.push_back(static_cast<uint8_t>(entryCount == 256 ? 0 : entryCount));
+            vector_append(payload, packedPalette);
+            vector_append(payload, imageData);
+            return payload;
         }
 
         json split_lines_json(const std::string& text, char delim)
@@ -490,9 +709,15 @@ namespace tivars::TypeHandlers
             return subtype;
         }
 
-        data_t payload_from_json_or_raw(const json& j, StructuredAppVarSubtype subtype)
+        data_t payload_from_json_or_raw(const json& j, StructuredAppVarSubtype subtype, const TIVarFile* _ctx)
         {
-            if (j.contains("rawDataHex") && !(subtype == APPVAR_SUBTYPE_CABRIJR && j.contains("variant")))
+            const bool shouldUseRawDataHex = j.contains("rawDataHex")
+                                          && !(subtype == APPVAR_SUBTYPE_CABRIJR && j.contains("variant"))
+                                          && !(subtype == APPVAR_SUBTYPE_PYTHON_IMAGE
+                                            && _ctx != nullptr
+                                            && _ctx->isEvoFormat()
+                                            && j.contains("width"));
+            if (shouldUseRawDataHex)
             {
                 const data_t payload = hex_string_to_bytes(j.at("rawDataHex").get<std::string>(), "rawDataHex");
                 if (subtype_from_data_or_throw(wrap_payload(payload)) != subtype)
@@ -577,31 +802,12 @@ namespace tivars::TypeHandlers
 
                 case APPVAR_SUBTYPE_PYTHON_IMAGE:
                 {
-                    payload.insert(payload.end(), PYTHON_IMAGE_MAGIC, PYTHON_IMAGE_MAGIC + magicByteCount);
-                    append_le24(payload, static_cast<uint32_t>(j.at("width").get<int>()));
-                    append_le24(payload, static_cast<uint32_t>(j.at("height").get<int>()));
-                    payload.push_back(pythonImagePaletteMarker);
-
-                    const json& palette = j.at("palette");
-                    payload.push_back(static_cast<uint8_t>(palette.at("hasAlpha").get<bool>() ? 1 : 0));
-                    payload.push_back(static_cast<uint8_t>(palette.at("transparentIndex").get<int>()));
-
-                    const json& entries = palette.at("entries");
-                    if (!entries.is_array() || entries.empty() || entries.size() > 256)
+                    if (_ctx != nullptr && _ctx->isEvoFormat())
                     {
-                        throw std::invalid_argument("palette.entries must contain between 1 and 256 values");
-                    }
-                    payload.push_back(static_cast<uint8_t>(entries.size() == 256 ? 0 : entries.size()));
-                    for (const json& value : entries)
-                    {
-                        append_le16(payload, static_cast<uint16_t>(value.get<int>()));
+                        return make_evo_python_image_payload(j);
                     }
 
-                    if (j.contains("imageDataHex"))
-                    {
-                        vector_append(payload, hex_string_to_bytes(j.at("imageDataHex").get<std::string>(), "imageDataHex"));
-                    }
-                    return payload;
+                    return make_ce_python_image_payload(j);
                 }
 
                 case APPVAR_SUBTYPE_STUDY_CARDS:
@@ -915,6 +1121,75 @@ namespace tivars::TypeHandlers
 
         json parse_python_image_appvar(const data_t& payload)
         {
+            if (payload.size() >= magicByteCount + 10)
+            {
+                size_t evoPos = magicByteCount;
+                const uint16_t format = read_le16(payload, evoPos, "format");
+                const uint16_t evoWidth = read_le16(payload, evoPos, "width");
+                const uint16_t evoHeight = read_le16(payload, evoPos, "height");
+                const uint8_t evoHasAlpha = read_u8(payload, evoPos, "hasAlpha");
+                const uint8_t evoTransparentIndex = read_u8(payload, evoPos, "transparentIndex");
+                const uint16_t evoEntryCount = read_le16(payload, evoPos, "palette entry count");
+                const size_t evoPixelCount = python_image_pixel_count(evoWidth, evoHeight);
+                const size_t evoPaletteEnd = magicByteCount + 10 + static_cast<size_t>(evoEntryCount) * 2;
+                const size_t evoRawIndexedExpectedSize = evoPaletteEnd + evoPixelCount;
+
+                if ((format == evoPythonImageRawIndexedFormat || format == evoPythonImageRleFormat)
+                    && evoWidth != 0
+                    && evoHeight != 0
+                    && evoEntryCount > 0
+                    && evoEntryCount <= 256
+                    && payload.size() >= evoPaletteEnd
+                    && (format != evoPythonImageRawIndexedFormat || payload.size() >= evoRawIndexedExpectedSize)
+                    && (format != evoPythonImageRleFormat || payload.size() > evoPaletteEnd))
+                {
+                    std::vector<uint16_t> paletteEntries;
+                    paletteEntries.reserve(evoEntryCount);
+                    json entries = json::array();
+                    for (uint16_t i = 0; i < evoEntryCount; i++)
+                    {
+                        const uint16_t entry = read_le16(payload, evoPos, "palette entry");
+                        paletteEntries.push_back(entry);
+                        entries.push_back(entry);
+                    }
+
+                    const size_t imageDataEnd = format == evoPythonImageRawIndexedFormat
+                                              ? evoPos + evoPixelCount
+                                              : payload.size();
+                    data_t imageData(payload.begin() + static_cast<ptrdiff_t>(evoPos),
+                                     payload.begin() + static_cast<ptrdiff_t>(imageDataEnd));
+
+                    const bool generatePreview = evoPixelCount <= pythonImagePreviewMaxPixels;
+                    std::string previewImageDataUrl;
+                    if (generatePreview)
+                    {
+                        const data_t previewImageData = format == evoPythonImageRleFormat
+                                                      ? decode_python_image_rle(evoWidth, evoHeight, imageData)
+                                                      : imageData;
+                        previewImageDataUrl = make_bmp_data_url_rgba(evoWidth, evoHeight, make_python_image_preview_rgba(evoWidth, evoHeight, evoHasAlpha != 0, evoTransparentIndex, paletteEntries, previewImageData));
+                    }
+
+                    return {
+                        {"typeName", "PythonImageAppVar"},
+                        {"subtype", "PythonImage"},
+                        {"format", evo_python_image_format_name(format)},
+                        {"magic", PYTHON_IMAGE_MAGIC},
+                        {"width", evoWidth},
+                        {"height", evoHeight},
+                        {"palette", {
+                            {"entryCount", evoEntryCount},
+                            {"hasAlpha", evoHasAlpha != 0},
+                            {"transparentIndex", evoTransparentIndex},
+                            {"entries", entries}
+                        }},
+                        {"imageDataLength", imageData.size()},
+                        {"imageDataHex", to_hex_string(imageData)},
+                        {"previewImageDataUrl", generatePreview ? json(previewImageDataUrl) : json(nullptr)},
+                        {"rawDataHex", to_hex_string(payload)}
+                    };
+                }
+            }
+
             size_t pos = magicByteCount;
             const uint32_t width = read_le24(payload, pos, "width");
             const uint32_t height = read_le24(payload, pos, "height");
@@ -1284,8 +1559,6 @@ namespace tivars::TypeHandlers
 
     data_t TH_StructuredAppVar::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
-        (void)_ctx;
-
         const json j = json::parse(str);
         StructuredAppVarSubtype subtype;
         if (options.contains("_appvarSubtype"))
@@ -1297,7 +1570,13 @@ namespace tivars::TypeHandlers
             subtype = subtype_from_json(j);
         }
 
-        return wrap_payload(payload_from_json_or_raw(j, subtype));
+        return wrap_payload(payload_from_json_or_raw(j, subtype, _ctx));
+    }
+
+    data_t TH_StructuredAppVar::rebuildPythonImageAppVarForFormat(const data_t& data, bool targetEvoFormat)
+    {
+        const json j = parse_python_image_appvar(payload_from_data(data));
+        return wrap_payload(targetEvoFormat ? make_evo_python_image_payload(j) : make_ce_python_image_payload(j));
     }
 
     std::string TH_StructuredAppVar::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
