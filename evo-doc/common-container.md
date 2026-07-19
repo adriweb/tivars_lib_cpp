@@ -77,7 +77,8 @@ image with `size = 33601` stores the body size as `19 83 41`, and its
 12  .8xw2  window settings
 13  .8xz2  user zoom / RclWindw
 14  .8xt2  table setup
-15  .py    Python program, converted by Connect Evo before transfer
+15  .8xpy2 Python source program or subtype-2 compiled MicroPython bytecode
+            module; `.py` source is converted by Connect Evo before transfer
 17          nested custom scalar entries inside settings files
 ```
 

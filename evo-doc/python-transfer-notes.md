@@ -89,3 +89,94 @@ utf8_source_bytes
 00
 ```
 
+The apparent fixed fields after the eight-byte object header are actually two
+generic typed sections:
+
+```text
+uint24_le data_size
+uint8     section_kind
+byte      data[data_size]
+00        trailing terminator
+```
+
+Kind `0` is the ASCII object/import name. Kind `2` is the executable body. The
+object subtype decides whether kind `2` contains UTF-8 source or MicroPython
+persistent bytecode.
+
+## Compiled MicroPython modules
+
+TI-Python reports this implementation tuple on OS 7.0.0.3996:
+
+```text
+implementation = tipython 1.13.0
+mpy = 773 = 0x0305
+```
+
+The stored `ti_draw` and `ti_image` modules in `AAA.8xg2` contain genuine
+MicroPython persistent-code streams beginning with:
+
+```text
+4D 05 03 1F
+M  format 5, feature flags 3, 31 small-int bits
+```
+
+The two module objects use this layout:
+
+```text
+13 02 D8 20
+uint32_le total_object_size
+
+uint24_le name_size
+00                          # section kind 0
+ascii_name
+00
+
+# An optional kind-1 menu-definition section is present in TI's modules.
+
+uint24_le mpy_size
+02                          # section kind 2
+mpy_bytes                   # begins 4D 05 03 1F
+00
+```
+
+In `AAA.8xg2`, `ti_draw` carries 5,011 bytes of `.mpy` data and `ti_image`
+carries 1,360 bytes. The surrounding `PURG` GroupObject records identify both
+members as internal type `0x11`, the same internal object class used for
+external type-15 Python objects. The `13 02 D8 20` header selects module
+subtype 2; the ordinary `13 01 00 00` header selects runnable source-program
+subtype 1.
+
+This subtype distinction is important. Replacing the source bytes inside a
+subtype-1 program with an `.mpy` stream does not make a bytecode program. The
+Python app still treats its kind-2 section as source. A subtype-2 object is
+instead importable as `<name>.mpy` and is intentionally absent from the normal
+Python file manager.
+
+### Firmware path
+
+The validator requires magic `M`, format version `5`, feature flags `3`, no
+native architecture, and no more than 31 small-int bits. These checks exactly
+match `4D 05 03 1F`.
+
+Official MicroPython 1.13 `mpy-cross` produces compatible output with:
+
+```sh
+mpy-cross -mcache-lookup-bc -s test.py -o test.mpy test.py
+```
+
+The `-mcache-lookup-bc` option is mandatory for TI-Python: without it the
+header is `4D 05 02 1F`, whose feature flags are rejected.
+
+### Direct transfer and validation
+
+A subtype-2 object does not need to be installed through Group/Ungroup. An
+ordinary Evo CBOR file with `metaData.type = 15` and the raw module object in
+its `data` byte string was accepted by a direct Archive transfer. It was
+omitted from the USB directory and normal Python file manager, but remained
+visible in the OS memory menu. A normal 14-byte source program containing
+`import evoldr` imported and executed it.
+
+`tivars_lib_cpp` recognizes both subtype-1 source objects and subtype-2
+compiled modules. Its Evo file probe also accepts the omitted
+`metaData.flags` field emitted by the direct USB sender, defaulting it to zero.
+

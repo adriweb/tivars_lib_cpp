@@ -1614,6 +1614,9 @@ namespace tivars
                     {"name", python.name},
                     {"scriptLen", python.scriptLen},
                     {"scriptType", python.scriptType},
+                    {"objectSubtype", python.objectSubtype},
+                    {"compiledModule", python.compiledModule},
+                    {"menuDefinitionHex", bytes_to_hex_string(python.menuDefinition)},
                     {"trailerHex", bytes_to_hex_string(python.trailer)},
                     {"bodyHex", bytes_to_hex_string(python.body)},
                 };

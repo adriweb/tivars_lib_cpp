@@ -3879,6 +3879,49 @@ End)";
         assert(helloEvoPythonJSON["python"]["scriptType"] == 2);
         assert(helloEvoPythonJSON["python"]["trailerHex"] == "00");
         assert(helloEvoPythonJSON["python"]["code"].get<std::string>().rfind("# Version 2 EN\r\n", 0) == 0);
+
+        const data_t compiledModulePayload = data_from_hex_string("1302D8201C0000000600000065766F7A7A7A00040000024D05031F00");
+        const auto compiledModule = EvoFormat::parse_evo_python_script_payload(compiledModulePayload);
+        assert(compiledModule.scriptHeader == 0x20D80213);
+        assert(compiledModule.objectSubtype == 2);
+        assert(compiledModule.compiledModule);
+        assert(compiledModule.name == "evozzz");
+        assert(compiledModule.scriptLen == 4);
+        assert(compiledModule.scriptType == 2);
+        assert(compiledModule.body == data_t({0x4D, 0x05, 0x03, 0x1F}));
+        assert(!compiledModule.bodyIsText);
+
+        data_t compiledModuleFile = {0xBF};
+        EvoFormat::append_cbor_text(compiledModuleFile, "metaData");
+        compiledModuleFile.push_back(0xBF);
+        EvoFormat::append_cbor_key_uint(compiledModuleFile, "type", 15);
+        EvoFormat::append_cbor_key_uint(compiledModuleFile, "version", 1);
+        EvoFormat::append_cbor_text(compiledModuleFile, "name");
+        EvoFormat::append_cbor_bytes(compiledModuleFile, EvoFormat::encode_evo_name(EvoFormat::EvoTypeID::PythonScript, "evozzz"));
+        compiledModuleFile.push_back(0xFF);
+        EvoFormat::append_cbor_key_uint(compiledModuleFile, "version", 1);
+        EvoFormat::append_cbor_key_uint(compiledModuleFile, "size", compiledModulePayload.size());
+        EvoFormat::append_cbor_text(compiledModuleFile, "data");
+        EvoFormat::append_cbor_bytes(compiledModuleFile, compiledModulePayload);
+        compiledModuleFile.push_back(0xFF);
+        const uint16_t compiledModuleChecksum = EvoFormat::evo_checksum(compiledModuleFile);
+        compiledModuleFile.push_back(static_cast<uint8_t>(compiledModuleChecksum >> 8));
+        compiledModuleFile.push_back(static_cast<uint8_t>(compiledModuleChecksum));
+        assert(EvoFormat::is_evo_file_data(compiledModuleFile));
+
+        const std::string compiledModulePath = "/tmp/tivars_compiled_module.8xpy2";
+        write_binary_file(compiledModulePath, compiledModuleFile);
+
+        TIVarFile compiledModuleVar = TIVarFile::loadFromFile(compiledModulePath);
+        const json compiledModuleJSON = json::parse(compiledModuleVar.getReadableContent());
+        assert(compiledModuleVar.isEvoFormat());
+        assert(compiledModuleJSON["metaData"]["flags"] == 0);
+        assert(compiledModuleJSON["python"]["compiledModule"] == true);
+        assert(compiledModuleJSON["python"]["objectSubtype"] == 2);
+        assert(compiledModuleJSON["python"]["name"] == "evozzz");
+        assert(compiledModuleJSON["python"]["bodyHex"] == "4D05031F");
+        assert(!compiledModuleJSON.contains("pythonParseError"));
+        assert(remove(compiledModulePath.c_str()) == 0);
     }
 
     {
