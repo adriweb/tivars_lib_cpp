@@ -29,7 +29,8 @@ namespace tivars::EvoFormat
 {
     namespace
     {
-        constexpr uint32_t evo_python_script_header = 0x113;
+        constexpr uint32_t evo_python_script_header = 0x00000113;
+        constexpr uint32_t evo_python_module_header = 0x20D80213;
 
         std::string normalize_theta_chars(std::string name)
         {
@@ -338,8 +339,10 @@ bool is_evo_file_data(const data_t& fileData)
         };
         const auto typeIt = meta.find("type");
         const auto nameIt = meta.find("name");
+        const auto flagsIt = meta.find("flags");
         if (typeIt == meta.end() || typeIt->second.kind != EvoCBORValue::Kind::Unsigned
-            || !has_uint("version") || !has_uint("flags")
+            || !has_uint("version")
+            || (flagsIt != meta.end() && flagsIt->second.kind != EvoCBORValue::Kind::Unsigned)
             || nameIt == meta.end() || nameIt->second.kind != EvoCBORValue::Kind::Bytes)
         {
             return false;
@@ -662,15 +665,6 @@ std::string bytes_to_hex_string(const data_t& data)
 
 namespace
 {
-    uint16_t read_le16(const data_t& data, size_t offset)
-    {
-        if (offset + 1 >= data.size())
-        {
-            throw std::invalid_argument("Unexpected end of Evo Python script payload");
-        }
-        return static_cast<uint16_t>(data[offset] | (data[offset + 1] << 8));
-    }
-
     uint32_t read_le32(const data_t& data, size_t offset)
     {
         if (offset + 3 >= data.size())
@@ -681,6 +675,17 @@ namespace
              | (static_cast<uint32_t>(data[offset + 1]) << 8)
              | (static_cast<uint32_t>(data[offset + 2]) << 16)
              | (static_cast<uint32_t>(data[offset + 3]) << 24);
+    }
+
+    uint32_t read_le24(const data_t& data, size_t offset)
+    {
+        if (offset + 2 >= data.size())
+        {
+            throw std::invalid_argument("Unexpected end of Evo Python object payload");
+        }
+        return static_cast<uint32_t>(data[offset])
+             | (static_cast<uint32_t>(data[offset + 1]) << 8)
+             | (static_cast<uint32_t>(data[offset + 2]) << 16);
     }
 
     std::string printable_ascii_string(const data_t& data, size_t offset, size_t len)
@@ -753,49 +758,77 @@ namespace
 
 EvoPythonScriptInfo parse_evo_python_script_payload(const data_t& data)
 {
-    if (data.size() < 18)
+    if (data.size() < 8)
     {
-        throw std::invalid_argument("Invalid Evo Python script payload: too short");
+        throw std::invalid_argument("Invalid Evo Python object payload: too short");
     }
 
     EvoPythonScriptInfo info;
     info.scriptHeader = read_le32(data, 0);
     info.dataLen = read_le32(data, 4);
-    info.nameLen = read_le32(data, 8);
-    if (info.nameLen == 0 || info.nameLen > 255 || 12 + info.nameLen + 1 + 4 > data.size())
+    info.objectSubtype = data[1];
+    info.compiledModule = info.scriptHeader == evo_python_module_header;
+    if (info.scriptHeader != evo_python_script_header && !info.compiledModule)
     {
-        throw std::invalid_argument("Invalid Evo Python script payload: bad name length");
+        throw std::invalid_argument("Invalid Evo Python object payload: bad object header");
     }
-    if (info.dataLen > data.size())
+    if (info.dataLen < 8 || info.dataLen > data.size())
     {
-        throw std::invalid_argument("Invalid Evo Python script payload: bad data length");
-    }
-
-    const size_t nameOffset = 12;
-    const size_t afterName = nameOffset + info.nameLen;
-    if (data[afterName] != 0)
-    {
-        throw std::invalid_argument("Invalid Evo Python script payload: missing name terminator");
-    }
-    info.name.assign(reinterpret_cast<const char*>(data.data() + nameOffset), info.nameLen);
-
-    const size_t bodyLenOffset = afterName + 1;
-    info.scriptLen = read_le16(data, bodyLenOffset);
-    info.scriptType = data[bodyLenOffset + 3];
-    const size_t bodyOffset = bodyLenOffset + 4;
-    if (info.scriptHeader != evo_python_script_header)
-    {
-        throw std::invalid_argument("Invalid Evo Python script payload: bad script header");
-    }
-    if (bodyOffset + info.scriptLen > info.dataLen)
-    {
-        throw std::invalid_argument("Invalid Evo Python script payload: script body exceeds payload");
+        throw std::invalid_argument("Invalid Evo Python object payload: bad data length");
     }
 
-    info.body.assign(data.begin() + static_cast<ptrdiff_t>(bodyOffset), data.begin() + static_cast<ptrdiff_t>(bodyOffset + info.scriptLen));
-    info.trailer.assign(data.begin() + static_cast<ptrdiff_t>(bodyOffset + info.scriptLen), data.begin() + static_cast<ptrdiff_t>(info.dataLen));
-    info.code = printable_ascii_string(data, bodyOffset, info.scriptLen);
-    info.bodyIsText = !info.code.empty();
+    bool foundName = false;
+    bool foundBody = false;
+    size_t offset = 8;
+    while (offset < info.dataLen)
+    {
+        if (offset + 4 > info.dataLen)
+        {
+            throw std::invalid_argument("Invalid Evo Python object payload: truncated section header");
+        }
+        const uint32_t sectionLen = read_le24(data, offset);
+        const uint8_t sectionKind = data[offset + 3];
+        const size_t sectionData = offset + 4;
+        const size_t sectionEnd = sectionData + sectionLen;
+        if (sectionEnd >= info.dataLen || data[sectionEnd] != 0)
+        {
+            throw std::invalid_argument("Invalid Evo Python object payload: bad section length or terminator");
+        }
+
+        if (sectionKind == 0 && !foundName)
+        {
+            if (sectionLen == 0 || sectionLen > 255)
+            {
+                throw std::invalid_argument("Invalid Evo Python object payload: bad name length");
+            }
+            info.nameLen = sectionLen;
+            info.name.assign(reinterpret_cast<const char*>(data.data() + sectionData), sectionLen);
+            foundName = true;
+        }
+        else if (info.compiledModule && sectionKind == 1 && !foundBody)
+        {
+            info.menuDefinition.assign(data.begin() + static_cast<ptrdiff_t>(sectionData),
+                                       data.begin() + static_cast<ptrdiff_t>(sectionEnd));
+        }
+        else if (!foundBody && (sectionKind == 2 || !info.compiledModule))
+        {
+            info.scriptLen = sectionLen;
+            info.scriptType = sectionKind;
+            info.body.assign(data.begin() + static_cast<ptrdiff_t>(sectionData),
+                             data.begin() + static_cast<ptrdiff_t>(sectionEnd));
+            info.trailer = {0x00};
+            info.code = printable_ascii_string(data, sectionData, sectionLen);
+            info.bodyIsText = !info.code.empty();
+            foundBody = true;
+        }
+
+        offset = sectionEnd + 1;
+    }
+
+    if (!foundName || !foundBody)
+    {
+        throw std::invalid_argument("Invalid Evo Python object payload: missing name or executable section");
+    }
     return info;
 }
 
@@ -867,6 +900,10 @@ data_t legacy_python_appvar_to_evo_python_script(const data_t& legacyData, std::
 data_t evo_python_script_to_legacy_python_appvar(const data_t& evoData, std::string defaultName)
 {
     const EvoPythonScriptInfo python = parse_evo_python_script_payload(evoData);
+    if (python.compiledModule)
+    {
+        throw std::invalid_argument("Compiled Evo Python modules have no legacy Python source equivalent");
+    }
     const std::string filename = (!defaultName.empty() && python.name == defaultName) ? "" : python.name;
     return TypeHandlers::STH_PythonAppVar::buildPayloadFromParts(python.body, filename);
 }
