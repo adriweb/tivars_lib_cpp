@@ -24,8 +24,11 @@ namespace tivars::EvoFormat
         uint32_t dataLen = 0;
         uint32_t nameLen = 0;
         std::string name;
-        uint16_t scriptLen = 0;
+        uint32_t scriptLen = 0;
         uint8_t scriptType = 0;
+        uint8_t objectSubtype = 0;
+        bool compiledModule = false;
+        data_t menuDefinition;
         data_t body;
         data_t trailer;
         std::string code;
