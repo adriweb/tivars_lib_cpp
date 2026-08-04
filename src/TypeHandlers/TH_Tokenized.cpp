@@ -510,9 +510,171 @@ namespace tivars::TypeHandlers
         {
             bool isInCustomName = false; // after a "prgm" or ʟ token
             bool isWithinString = false;
+            bool isWithinEquationString = false;
             bool inEvaluatedString = false; // CE OS 5.2 added string interpolation with eval() for TI-Innovator commands
             uint16_t lastTokenBytes = 0;
         };
+
+        // Legacy two-byte tokens are packed into a uint16_t here: bytes $5E,$10
+        // are represented as 0x5E10. These are not Evo 16-bit token words.
+        static bool is_legacy_equation_variable_token_bytes(uint16_t packedTokenBytes)
+        {
+            return (packedTokenBytes >= 0x5E10 && packedTokenBytes <= 0x5E19) // Y1-Y9 and Y0
+                || (packedTokenBytes >= 0x5E20 && packedTokenBytes <= 0x5E2B) // parametric X/Y pairs
+                || (packedTokenBytes >= 0x5E40 && packedTokenBytes <= 0x5E45) // r1-r6
+                || (packedTokenBytes >= 0x5E80 && packedTokenBytes <= 0x5E82); // u, v, w
+        }
+
+        static bool source_token_value_at(const std::string& str, size_t pos, uint16_t& tokenValue, size_t& consumedLen)
+        {
+            if (parse_raw_token_escape_at(str, pos, consumedLen, tokenValue))
+            {
+                return true;
+            }
+
+            const size_t maxLength = std::min(source_segment_len_until_boundary(str, pos),
+                                              static_cast<size_t>(lengthOfLongestTokenName));
+            for (size_t length = maxLength; length > 0; length--)
+            {
+                const auto tokenIt = tokens_NameToBytes.find(str.substr(pos, length));
+                if (tokenIt != tokens_NameToBytes.end())
+                {
+                    tokenValue = tokenIt->second;
+                    consumedLen = length;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        static bool source_has_store_at(const std::string& str, size_t pos, size_t& consumedLen)
+        {
+            if (source_has_literal_at(str, pos, "→"))
+            {
+                consumedLen = std::string_view("→").size();
+                return true;
+            }
+            if (source_has_literal_at(str, pos, "->"))
+            {
+                consumedLen = 2;
+                return true;
+            }
+
+            uint16_t tokenValue = 0;
+            return parse_raw_token_escape_at(str, pos, consumedLen, tokenValue) && tokenValue == 0x04;
+        }
+
+        static bool source_store_targets_equation(const std::string& str, size_t storePos)
+        {
+            size_t storeLen = 0;
+            if (!source_has_store_at(str, storePos, storeLen))
+            {
+                return false;
+            }
+
+            const size_t targetPos = storePos + storeLen;
+            uint16_t targetToken = 0;
+            size_t targetLen = 0;
+            return source_token_value_at(str, targetPos, targetToken, targetLen)
+                && is_legacy_equation_variable_token_bytes(targetToken);
+        }
+
+        static bool source_quote_starts_equation_string(const std::string& str, size_t quotePos,
+                                                        uint16_t previousToken)
+        {
+            if (previousToken == 0xBB56) // String►Equ(
+            {
+                return true;
+            }
+
+            for (size_t pos = quotePos + 1; pos < str.size();)
+            {
+                if (str[pos] == '\n' || str[pos] == '\r')
+                {
+                    return false;
+                }
+                if (str[pos] == '"')
+                {
+                    return source_store_targets_equation(str, pos + 1);
+                }
+
+                size_t storeLen = 0;
+                if (source_has_store_at(str, pos, storeLen))
+                {
+                    return source_store_targets_equation(str, pos);
+                }
+                pos += std::max<size_t>(utf8_codepoint_len_at(str, pos), 1);
+            }
+            return false;
+        }
+
+        static bool raw_token_value_at(const data_t& data, size_t pos, size_t end,
+                                       uint16_t& tokenValue, size_t& consumedLen)
+        {
+            if (pos >= end)
+            {
+                return false;
+            }
+
+            const uint8_t first = data[pos];
+            if (is_in_vector(firstByteOfTwoByteTokens, first) && pos + 1 < end)
+            {
+                tokenValue = static_cast<uint16_t>((first << 8) | data[pos + 1]);
+                consumedLen = 2;
+            }
+            else
+            {
+                tokenValue = first;
+                consumedLen = 1;
+            }
+            return true;
+        }
+
+        static bool raw_store_targets_equation(const data_t& data, size_t storePos, size_t end)
+        {
+            uint16_t storeToken = 0;
+            size_t storeLen = 0;
+            if (!raw_token_value_at(data, storePos, end, storeToken, storeLen) || storeToken != 0x04)
+            {
+                return false;
+            }
+
+            const size_t targetPos = storePos + storeLen;
+            uint16_t targetToken = 0;
+            size_t targetLen = 0;
+            return raw_token_value_at(data, targetPos, end, targetToken, targetLen)
+                && is_legacy_equation_variable_token_bytes(targetToken);
+        }
+
+        static bool raw_quote_starts_equation_string(const data_t& data, size_t contentPos, size_t end,
+                                                     uint16_t previousToken)
+        {
+            if (previousToken == 0xBB56) // String►Equ(
+            {
+                return true;
+            }
+
+            for (size_t pos = contentPos; pos < end;)
+            {
+                uint16_t tokenValue = 0;
+                size_t tokenLen = 0;
+                if (!raw_token_value_at(data, pos, end, tokenValue, tokenLen)
+                    || tokenValue == 0x3F)
+                {
+                    return false;
+                }
+                if (tokenValue == 0x2A)
+                {
+                    return raw_store_targets_equation(data, pos + tokenLen, end);
+                }
+                if (tokenValue == 0x04)
+                {
+                    return raw_store_targets_equation(data, pos, end);
+                }
+                pos += tokenLen;
+            }
+            return false;
+        }
 
         static void register_token_lookup_name(const std::string& name, uint16_t tokenValue)
         {
@@ -592,13 +754,17 @@ namespace tivars::TypeHandlers
                     if ((state.lastTokenBytes == 0x5F || state.lastTokenBytes == 0xEB)) { // prgm and ʟ
                         state.isInCustomName = true;
                     } else if (currChar == "\"") {
-                        state.isWithinString = !state.isWithinString;
+                        const bool startsString = !state.isWithinString;
+                        state.isWithinString = startsString;
+                        state.isWithinEquationString = startsString
+                            && source_quote_starts_equation_string(str, strCursorPos, state.lastTokenBytes);
                         state.inEvaluatedString = state.isWithinString && starts_evaluated_string(state.lastTokenBytes);
                     } else if (currChar == "\n" ||
                         source_has_literal_at(str, strCursorPos, "→") || source_has_literal_at(str, strCursorPos, "->"))
                     {
                         state.isInCustomName = false;
                         state.isWithinString = false;
+                        state.isWithinEquationString = false;
                         state.inEvaluatedString = false;
                     } else if (state.isInCustomName && !isalnum(currChar[0])) {
                         state.isInCustomName = false;
@@ -607,7 +773,8 @@ namespace tivars::TypeHandlers
 
                 const size_t maxTokSearchLen = std::min(source_segment_len_until_boundary(str, strCursorPos),
                                                         (size_t)lengthOfLongestTokenName);
-                const bool needMinMunch = state.isInCustomName || (state.isWithinString && !state.inEvaluatedString);
+                const bool needMinMunch = state.isInCustomName
+                    || (state.isWithinString && !state.isWithinEquationString && !state.inEvaluatedString);
                 bool matched = false;
 
                 if (state.isWithinString && !state.inEvaluatedString && can_start_explicit_string_alias(str[strCursorPos]))
@@ -637,7 +804,8 @@ namespace tivars::TypeHandlers
                     std::string currentSubString = str.substr(strCursorPos, currentLength);
 
                     // We want to use true-lowercase alpha tokens in this case.
-                    if ((state.isWithinString && !state.inEvaluatedString) && currentLength == 1 && std::islower(static_cast<unsigned char>(currentSubString[0])))
+                    if ((state.isWithinString && !state.isWithinEquationString && !state.inEvaluatedString)
+                        && currentLength == 1 && std::islower(static_cast<unsigned char>(currentSubString[0])))
                     {
                         // 0xBBB0 is 'a', etc. But we skip what would be 'l' at 0xBBBB which doesn't exist (prefix conflict)
                         const char letter = currentSubString[0];
@@ -1046,6 +1214,11 @@ namespace tivars::TypeHandlers
                 currentRawBytes.push_back(nextToken);
             }
 
+            const bool startsEquationString = bytesKey == 0x2A
+                && !detokState.isWithinString
+                && raw_quote_starts_equation_string(data, i + 1, dataSize,
+                                                     detokState.lastTokenBytes);
+
             const auto tokenNamesIt = tokens_BytesToNames.find(bytesKey);
             if (tokenNamesIt != tokens_BytesToNames.end())
             {
@@ -1062,6 +1235,10 @@ namespace tivars::TypeHandlers
                 else if (validate_detok_token(tokStr, currentRawBytes))
                 {
                     accept_detok_token(tokStr, currentRawBytes);
+                    if (startsEquationString)
+                    {
+                        detokState.isWithinEquationString = true;
+                    }
                 }
                 else
                 {

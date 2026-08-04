@@ -1438,6 +1438,70 @@ End)";
     }
 
     {
+        const std::array<std::pair<uint16_t, uint16_t>, 4> equationTokenRanges = {{
+            {0x5E10, 0x5E19},
+            {0x5E20, 0x5E2B},
+            {0x5E40, 0x5E45},
+            {0x5E80, 0x5E82},
+        }};
+
+        for (const auto& [firstToken, lastToken] : equationTokenRanges)
+        {
+            for (uint16_t targetToken = firstToken; targetToken <= lastToken; targetToken++)
+            {
+                std::string targetSource = TH_Tokenized::oneTokenBytesToString(targetToken);
+                if (targetToken >= 0x5E80)
+                {
+                    targetSource = "|" + targetSource;
+                }
+
+                TIVarFile equationStore = TIVarFile::createNew("Program", "EQSTORE");
+                equationStore.setContentFromString("\"sin(X→" + targetSource);
+                assert(equationStore.getRawContent() == data_t({
+                    0x06, 0x00, 0x2A, 0xC2, 0x58, 0x04,
+                    static_cast<uint8_t>(targetToken >> 8), static_cast<uint8_t>(targetToken),
+                }));
+
+                const std::string readable = equationStore.getReadableContent();
+                assert(readable.starts_with("\"sin(X→"));
+                TIVarFile roundtripped = TIVarFile::createNew("Program", "EQROUND");
+                roundtripped.setContentFromString(readable);
+                assert(roundtripped.getRawContent() == equationStore.getRawContent());
+            }
+        }
+
+        TIVarFile asciiStore = TIVarFile::createNew("Program", "EQASCII");
+        asciiStore.setContentFromString("\"sin(X->Y₁");
+        assert(asciiStore.getRawContent() == data_t({0x06, 0x00, 0x2A, 0xC2, 0x58, 0x04, 0x5E, 0x10}));
+
+        TIVarFile closedStringStore = TIVarFile::createNew("Program", "EQCLOSE");
+        closedStringStore.setContentFromString("\"sin(X\"→Y₁");
+        assert(closedStringStore.getRawContent() == data_t({0x07, 0x00, 0x2A, 0xC2, 0x58, 0x2A, 0x04, 0x5E, 0x10}));
+        assert_roundtrip_from_readable(closedStringStore);
+
+        TIVarFile spacedStringStore = TIVarFile::createNew("Program", "EQSPACE");
+        spacedStringStore.setContentFromString(R"TI("sin(X" →Y₁)TI");
+        assert(spacedStringStore.getRawContent() == data_t({
+            0x0E, 0x00, 0x2A, 0xBB, 0xC3, 0xBB, 0xB8, 0xBB, 0xBE,
+            0x10, 0x58, 0x2A, 0x29, 0x04, 0x5E, 0x10,
+        }));
+
+        TIVarFile stringToEquation = TIVarFile::createNew("Program", "STREQ");
+        stringToEquation.setContentFromString("String►Equ(\"sin(X\",Y₁)");
+        assert(stringToEquation.getRawContent() == data_t({
+            0x0A, 0x00, 0xBB, 0x56, 0x2A, 0xC2, 0x58, 0x2A, 0x2B, 0x5E, 0x10, 0x11,
+        }));
+        assert_roundtrip_from_readable(stringToEquation);
+
+        TIVarFile ordinaryString = TIVarFile::createNew("Program", "STRING");
+        ordinaryString.setContentFromString("\"sin(X→Str1");
+        assert(ordinaryString.getRawContent() == data_t({
+            0x0C, 0x00, 0x2A, 0xBB, 0xC3, 0xBB, 0xB8, 0xBB, 0xBE, 0x10, 0x58, 0x04, 0xAA, 0x00,
+        }));
+        assert_roundtrip_from_readable(ordinaryString);
+    }
+
+    {
         TIVarFile testRealList = TIVarFile::loadFromFile("testData/RealList.8xl");
         assert_roundtrip_from_readable(testRealList);
         cout << "Before: " << testRealList.getReadableContent() << "\n   Now: ";
