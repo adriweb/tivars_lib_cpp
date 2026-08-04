@@ -1085,15 +1085,91 @@ static std::string evo_token_to_string(uint16_t token)
     return "\\u" + dechex(static_cast<uint8_t>(token >> 8)) + dechex(static_cast<uint8_t>(token & 0xFF));
 }
 
+static std::string legacy_token_escape(uint16_t token)
+{
+    if (token <= 0xFF)
+    {
+        return "\\x" + dechex(static_cast<uint8_t>(token));
+    }
+    return "\\u" + dechex(static_cast<uint8_t>(token >> 8))
+        + dechex(static_cast<uint8_t>(token & 0xFF));
+}
+
+static std::string evo_word_escape(uint16_t token)
+{
+    return "\\u" + dechex(static_cast<uint8_t>(token >> 8))
+        + dechex(static_cast<uint8_t>(token & 0xFF));
+}
+
+static std::string roundtrip_safe_evo_token_string(uint16_t token)
+{
+    uint16_t legacyToken = 0;
+    uint16_t roundTrippedToken = 0;
+    if (direct_legacy_token_for_evo(token, legacyToken)
+        && direct_evo_token_for_legacy(legacyToken, roundTrippedToken)
+        && roundTrippedToken == token)
+    {
+        return legacy_token_escape(legacyToken);
+    }
+    return evo_word_escape(token);
+}
+
 std::string detokenize_evo_token_words(const data_t& data)
 {
-    std::string out;
+    std::string readable;
     for (size_t i = 0; i + 1 < data.size(); i += 2)
     {
         const uint16_t token = static_cast<uint16_t>(data[i] | (data[i + 1] << 8));
-        out += evo_token_to_string(token);
+        readable += evo_token_to_string(token);
     }
-    return out;
+
+    // Tokenized Evo entries conventionally end with a zero word. Preserve the
+    // old best-effort output for malformed/non-entry buffers that do not.
+    if (data.size() < 2 || data.size() % 2 != 0
+        || data[data.size() - 2] != 0 || data[data.size() - 1] != 0
+        || tokenize_evo_token_words(readable) == data)
+    {
+        return readable;
+    }
+
+    std::vector<std::string> displayParts;
+    std::vector<std::string> safeParts;
+    displayParts.reserve(data.size() / 2 - 1);
+    safeParts.reserve(data.size() / 2 - 1);
+    for (size_t i = 0; i + 3 < data.size(); i += 2)
+    {
+        const uint16_t token = static_cast<uint16_t>(data[i] | (data[i + 1] << 8));
+        displayParts.push_back(evo_token_to_string(token));
+        safeParts.push_back(roundtrip_safe_evo_token_string(token));
+    }
+
+    const auto joinParts = [](const std::vector<std::string>& parts)
+    {
+        std::string joined;
+        for (const std::string& part : parts)
+        {
+            joined += part;
+        }
+        return joined;
+    };
+
+    std::vector<std::string> chosenParts = safeParts;
+    if (tokenize_evo_token_words(joinParts(chosenParts)) != data)
+    {
+        return readable;
+    }
+
+    // This slower path is used only after the complete readable source failed.
+    // Validate against the whole program so quote/store lookahead remains valid.
+    for (size_t i = 0; i < chosenParts.size(); i++)
+    {
+        chosenParts[i] = displayParts[i];
+        if (tokenize_evo_token_words(joinParts(chosenParts)) != data)
+        {
+            chosenParts[i] = safeParts[i];
+        }
+    }
+    return joinParts(chosenParts);
 }
 
 data_t tokenize_evo_token_words(const std::string& source, const options_t& options)
@@ -1164,7 +1240,10 @@ data_t tokenize_evo_token_words(const std::string& source, const options_t& opti
                 inEvaluatedString = false;
             }
 
-            if (text.rfind("\\u", 0) == 0 && is_displayable_ucs2_scalar(token) && !direct_evo_token_for_legacy(token, evoToken))
+            if (text.rfind("\\u", 0) == 0
+                && (is_displayable_ucs2_scalar(token)
+                    || (token >= 0xE000 && (token & 0xFF00) != 0xEF00))
+                && !direct_evo_token_for_legacy(token, evoToken))
             {
                 evoToken = token;
             }

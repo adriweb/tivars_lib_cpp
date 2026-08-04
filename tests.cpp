@@ -1888,6 +1888,8 @@ Disp "A\ and B")TI";
             for (uint16_t evoToken = firstToken; evoToken <= lastToken; ++evoToken)
             {
                 const data_t evoData = evo_token_data(evoToken);
+                assert(EvoFormat::tokenize_evo_token_words(
+                    EvoFormat::detokenize_evo_token_words(evoData)) == evoData);
                 const data_t legacyData = EvoFormat::evo_tokenized_data_to_legacy(evoData);
                 assert(legacyData.size() >= 3);
                 assert(legacyData.size() <= 4);
@@ -1967,17 +1969,55 @@ Disp "A\ and B")TI";
         for (const auto& [evoToken, legacyToken] : privateDisplayAliases)
         {
             ScopedStderrCapture stderrCapture;
-            assert(EvoFormat::evo_tokenized_data_to_legacy(evo_token_data(evoToken)) == legacy_token_data(legacyToken));
+            const data_t evoData = evo_token_data(evoToken);
+            assert(EvoFormat::tokenize_evo_token_words(
+                EvoFormat::detokenize_evo_token_words(evoData)) == evoData);
+            assert(EvoFormat::evo_tokenized_data_to_legacy(evoData) == legacy_token_data(legacyToken));
             assert(stderrCapture.str().find("Cannot convert Evo token") == std::string::npos);
         }
 
-        assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xE9D6)) == "►ʳ");
-        assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xE9D7)) == "►ᵍ");
-        assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xE9D8)) == "►º");
+        assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xE9D6)) == "\\uE9D6");
+        assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xE9D7)) == "\\uE9D7");
+        assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xE9D8)) == "\\uE9D8");
+        assert(EvoFormat::tokenize_evo_token_words("\\uE9D6") == evo_token_data(0xE9D6));
+        assert(EvoFormat::tokenize_evo_token_words("\\uE9D7") == evo_token_data(0xE9D7));
+        assert(EvoFormat::tokenize_evo_token_words("\\uE9D8") == evo_token_data(0xE9D8));
         assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0x25B6)) == "▶");
         assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0x25C0)) == "◀");
         assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xF012)) == "₁₀");
         assert(EvoFormat::detokenize_evo_token_words(evo_token_data(0xF029)) == "░");
+
+        const data_t functionTokenInString = {
+            0x16, 0xE4, // "
+            0x3F, 0xE4, // sin(
+            0x17, 0xE8, // X
+            0x00, 0x00,
+        };
+        const std::string escapedFunctionString = EvoFormat::detokenize_evo_token_words(functionTokenInString);
+        assert(escapedFunctionString == R"("\xC2X)");
+        assert(EvoFormat::tokenize_evo_token_words(escapedFunctionString) == functionTokenInString);
+
+        const data_t literalTextInString = {
+            0x16, 0xE4, // "
+            0x73, 0x00, // s
+            0x69, 0x00, // i
+            0x6E, 0x00, // n
+            0x10, 0xE4, // (
+            0x17, 0xE8, // X
+            0x00, 0x00,
+        };
+        assert(EvoFormat::detokenize_evo_token_words(literalTextInString) == "\"sin(X");
+        assert(EvoFormat::tokenize_evo_token_words("\"sin(X") == literalTextInString);
+
+        const data_t equationSource = EvoFormat::tokenize_evo_token_words("\"sin(X→Y₁");
+        const std::string readableEquationSource = EvoFormat::detokenize_evo_token_words(equationSource);
+        assert(readableEquationSource.find("sin(") != std::string::npos);
+        assert(readableEquationSource.find("\\xC2") == std::string::npos);
+        assert(EvoFormat::tokenize_evo_token_words(readableEquationSource) == equationSource);
+
+        const data_t unknownEvoWord = {0xFF, 0xE3, 0x00, 0x00};
+        assert(EvoFormat::detokenize_evo_token_words(unknownEvoWord) == "\\uE3FF");
+        assert(EvoFormat::tokenize_evo_token_words("\\uE3FF") == unknownEvoWord);
 
         assert(EvoFormat::legacy_tokenized_data_to_evo({0x02, 0x00, 0xEF, 0x79}) == evo_token_data(0xE6AE));
         assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBAF)) == evo_token_data(0xF003));
@@ -2040,7 +2080,7 @@ Disp "A\ and B")TI";
 
         TIVarFile reloadedFromGradProgram = TIVarFile::loadFromFile(fromGradPath);
         assert(reloadedFromGradProgram.isEvoFormat());
-        assert(json::parse(reloadedFromGradProgram.getReadableContent())["code"] == "ᵍ");
+        assert(json::parse(reloadedFromGradProgram.getReadableContent())["code"] == "\\uE424");
 
         ScopedStderrCapture stderrCapture;
         reloadedFromGradProgram.convertToModel(TIModel{"84+CE"});
@@ -2055,7 +2095,8 @@ Disp "A\ and B")TI";
         const data_t originalLegacyData = lowerStringProgram.getRawContent();
         lowerStringProgram.convertToModel(TIModel{"84Evo"});
         assert(lowerStringProgram.isEvoFormat());
-        assert(json::parse(lowerStringProgram.getReadableContent())["code"] == "Disp \"Hello World");
+        assert(json::parse(lowerStringProgram.getReadableContent())["code"]
+            == R"(Disp "H\u621Allo Wo\u6212l\u6219)");
         assert(lowerStringProgram.getRawContentHexStr().find("07e8") != std::string::npos);
         assert(lowerStringProgram.getRawContentHexStr().find("16e8") != std::string::npos);
 
@@ -2170,21 +2211,17 @@ Disp "A\ and B")TI";
         };
 
         data_t rawData;
-        std::string expectedCode;
         for (const auto& [first, last] : acceptedUcs2Ranges)
         {
             for (uint16_t codepoint = first; codepoint <= last; ++codepoint)
             {
                 rawData.push_back(static_cast<uint8_t>(codepoint & 0xFF));
                 rawData.push_back(static_cast<uint8_t>((codepoint >> 8) & 0xFF));
-                expectedCode += EvoFormat::detokenize_evo_token_words({
-                    static_cast<uint8_t>(codepoint & 0xFF),
-                    static_cast<uint8_t>((codepoint >> 8) & 0xFF)
-                });
             }
         }
         rawData.push_back(0x00);
         rawData.push_back(0x00);
+        const std::string expectedCode = EvoFormat::detokenize_evo_token_words(rawData);
 
         TIVarFile rawAcceptedUcs2Program = TIVarFile::createNew("Program", "UCS2OK", "84Evo");
         rawAcceptedUcs2Program.setContentFromData(rawData);
@@ -2209,6 +2246,7 @@ Disp "A\ and B")TI";
         ScopedStderrCapture stderrCapture;
         TIVarFile retokenizedAcceptedUcs2Program = TIVarFile::createNew("Program", "UCS2RT", "84Evo");
         retokenizedAcceptedUcs2Program.setContentFromString(expectedCode);
+        assert(retokenizedAcceptedUcs2Program.getRawContent() == rawData);
         assert(stderrCapture.str().find("Cannot encode source text") == std::string::npos);
 
         TIVarFile rawRejectedUcs2Program = TIVarFile::createNew("Program", "UCS2BAD", "84Evo");
