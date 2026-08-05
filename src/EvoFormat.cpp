@@ -1101,6 +1101,27 @@ static std::string evo_word_escape(uint16_t token)
         + dechex(static_cast<uint8_t>(token & 0xFF));
 }
 
+static std::string named_legacy_token_escape(uint16_t token)
+{
+    const std::string name = TypeHandlers::TH_Tokenized::oneTokenBytesToString(token);
+    if (name.empty())
+    {
+        return "";
+    }
+
+    const std::string candidate = "\\" + name;
+    const auto scanned = TypeHandlers::TH_Tokenized::scanSourceTokens("\"" + candidate);
+    if (scanned.size() == 2)
+    {
+        const auto& [sourceText, scannedToken, matched] = scanned.back();
+        if (matched && sourceText == candidate && scannedToken == token)
+        {
+            return candidate;
+        }
+    }
+    return "";
+}
+
 static std::string roundtrip_safe_evo_token_string(uint16_t token)
 {
     uint16_t legacyToken = 0;
@@ -1109,10 +1130,18 @@ static std::string roundtrip_safe_evo_token_string(uint16_t token)
         && direct_evo_token_for_legacy(legacyToken, roundTrippedToken)
         && roundTrippedToken == token)
     {
+        const std::string namedEscape = named_legacy_token_escape(legacyToken);
+        if (!namedEscape.empty())
+        {
+            return namedEscape;
+        }
         return legacy_token_escape(legacyToken);
     }
     return evo_word_escape(token);
 }
+
+static data_t tokenize_evo_token_words_impl(const std::string& source, const options_t& options,
+                                            bool warnLegacyByteEscapes);
 
 std::string detokenize_evo_token_words(const data_t& data)
 {
@@ -1127,7 +1156,7 @@ std::string detokenize_evo_token_words(const data_t& data)
     // old best-effort output for malformed/non-entry buffers that do not.
     if (data.size() < 2 || data.size() % 2 != 0
         || data[data.size() - 2] != 0 || data[data.size() - 1] != 0
-        || tokenize_evo_token_words(readable) == data)
+        || tokenize_evo_token_words_impl(readable, {}, false) == data)
     {
         return readable;
     }
@@ -1154,7 +1183,7 @@ std::string detokenize_evo_token_words(const data_t& data)
     };
 
     std::vector<std::string> chosenParts = safeParts;
-    if (tokenize_evo_token_words(joinParts(chosenParts)) != data)
+    if (tokenize_evo_token_words_impl(joinParts(chosenParts), {}, false) != data)
     {
         return readable;
     }
@@ -1164,7 +1193,7 @@ std::string detokenize_evo_token_words(const data_t& data)
     for (size_t i = 0; i < chosenParts.size(); i++)
     {
         chosenParts[i] = displayParts[i];
-        if (tokenize_evo_token_words(joinParts(chosenParts)) != data)
+        if (tokenize_evo_token_words_impl(joinParts(chosenParts), {}, false) != data)
         {
             chosenParts[i] = safeParts[i];
         }
@@ -1173,6 +1202,12 @@ std::string detokenize_evo_token_words(const data_t& data)
 }
 
 data_t tokenize_evo_token_words(const std::string& source, const options_t& options)
+{
+    return tokenize_evo_token_words_impl(source, options, true);
+}
+
+static data_t tokenize_evo_token_words_impl(const std::string& source, const options_t& options,
+                                            bool warnLegacyByteEscapes)
 {
     const bool deindent = options.contains("deindent") && options.at("deindent") == 1;
     const bool detectStrings = !options.contains("detect_strings") || options.at("detect_strings") != 0;
@@ -1227,12 +1262,22 @@ data_t tokenize_evo_token_words(const std::string& source, const options_t& opti
     evo.reserve((normalizedSource.size() + 1) * 2);
     bool isWithinString = false;
     bool inEvaluatedString = false;
+    bool warnedLegacyByteEscape = false;
     uint16_t lastEvoToken = 0;
 
     for (const auto& [text, token, matched] : TypeHandlers::TH_Tokenized::scanSourceTokens(normalizedSource, detectStrings))
     {
         if (matched)
         {
+            if (warnLegacyByteEscapes && !warnedLegacyByteEscape && text.rfind("\\x", 0) == 0)
+            {
+                std::cerr << "[Warning] Legacy 8-bit token escape " << text
+                          << " used while encoding Evo source; converting it through the legacy-to-Evo token mapping. "
+                             "Use a named escape or an explicit 16-bit \\uNNNN token escape instead."
+                          << std::endl;
+                warnedLegacyByteEscape = true;
+            }
+
             uint16_t evoToken = 0;
             if (token == legacyStore || token == legacyNewLine)
             {
@@ -1263,6 +1308,11 @@ data_t tokenize_evo_token_words(const std::string& source, const options_t& opti
                 inEvaluatedString = isWithinString && evo_token_starts_evaluated_string(lastEvoToken);
             }
             lastEvoToken = evoToken;
+            continue;
+        }
+
+        if (text == "\\" || text == "␟" || text == " " || text == "‌")
+        {
             continue;
         }
 
