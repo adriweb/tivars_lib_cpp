@@ -270,6 +270,7 @@ namespace tivars::TypeHandlers
         static std::vector<token_scan_item> scanSourceTokens(const std::string& sourceStr, bool detectStrings = true);
         static std::string tokenToString(const data_t& data, int *incr, const options_t& options);
         static std::string oneTokenBytesToString(uint16_t tokenBytes);
+        static std::string oneTokenBytesToString(uint16_t tokenBytes, const options_t& options);
     };
 
     // Special temporary type that may appear as an equation, during basic program execution

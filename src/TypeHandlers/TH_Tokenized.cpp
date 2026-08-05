@@ -1535,6 +1535,11 @@ namespace tivars::TypeHandlers
 
     std::string TH_Tokenized::oneTokenBytesToString(uint16_t tokenBytes)
     {
+        return oneTokenBytesToString(tokenBytes, {{"prettify", 1}});
+    }
+
+    std::string TH_Tokenized::oneTokenBytesToString(uint16_t tokenBytes, const options_t& options)
+    {
         ensure_tokens_initialized();
 
         if (tokenBytes < 0xFF && isTwoByteTokenPrefix(static_cast<uint8_t>(tokenBytes & 0xFF)))
@@ -1543,9 +1548,13 @@ namespace tivars::TypeHandlers
             return "";
         }
 
-        std::string tokStr = get_detok_primary_string(tokenBytes, LANG_EN, {});
+        const uint8_t langIdx = (options.contains("lang") && options.at("lang") == LANG_FR) ? LANG_FR : LANG_EN;
+        std::string tokStr = get_detok_primary_string(tokenBytes, langIdx, options);
 
-        tokStr = prettify_token_string(tokStr);
+        if (options.contains("prettify") && options.at("prettify") == 1)
+        {
+            tokStr = prettify_token_string(tokStr);
+        }
 
         return tokStr;
     }
@@ -1725,7 +1734,8 @@ namespace tivars::TypeHandlers
         function("TH_Tokenized_getPosInfoAtOffsetFromHexStr", &tivars::TypeHandlers::TH_Tokenized::getPosInfoAtOffsetFromHexStr);
         function("TH_Tokenized_getPosInfoAtOffsetInSourceString", &tivars::TypeHandlers::TH_Tokenized::getPosInfoAtOffsetInSourceString);
         function("TH_Tokenized_reindentCodeString", select_overload<std::string(const std::string&, const options_t&)>(&tivars::TypeHandlers::TH_Tokenized::reindentCodeString));
-        function("TH_Tokenized_oneTokenBytesToString"       , &tivars::TypeHandlers::TH_Tokenized::oneTokenBytesToString);
+        function("TH_Tokenized_oneTokenBytesToString", select_overload<std::string(uint16_t)>(&tivars::TypeHandlers::TH_Tokenized::oneTokenBytesToString));
+        function("TH_Tokenized_oneTokenBytesToString", select_overload<std::string(uint16_t, const options_t&)>(&tivars::TypeHandlers::TH_Tokenized::oneTokenBytesToString));
         function("TH_Tokenized_isTwoByteTokenPrefix"        , &tivars::TypeHandlers::TH_Tokenized::isTwoByteTokenPrefix);
         function("TH_Tokenized_scanSourceTokens"            , &tivars::TypeHandlers::TH_Tokenized::scanSourceTokens);
     }

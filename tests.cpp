@@ -1006,6 +1006,8 @@ Disp "A\ and B")TI";
         assert(TH_Tokenized::oneTokenBytesToString(0x3F) == "\n");
         assert(TH_Tokenized::oneTokenBytesToString(0xAD) == "getKey");
         assert(TH_Tokenized::oneTokenBytesToString(0xEF97) == "toString(");
+        assert(TH_Tokenized::oneTokenBytesToString(0x40, {{"lang", TH_Tokenized::LANG_EN}}) == " and ");
+        assert(TH_Tokenized::oneTokenBytesToString(0x40, {{"lang", TH_Tokenized::LANG_FR}}) == " et ");
     }
 
     {
