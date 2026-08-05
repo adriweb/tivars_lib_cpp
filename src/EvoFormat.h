@@ -68,6 +68,7 @@ namespace tivars::EvoFormat
     EvoPythonScriptInfo parse_evo_python_script_payload(const data_t& data);
 
     std::string detokenize_evo_token_words(const data_t& data);
+    data_t tokenize_evo_token_words(const std::string& source, const options_t& options = options_t());
     bool is_evo_tokenized_entry(const TIVarFile::var_entry_t& entry);
     data_t evo_tokenized_data_to_legacy(const data_t& evoData);
     data_t legacy_tokenized_data_to_evo(const data_t& legacyData, bool smartConversion = false);

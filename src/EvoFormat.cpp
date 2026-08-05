@@ -12,12 +12,18 @@
 #include <cstring>
 #include <iostream>
 #include <ranges>
+#include <sstream>
 #include <stdexcept>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "TIVarTypes.h"
 #include "TypeHandlers/TypeHandlers.h"
+#include "json.hpp"
 #include "tivarslib_utils.h"
+
+using json = nlohmann::ordered_json;
 
 namespace tivars::EvoFormat
 {
@@ -51,6 +57,83 @@ namespace tivars::EvoFormat
                 static_cast<char>(0x80 | (codepoint & 0x3F)),
             };
         }
+
+        bool is_displayable_ucs2_scalar(uint16_t codepoint)
+        {
+            static constexpr std::pair<uint16_t, uint16_t> acceptedRanges[] = {
+                {0x0020, 0x007E}, {0x00A0, 0x00FF}, {0x0177, 0x0177}, {0x0394, 0x0394},
+                {0x03A3, 0x03A3}, {0x03A9, 0x03A9}, {0x03B1, 0x03B5}, {0x03B8, 0x03B8},
+                {0x03BB, 0x03BC}, {0x03C0, 0x03C1}, {0x03C3, 0x03C4}, {0x03C6, 0x03C7},
+                {0x2010, 0x2010}, {0x2026, 0x2026}, {0x2070, 0x2070}, {0x2074, 0x2079},
+                {0x2080, 0x2089}, {0x2122, 0x2122}, {0x2190, 0x2193}, {0x221A, 0x221A},
+                {0x2220, 0x2220}, {0x222B, 0x222B}, {0x2260, 0x2260}, {0x2264, 0x2265},
+                {0x238C, 0x238C}, {0x25A0, 0x25A0}, {0x25AB, 0x25AB}, {0x25B2, 0x25B2},
+                {0x25B6, 0x25B6}, {0x25B8, 0x25B8}, {0x25BC, 0x25BC}, {0x25C0, 0x25C0},
+                {0x25C2, 0x25C2}, {0xF000, 0xF032}, {0xF038, 0xF03A}, {0xF041, 0xF04D},
+                {0xF04F, 0xF058}, {0xF05B, 0xF061},
+            };
+
+            return std::ranges::any_of(acceptedRanges, [codepoint](const auto& range)
+            {
+                const auto& [first, last] = range;
+                return codepoint >= first && codepoint <= last;
+            });
+        }
+
+        bool utf8_to_single_codepoint(const std::string& text, uint16_t& codepoint)
+        {
+            if (text.empty())
+            {
+                return false;
+            }
+
+            const uint8_t first = static_cast<uint8_t>(text[0]);
+            size_t length = 0;
+            uint32_t value = 0;
+            if ((first & 0x80) == 0)
+            {
+                length = 1;
+                value = first;
+            }
+            else if ((first & 0xE0) == 0xC0)
+            {
+                length = 2;
+                value = first & 0x1F;
+            }
+            else if ((first & 0xF0) == 0xE0)
+            {
+                length = 3;
+                value = first & 0x0F;
+            }
+            else
+            {
+                return false;
+            }
+
+            if (text.size() != length)
+            {
+                return false;
+            }
+
+            for (size_t i = 1; i < length; i++)
+            {
+                const uint8_t byte = static_cast<uint8_t>(text[i]);
+                if ((byte & 0xC0) != 0x80)
+                {
+                    return false;
+                }
+                value = (value << 6) | (byte & 0x3F);
+            }
+
+            if (value > 0xFFFF)
+            {
+                return false;
+            }
+
+            codepoint = static_cast<uint16_t>(value);
+            return true;
+        }
+
     }
 
 uint16_t evo_checksum(const data_t& body)
@@ -686,26 +769,137 @@ static const char* evo_token_name(uint16_t token)
 }
 
 static bool direct_legacy_token_for_evo(uint16_t evoToken, uint16_t& legacyToken);
+static bool direct_legacy_payload_for_evo(uint16_t evoToken, data_t& payload);
+static bool direct_evo_token_for_legacy(uint16_t legacyToken, uint16_t& evoToken);
+static void append_evo_token(data_t& out, uint16_t evoToken);
+static bool legacy_token_to_evo_ucs2(uint16_t legacyToken, uint16_t& evoToken);
+
+static const std::unordered_map<uint16_t, std::string>& evo_private_display_aliases()
+{
+    static const std::unordered_map<uint16_t, std::string> aliases = {
+        {0xF000, "ᴇ"}, {0xF001, "E"}, {0xF002, "e"}, {0xF003, "𝙵"},
+        {0xF004, "𝑖"}, {0xF005, "ʟ"}, {0xF006, "𝗡"}, {0xF007, "𝑛"},
+        {0xF008, "p̂"}, {0xF009, "ʳ"}, {0xF00A, "ᵀ"}, {0xF00B, "ᴛ"},
+        {0xF00C, "ˣ"}, {0xF00D, "x̄"}, {0xF00E, "ȳ"}, {0xF00F, "⁺"},
+        {0xF010, "⁻"}, {0xF011, "⁻¹"}, {0xF012, "₁₀"},{0xF013, "²"},
+        {0xF014, "³"}, {0xF015, "⧸"}, {0xF016, "⟋"}, {0xF017, "␣"},
+        {0xF018, "⁄"}, {0xF019, "`"},
+        {0xF01A, "⸩"}, {0xF01B, "🡅"}, {0xF01C, "🡇"}, {0xF01D, "🠺"},
+        {0xF01E, "↑"}, {0xF01F, "↓"},
+        {0xF020, "⌸"}, {0xF021, "▮"}, {0xF022, "↑"},
+        {0xF023, "A"}, {0xF024, "a"}, {0xF025, "_"}, {0xF026, "↑͟"},
+        {0xF027, "A͟"}, {0xF028, "a͟"}, {0xF029, "░"}, {0xF02A, "⬚"},
+        {0xF02B, "╲"}, {0xF02C, "＼"}, {0xF02D, "◥"}, {0xF02E, "◣"},
+        {0xF02F, "⌕"}, {0xF030, "⁰"}, {0xF031, "⧵"}, {0xF032, "⧹"},
+        {0xF038, "⬩"}, {0xF039, "⎵"}, {0xF03A, "🔒"}, {0xF041, "⋅"},
+        {0xF042, "₀"}, {0xF043, "₁"}, {0xF044, "₂"}, {0xF045, "₃"},
+        {0xF046, "₄"}, {0xF047, "₅"}, {0xF048, "₆"}, {0xF049, "₇"},
+        {0xF04A, "₈"}, {0xF04B, "₉"}, {0xF04C, "□"},
+        {0xF04F, "⬌"}, {0xF050, "▯"}, {0xF051, "⸋"}, {0xF052, "𝅆"},
+        {0xF053, "ᵍ"}, {0xF054, "▫"}, {0xF055, "ᵃ"}, {0xF056, "🔒"},
+        {0xF057, "◣̏"}, {0xF058, "◥̤"},
+        {0xF05B, "Β"}, {0xF05C, "Ε"}, {0xF05D, "Ｆ"},
+        {0xF05E, "‹"}, {0xF05F, "›"}, {0xF060, "≤"}, {0xF061, "≥"}
+    };
+    return aliases;
+}
+
+static bool source_text_tokenizes_without_private_alias(const std::string& text)
+{
+    const auto scanned = TypeHandlers::TH_Tokenized::scanSourceTokens(text);
+    if (scanned.size() != 1)
+    {
+        return false;
+    }
+
+    const auto& [scannedText, legacyToken, matched] = scanned[0];
+    if (!matched || scannedText != text)
+    {
+        return false;
+    }
+
+    uint16_t evoToken = 0;
+    return direct_evo_token_for_legacy(legacyToken, evoToken);
+}
+
+static const std::vector<std::pair<std::string, uint16_t>>& evo_private_source_aliases()
+{
+    static const std::vector<std::pair<std::string, uint16_t>> aliases = [] {
+        std::vector<std::pair<std::string, uint16_t>> result;
+        for (const auto& [token, text] : evo_private_display_aliases())
+        {
+            if (source_text_tokenizes_without_private_alias(text))
+            {
+                continue;
+            }
+            result.emplace_back(text, token);
+        }
+        std::ranges::sort(result, [](const auto& lhs, const auto& rhs) {
+            if (lhs.first.size() != rhs.first.size())
+            {
+                return lhs.first.size() > rhs.first.size();
+            }
+            return lhs.second < rhs.second;
+        });
+        return result;
+    }();
+    return aliases;
+}
+
+static std::string normalize_evo_private_source_aliases(const std::string& source)
+{
+    std::string normalized;
+    normalized.reserve(source.size());
+
+    for (size_t pos = 0; pos < source.size();)
+    {
+        bool matched = false;
+        for (const auto& [text, token] : evo_private_source_aliases())
+        {
+            if (source.compare(pos, text.size(), text) != 0)
+            {
+                continue;
+            }
+
+            normalized += "\\u" + dechex(static_cast<uint8_t>(token >> 8)) + dechex(static_cast<uint8_t>(token & 0xFF));
+            pos += text.size();
+            matched = true;
+            break;
+        }
+
+        if (!matched)
+        {
+            normalized += source[pos++];
+        }
+    }
+
+    return normalized;
+}
+
+static bool evo_token_starts_evaluated_string(uint16_t evoToken)
+{
+    return evoToken == 0xE6C7   // TOK_SEND_MBL
+        || evoToken == 0xE470;  // TOK_EXPR
+}
 
 static std::string evo_token_to_string(uint16_t token)
 {
     if (token == 0x0000) return "";
+    if (const auto it = evo_private_display_aliases().find(token); it != evo_private_display_aliases().end()) return it->second;
+    if (is_displayable_ucs2_scalar(token)) return utf8_from_codepoint(token);
     if (token >= 0xE800 && token <= 0xE819) return std::string(1, static_cast<char>('A' + (token - 0xE800)));
     if (token == 0xE81A) return "θ";
     if (token >= 0xE401 && token <= 0xE40A) return std::string(1, static_cast<char>('0' + (token - 0xE401)));
     if (token >= 0xE830 && token <= 0xE835) return "L" + std::to_string(token - 0xE830 + 1);
     if (token >= 0xE820 && token <= 0xE829) return "[" + std::string(1, static_cast<char>('A' + (token - 0xE820))) + "]";
-    if (token >= 0x20 && token <= 0x7E && !(token >= 'A' && token <= 'Z')) return std::string(1, static_cast<char>(token));
     if (token >= 0xE840 && token <= 0xE849) return "Y" + std::to_string(token == 0xE849 ? 0 : token - 0xE840 + 1);
     if (token >= 0xE8A0 && token <= 0xE8A9) return "Str" + std::to_string(token == 0xE8A9 ? 0 : token - 0xE8A0 + 1);
-    if ((token >= 0x00A1 && token <= 0x00FF) || (token >= 0x0391 && token <= 0x03C9)) return utf8_from_codepoint(token);
-    if ((token >= 0x2070 && token <= 0x209F) || token == 0x02E3 || token == 0x029F || token == 0x1D1B) return utf8_from_codepoint(token);
-    if (token == 0x2026 || token == 0x2191 || token == 0x2193 || token == 0x221A || token == 0x2220 || token == 0x222B) return utf8_from_codepoint(token);
-    if (token == 0x2338 || token == 0x25A1 || token == 0x25BA || token == 0x25C4 || token == 0xFE62) return utf8_from_codepoint(token);
-    if (token == 0x007C || token == 0x0060) return utf8_from_codepoint(token);
     if (token == 0xE41A) return "'";
     if (token == 0xE424) return "ᵍ";
     if (token == 0xE589) return "Grad";
+    if (token == 0xE9D6) return "►ʳ";
+    if (token == 0xE9D7) return "►ᵍ";
+    if (token == 0xE9D8) return "►º";
     if (token >= 0xE850 && token <= 0xE85B)
     {
         const uint16_t idx = static_cast<uint16_t>((token - 0xE850) / 2 + 1);
@@ -739,6 +933,115 @@ std::string detokenize_evo_token_words(const data_t& data)
     return out;
 }
 
+data_t tokenize_evo_token_words(const std::string& source, const options_t& options)
+{
+    const bool deindent = options.contains("deindent") && options.at("deindent") == 1;
+    const bool detectStrings = !options.contains("detect_strings") || options.at("detect_strings") != 0;
+
+    std::string sourceText = source;
+    const std::string trimmed = trim(sourceText);
+    if (!trimmed.empty() && trimmed.front() == '{')
+    {
+        try
+        {
+            const json j = json::parse(trimmed);
+            if (j.contains("rawDataHex"))
+            {
+                return hex_string_to_bytes(j.at("rawDataHex").get<std::string>(), "rawDataHex");
+            }
+            if (j.contains("code"))
+            {
+                sourceText = j.at("code").get<std::string>();
+            }
+        }
+        catch (const json::exception&)
+        {
+            // Ignore non-JSON input and fall back to regular Evo tokenized parsing.
+        }
+    }
+
+    std::string normalizedSource;
+    if (deindent)
+    {
+        std::istringstream lines{sourceText};
+        std::string line;
+        while (std::getline(lines, line))
+        {
+            normalizedSource += ltrim(line) + "\n";
+        }
+        if (!normalizedSource.empty())
+        {
+            normalizedSource.pop_back();
+        }
+    }
+    else
+    {
+        normalizedSource = sourceText;
+    }
+    normalizedSource = normalize_evo_private_source_aliases(normalizedSource);
+
+    static constexpr uint16_t legacyStore = 0x04;
+    static constexpr uint16_t legacyQuote = 0x2A;
+    static constexpr uint16_t legacyNewLine = 0x3F;
+
+    data_t evo;
+    evo.reserve((normalizedSource.size() + 1) * 2);
+    bool isWithinString = false;
+    bool inEvaluatedString = false;
+    uint16_t lastEvoToken = 0;
+
+    for (const auto& [text, token, matched] : TypeHandlers::TH_Tokenized::scanSourceTokens(normalizedSource, detectStrings))
+    {
+        if (matched)
+        {
+            uint16_t evoToken = 0;
+            if (token == legacyStore || token == legacyNewLine)
+            {
+                isWithinString = false;
+                inEvaluatedString = false;
+            }
+
+            if (text.rfind("\\u", 0) == 0 && is_displayable_ucs2_scalar(token) && !direct_evo_token_for_legacy(token, evoToken))
+            {
+                evoToken = token;
+            }
+            else if (!direct_evo_token_for_legacy(token, evoToken)
+                && !(isWithinString && !inEvaluatedString && token != legacyQuote && legacy_token_to_evo_ucs2(token, evoToken)))
+            {
+                std::cerr << "[Warning] Cannot convert 84+CE token "
+                          << TypeHandlers::TH_Tokenized::oneTokenBytesToString(token)
+                          << " to an Evo token; replacing with ?" << std::endl;
+                evoToken = 0xE41B;
+            }
+
+            append_evo_token(evo, evoToken);
+            if (token == legacyQuote)
+            {
+                isWithinString = !isWithinString;
+                inEvaluatedString = isWithinString && evo_token_starts_evaluated_string(lastEvoToken);
+            }
+            lastEvoToken = evoToken;
+            continue;
+        }
+
+        // The shared scanner leaves unknown-but-valid UTF-8 source text here;
+        // Evo can store displayable UCS-2 characters directly as token words.
+        uint16_t codepoint = 0;
+        if (utf8_to_single_codepoint(text, codepoint) && is_displayable_ucs2_scalar(codepoint))
+        {
+            append_evo_token(evo, codepoint);
+        }
+        else if (!text.empty())
+        {
+            std::cerr << "[Warning] Cannot encode source text \"" << text
+                      << "\" as an Evo token; skipping it." << std::endl;
+        }
+    }
+
+    append_evo_token(evo, 0);
+    return evo;
+}
+
 bool is_evo_tokenized_entry(const TIVarFile::var_entry_t& entry)
 {
     const EvoTypeID evoTypeID = entry.evoTypeID;
@@ -758,6 +1061,64 @@ static void append_evo_token(data_t& out, uint16_t evoToken)
 {
     out.push_back(static_cast<uint8_t>(evoToken & 0xFF));
     out.push_back(static_cast<uint8_t>((evoToken >> 8) & 0xFF));
+}
+
+static bool legacy_payload_for_evo_ucs2(uint16_t evoToken, data_t& payload)
+{
+    if (!is_displayable_ucs2_scalar(evoToken))
+    {
+        return false;
+    }
+
+    try
+    {
+        const data_t legacy = TypeHandlers::TH_Tokenized::makeDataFromString(utf8_from_codepoint(evoToken));
+        if (legacy.size() < 3 || legacy.size() != static_cast<size_t>(2 + legacy[0] + (legacy[1] << 8)))
+        {
+            return false;
+        }
+        payload.assign(legacy.begin() + 2, legacy.end());
+        return !payload.empty();
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
+static bool direct_legacy_payload_for_evo(uint16_t evoToken, data_t& payload)
+{
+    payload.clear();
+
+    // ►{angle} conv token
+    if (evoToken == 0xE9D6 || evoToken == 0xE9D7 || evoToken == 0xE9D8)
+    {
+        append_legacy_token(payload, 0xBBEC);
+        append_legacy_token(payload, evoToken == 0xE9D6 ? 0x0A : evoToken == 0xE9D7 ? 0xAF : 0x0B);
+        return true;
+    }
+
+    uint16_t legacyToken = 0;
+    if (!direct_legacy_token_for_evo(evoToken, legacyToken))
+    {
+        return false;
+    }
+
+    append_legacy_token(payload, legacyToken);
+    return true;
+}
+
+static bool legacy_token_to_evo_ucs2(uint16_t legacyToken, uint16_t& evoToken)
+{
+    const std::string text = TypeHandlers::TH_Tokenized::oneTokenBytesToString(legacyToken);
+    uint16_t codepoint = 0;
+    if (!utf8_to_single_codepoint(text, codepoint) || !is_displayable_ucs2_scalar(codepoint))
+    {
+        return false;
+    }
+
+    evoToken = codepoint;
+    return true;
 }
 
 static bool direct_legacy_token_for_evo(uint16_t evoToken, uint16_t& legacyToken)
@@ -893,7 +1254,7 @@ static bool direct_legacy_token_for_evo(uint16_t evoToken, uint16_t& legacyToken
         {0x03B4, 0xBBA3}, {0x03B5, 0xBBA4}, {0x03BB, 0xBBA5}, {0x03BC, 0xBBA6},
         {0x03C0, 0xBBA7}, {0x03C1, 0xBBA8}, {0x03A3, 0xBBA9}, {0x03A6, 0xBBAB},
         {0x03A9, 0xBBAC}, {0x03C7, 0xBBAE}, {0x007C, 0xBBD8}, {0x2026, 0xBBDB},
-        {0x00D7, 0xBBF0}, {0x222B, 0xBBF1}, {0x2338, 0xBBF5},
+        {0x00D7, 0xBBF0}, {0x222B, 0xBBF1},
         {0x007E, 0xBBCF}, {0x03C3, 0xBBCB}, {0x03C4, 0xBBCC}, {0x00CD, 0xBBCD},
         {0x0040, 0xBBD1}, {0x0023, 0xBBD2}, {0x0024, 0xBBD3}, {0x0026, 0xBBD4},
         {0x003B, 0xBBD6}, {0x005C, 0xBBD7}, {0x0025, 0xBBDA}, {0x2220, 0xBBDC},
@@ -906,6 +1267,7 @@ static bool direct_legacy_token_for_evo(uint16_t evoToken, uint16_t& legacyToken
         {0xE5BD, 0x7F}, {0xE5BE, 0x80}, {0xE5BF, 0x81}, {0xE5C0, 0xEF73},
         {0xE5C1, 0xEF74}, {0xE5C2, 0xEF75},
         {0xE4F9, 0xBB57}, {0xE593, 0xBB64}, {0xE6C6, 0xE8}, {0xE6C7, 0xE7},
+        {0xE6AE, 0xEF79},
         {0xE900, 0x6201}, {0xE901, 0x6202}, {0xE902, 0x6203}, {0xE903, 0x6204},
         {0xE904, 0x6205}, {0xE905, 0x6206}, {0xE906, 0x6207}, {0xE907, 0x6208},
         {0xE908, 0x6209}, {0xE909, 0x620A}, {0xE90A, 0x620B}, {0xE90B, 0x620C},
@@ -922,6 +1284,9 @@ static bool direct_legacy_token_for_evo(uint16_t evoToken, uint16_t& legacyToken
         {0xE932, 0x6234}, {0xE933, 0x6235}, {0xE934, 0x6236}, {0xE935, 0x6237},
         {0xE936, 0x6238}, {0xE937, 0x6239}, {0xE938, 0x623A}, {0xE939, 0x623B},
         {0xE93A, 0x623C}, {0xE980, 0x6304}, {0xE981, 0x6305}, {0xE982, 0x6332},
+        {0xE93B, 0x6203}, {0xE93C, 0x622B}, {0xE93D, 0x622E}, {0xE93E, 0xBBA6},
+        {0xE941, 0x622D}, {0xE942, 0x6230}, {0xE943, 0x6206}, {0xE944, 0x622C},
+        {0xE945, 0x622F}, {0xE946, 0xBBCB}, {0xE95C, 0x6227},
         {0xE983, 0x6306}, {0xE984, 0x6307}, {0xE985, 0x6308}, {0xE986, 0x6309},
         {0xE987, 0x6333}, {0xE98F, 0x630A}, {0xE990, 0x630B}, {0xE991, 0x6302},
         {0xE992, 0x6336}, {0xE993, 0x630C}, {0xE994, 0x630D}, {0xE995, 0x6303},
@@ -1245,6 +1610,51 @@ static bool direct_legacy_token_for_evo(uint16_t evoToken, uint16_t& legacyToken
         {0xE6C5, 0xEF31},
         {0xE81B, 0x0072},
         {0xE81C, 0x005F},
+        {0xF000, 0x3B},
+        {0xF001, 0x45},
+        {0xF002, 0xBBB4},
+        {0xF003, 0xBBAF},
+        {0xF004, 0x2C},
+        {0xF005, 0xEB},
+        {0xF006, 0x632B},
+        {0xF007, 0x6221},
+        {0xF008, 0xBBAD},
+        {0xF009, 0x0A},
+        {0xF00A, 0x0E},
+        {0xF00B, 0xBBDF},
+        {0xF00C, 0xBBDE},
+        {0xF00D, 0x6203},
+        {0xF00E, 0x620C},
+        {0xF010, 0xB0},
+        {0xF011, 0x0C},
+        {0xF012, 0xBBEA},
+        {0xF013, 0x0D},
+        {0xF014, 0x0F},
+        {0xF018, 0xEF2E},
+        {0xF019, 0xBB9B},
+        {0xF01B, 0xBBF2},
+        {0xF01C, 0xBBF3},
+        {0xF01E, 0xBBED},
+        {0xF01F, 0xBBEE},
+        {0xF020, 0xBBF5},
+        {0xF022, 0xBBED},
+        {0xF023, 0x41},
+        {0xF024, 0xBBB0},
+        {0xF025, 0xBBD9},
+        {0xF02A, 0xEF1E},
+        {0xF042, 0xBBE0},
+        {0xF043, 0xBBE1},
+        {0xF044, 0xBBE2},
+        {0xF045, 0xBBE3},
+        {0xF046, 0xBBE4},
+        {0xF047, 0xBBE5},
+        {0xF048, 0xBBE6},
+        {0xF049, 0xBBE7},
+        {0xF04A, 0xBBE8},
+        {0xF04B, 0xBBE9},
+        {0xF04C, 0x7F},
+        {0xF060, 0x6D},
+        {0xF061, 0x6E},
     };
 
     const auto it = direct.find(evoToken);
@@ -1389,7 +1799,7 @@ static bool direct_evo_token_for_legacy(uint16_t legacyToken, uint16_t& evoToken
         {0xBBA3, 0x03B4}, {0xBBA4, 0x03B5}, {0xBBA5, 0x03BB}, {0xBBA6, 0x03BC},
         {0xBBA7, 0x03C0}, {0xBBA8, 0x03C1}, {0xBBA9, 0x03A3}, {0xBBAB, 0x03A6},
         {0xBBAC, 0x03A9}, {0xBBAE, 0x03C7}, {0xBBD8, 0x007C}, {0xBBDB, 0x2026},
-        {0xBBF0, 0x00D7}, {0xBBF1, 0x222B}, {0xBBF5, 0x2338},
+        {0xBBF0, 0x00D7}, {0xBBF1, 0x222B},
         {0xBBCF, 0x007E}, {0xBBCB, 0x03C3}, {0xBBCC, 0x03C4}, {0xBBCD, 0x00CD},
         {0xBBD1, 0x0040}, {0xBBD2, 0x0023}, {0xBBD3, 0x0024}, {0xBBD4, 0x0026},
         {0xBBD5, 0x0060}, {0xBBD6, 0x003B}, {0xBBD7, 0x005C}, {0xBBDA, 0x0025}, {0xBBDC, 0x2220},
@@ -1401,6 +1811,7 @@ static bool direct_evo_token_for_legacy(uint16_t legacyToken, uint16_t& evoToken
         {0x7F, 0xE5BD}, {0x80, 0xE5BE}, {0x81, 0xE5BF}, {0xEF73, 0xE5C0},
         {0xEF74, 0xE5C1}, {0xEF75, 0xE5C2},
         {0xBB57, 0xE4F9}, {0xBB64, 0xE593}, {0xE8, 0xE6C6}, {0xE7, 0xE6C7},
+        {0xEF79, 0xE6AE},
         {0x6201, 0xE900}, {0x6202, 0xE901}, {0x6203, 0xE902}, {0x6204, 0xE903},
         {0x6205, 0xE904}, {0x6206, 0xE905}, {0x6207, 0xE906}, {0x6208, 0xE907},
         {0x6209, 0xE908}, {0x620A, 0xE909}, {0x620B, 0xE90A}, {0x620C, 0xE90B},
@@ -1736,6 +2147,13 @@ static bool direct_evo_token_for_legacy(uint16_t legacyToken, uint16_t& evoToken
         {0xEF31, 0xE6C5},
         {0x0072, 0xE81B},
         {0x005F, 0xE81C},
+        {0xBBAF, 0xF003},
+        {0xBBAD, 0xF008},
+        {0xBBEA, 0xF012},
+        {0xBBF2, 0xF01B},
+        {0xBBF3, 0xF01C},
+        {0xBBF5, 0xF020},
+        {0xEF1E, 0xF02A},
     };
 
     const auto it = direct.find(legacyToken);
@@ -1749,15 +2167,8 @@ static bool direct_evo_token_for_legacy(uint16_t legacyToken, uint16_t& evoToken
 
 static bool tokenized_legacy_payload_for_evo(uint16_t evoToken, data_t& payload)
 {
-    uint16_t legacyToken = 0;
-    if (!direct_legacy_token_for_evo(evoToken, legacyToken))
-    {
-        return false;
-    }
-
-    payload.clear();
-    append_legacy_token(payload, legacyToken);
-    return true;
+    return direct_legacy_payload_for_evo(evoToken, payload)
+        || legacy_payload_for_evo_ucs2(evoToken, payload);
 }
 
 data_t evo_tokenized_data_to_legacy(const data_t& evoData)
@@ -1797,6 +2208,7 @@ data_t legacy_tokenized_data_to_evo(const data_t& legacyData, bool smartConversi
         throw std::invalid_argument("Invalid tokenized legacy data");
     }
 
+    static constexpr uint16_t legacyStore = 0x04;
     static constexpr uint16_t legacyQuote = 0x2A;
     static constexpr uint16_t legacyColon = 0x3E;
     static constexpr uint16_t legacyNewLine = 0x3F;
@@ -1805,6 +2217,8 @@ data_t legacy_tokenized_data_to_evo(const data_t& legacyData, bool smartConversi
 
     data_t evo;
     bool isWithinString = false;
+    bool inEvaluatedString = false;
+    uint16_t lastEvoToken = 0;
     bool delVarStatementOpen = false;
     bool delVarHasArgument = false;
     for (size_t i = 2; i < legacyData.size();)
@@ -1828,7 +2242,14 @@ data_t legacy_tokenized_data_to_evo(const data_t& legacyData, bool smartConversi
         }
 
         uint16_t evoToken = 0;
-        if (!direct_evo_token_for_legacy(legacyToken, evoToken))
+        if (legacyToken == legacyStore || legacyToken == legacyNewLine)
+        {
+            isWithinString = false;
+            inEvaluatedString = false;
+        }
+
+        if (!direct_evo_token_for_legacy(legacyToken, evoToken)
+            && !(isWithinString && !inEvaluatedString && legacyToken != legacyQuote && legacy_token_to_evo_ucs2(legacyToken, evoToken)))
         {
             std::cerr << "[Warning] Cannot convert 84+CE token "
                       << TypeHandlers::TH_Tokenized::oneTokenBytesToString(legacyToken)
@@ -1858,7 +2279,9 @@ data_t legacy_tokenized_data_to_evo(const data_t& legacyData, bool smartConversi
         if (legacyToken == legacyQuote)
         {
             isWithinString = !isWithinString;
+            inEvaluatedString = isWithinString && evo_token_starts_evaluated_string(lastEvoToken);
         }
+        lastEvoToken = evoToken;
 
         i += static_cast<size_t>(incr);
     }
