@@ -556,7 +556,10 @@ namespace tivars::TypeHandlers
                     continue;
                 }
 
-                const std::string currChar = str.substr(strCursorPos, 1);
+                // Unmatched text is reported as one UTF-8 codepoint so callers can
+                // handle non-CE characters without receiving split byte fragments.
+                const size_t currCharLen = std::max<size_t>(utf8_codepoint_len_at(str, strCursorPos), 1);
+                const std::string currChar = str.substr(strCursorPos, currCharLen);
 
                 if (currChar == backslashStr)
                 {
@@ -659,6 +662,8 @@ namespace tivars::TypeHandlers
                 if (!matched)
                 {
                     onSkipped(currChar);
+                    // The for-loop will add the final byte advance.
+                    strCursorPos += currCharLen - 1;
                 }
             }
         }
@@ -1416,6 +1421,24 @@ namespace tivars::TypeHandlers
         }
 
         return posinfo;
+    }
+
+    std::vector<TH_Tokenized::token_scan_item> TH_Tokenized::scanSourceTokens(const std::string& sourceStr, bool detectStrings)
+    {
+        ensure_tokens_initialized();
+
+        std::vector<token_scan_item> items;
+        items.reserve(sourceStr.size());
+        scan_source_tokens(sourceStr, detectStrings,
+                           [&](const std::string& tokenStr, uint16_t tokenValue)
+                           {
+                               items.push_back({ tokenStr, tokenValue, true });
+                           },
+                           [&](const std::string& skippedStr)
+                           {
+                               items.push_back({ skippedStr, 0, false });
+                           });
+        return items;
     }
 
     TH_Tokenized::token_posinfo TH_Tokenized::getPosInfoAtOffsetFromHexStr(const std::string& hexBytesStr, uint16_t byteOffset)
