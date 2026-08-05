@@ -741,7 +741,26 @@ namespace tivars::TypeHandlers
                         onToken("\\\\", backslashTokenIt->second);
                         state.lastTokenBytes = backslashTokenIt->second;
                         strCursorPos++;
-                    } else {
+                        continue;
+                    }
+
+                    const bool canForceNamedToken = detect_strings
+                        && state.isWithinString
+                        && !state.isWithinEquationString
+                        && !state.inEvaluatedString;
+                    size_t forcedTokenLen = 0;
+                    uint16_t forcedTokenValue = 0;
+                    if (canForceNamedToken
+                        && source_token_value_at(str, strCursorPos + 1, forcedTokenValue, forcedTokenLen)
+                        && forcedTokenValue != 0x2A // quote: must update string state normally
+                        && forcedTokenValue != 0x04) // store: must end string state normally
+                    {
+                        onToken(str.substr(strCursorPos, forcedTokenLen + 1), forcedTokenValue);
+                        state.lastTokenBytes = forcedTokenValue;
+                        strCursorPos += forcedTokenLen;
+                    }
+                    else
+                    {
                         state.isInCustomName = false;
                         state.lastTokenBytes = 0;
                         onSkipped(currChar);
@@ -1691,9 +1710,16 @@ namespace tivars::TypeHandlers
             .field("column", &tivars::TypeHandlers::TH_Tokenized::token_posinfo::column)
             .field("len",    &tivars::TypeHandlers::TH_Tokenized::token_posinfo::len);
 
+        value_object<tivars::TypeHandlers::TH_Tokenized::token_scan_item>("token_scan_item")
+            .field("text",    &tivars::TypeHandlers::TH_Tokenized::token_scan_item::text)
+            .field("token",   &tivars::TypeHandlers::TH_Tokenized::token_scan_item::token)
+            .field("matched", &tivars::TypeHandlers::TH_Tokenized::token_scan_item::matched);
+        register_vector<tivars::TypeHandlers::TH_Tokenized::token_scan_item>("token_scan_items");
+
         function("TH_Tokenized_getPosInfoAtOffsetFromHexStr", &tivars::TypeHandlers::TH_Tokenized::getPosInfoAtOffsetFromHexStr);
         function("TH_Tokenized_getPosInfoAtOffsetInSourceString", &tivars::TypeHandlers::TH_Tokenized::getPosInfoAtOffsetInSourceString);
         function("TH_Tokenized_reindentCodeString", select_overload<std::string(const std::string&, const options_t&)>(&tivars::TypeHandlers::TH_Tokenized::reindentCodeString));
         function("TH_Tokenized_oneTokenBytesToString"       , &tivars::TypeHandlers::TH_Tokenized::oneTokenBytesToString);
+        function("TH_Tokenized_scanSourceTokens"            , &tivars::TypeHandlers::TH_Tokenized::scanSourceTokens);
     }
 #endif

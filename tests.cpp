@@ -66,6 +66,81 @@ struct ScopedStderrCapture
     }
 };
 
+static bool contains_numeric_token_escape(const std::string& source)
+{
+    const auto is_hex_digit = [](char c)
+    {
+        return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
+    };
+
+    for (size_t i = 0; i + 3 < source.size(); ++i)
+    {
+        if (source[i] != '\\')
+        {
+            continue;
+        }
+        if (source[i + 1] == 'x' && is_hex_digit(source[i + 2]) && is_hex_digit(source[i + 3]))
+        {
+            return true;
+        }
+        if (i + 5 < source.size() && source[i + 1] == 'u'
+            && is_hex_digit(source[i + 2]) && is_hex_digit(source[i + 3])
+            && is_hex_digit(source[i + 4]) && is_hex_digit(source[i + 5]))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+static const std::vector<uint16_t>& forceable_named_legacy_tokens()
+{
+    static const std::vector<uint16_t> tokens = []
+    {
+        std::vector<uint16_t> result;
+        for (uint32_t tokenValue = 1; tokenValue <= 0xFFFF; ++tokenValue)
+        {
+            const uint16_t token = static_cast<uint16_t>(tokenValue);
+            const std::string name = TH_Tokenized::oneTokenBytesToString(token);
+            if (name.empty())
+            {
+                continue;
+            }
+
+            const std::string candidate = "\\" + name;
+            const auto scanned = TH_Tokenized::scanSourceTokens("\"" + candidate);
+            if (scanned.size() == 2)
+            {
+                const auto& [sourceText, scannedToken, matched] = scanned.back();
+                if (matched && sourceText == candidate && scannedToken == token)
+                {
+                    result.push_back(token);
+                }
+            }
+        }
+        return result;
+    }();
+    return tokens;
+}
+
+static data_t legacy_string_token_data(uint16_t token)
+{
+    data_t rawBytes = {0x2A}; // opening quote
+    if (token > 0xFF)
+    {
+        rawBytes.push_back(static_cast<uint8_t>(token >> 8));
+    }
+    rawBytes.push_back(static_cast<uint8_t>(token & 0xFF));
+    rawBytes.push_back(0x58); // X disambiguates tokens whose names end in spaces or letters
+
+    data_t data = {
+        static_cast<uint8_t>(rawBytes.size() & 0xFF),
+        static_cast<uint8_t>((rawBytes.size() >> 8) & 0xFF),
+    };
+    data.insert(data.end(), rawBytes.begin(), rawBytes.end());
+    return data;
+}
+
 static void assert_roundtrip_from_readable(TIVarFile& original, const options_t& readableOptions = options_t{})
 {
     assert(original.hasMultipleEntries() == false);
@@ -548,7 +623,7 @@ int main(int argc, char** argv)
     {
         TIVarFile toksPrgm = TIVarFile::loadFromFile("testData/ALLTOKS.8Xp");
         const std::string readable = toksPrgm.getReadableContent();
-        assert(readable.find("\\x2E") != std::string::npos);
+        assert(readable.find("\\CubicReg ") != std::string::npos);
         assert(readable.find("[???]") == std::string::npos);
         cout << readable << "\n" << endl;
     }
@@ -562,8 +637,8 @@ int main(int argc, char** argv)
     {
         ScopedStderrCapture prefixDivergenceStderr;
         const std::string readable = TH_Tokenized::makeStringFromData(data_t{0x2A, 0x2B, 0x2C, 0x2D, 0x2E}, {{"fromRawBytes", 1}});
-        assert(readable == "\",𝑖!\\x2E");
-        assert(prefixDivergenceStderr.str().find("Appending token 0x2E (CubicReg ) made the accumulated detokenized string non-roundtrippable, using \\x2E instead!") != std::string::npos);
+        assert(readable == "\",𝑖!\\CubicReg ");
+        assert(prefixDivergenceStderr.str().empty());
         assert(TH_Tokenized::makeDataFromString(readable) == data_t({0x05, 0x00, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E}));
     }
 
@@ -655,11 +730,65 @@ int main(int argc, char** argv)
     }
 
     {
+        assert(TH_Tokenized::makeDataFromString(R"(\CubicReg )") == data_t({0x01, 0x00, 0x2E}));
         assert(TH_Tokenized::makeDataFromString(R"(\x2E)") == data_t({0x01, 0x00, 0x2E}));
         assert(TH_Tokenized::makeDataFromString(R"(\\x2E)") == data_t({0x06, 0x00, 0xBB, 0xD7, 0xBB, 0xC8, 0x32, 0x45}));
         assert(TH_Tokenized::makeDataFromString(R"(\\uF00D)") == data_t({0x08, 0x00, 0xBB, 0xD7, 0xBB, 0xC5, 0x46, 0x30, 0x30, 0x44}));
         assert(TH_Tokenized::makeStringFromData(data_t({0xBB, 0xD7, 0xBB, 0xC8, 0x32, 0x45}), {{"fromRawBytes", 1}}) == R"(\\x2E)");
         assert(TH_Tokenized::makeStringFromData(data_t({0xBB, 0xD7, 0xBB, 0xC5, 0x46, 0x30, 0x30, 0x44}), {{"fromRawBytes", 1}}) == R"(\\uF00D)");
+    }
+
+    {
+        const data_t functionInString = {0xDE, 0x2A, 0xC2, 0x58};
+        const std::string readableFunction = TH_Tokenized::makeStringFromData(functionInString, {{"fromRawBytes", 1}});
+        assert(readableFunction == R"(Disp "\sin(X)");
+        assert(!contains_numeric_token_escape(readableFunction));
+        assert(TH_Tokenized::makeDataFromString(readableFunction)
+               == data_t({0x04, 0x00, 0xDE, 0x2A, 0xC2, 0x58}));
+
+        const data_t spacedAndInString = {0xDE, 0x2A, 0x41, 0x40, 0x42, 0x2A};
+        const std::string readableAnd = TH_Tokenized::makeStringFromData(spacedAndInString, {{"fromRawBytes", 1}});
+        assert(readableAnd == R"(Disp "A\ and B")");
+        assert(!contains_numeric_token_escape(readableAnd));
+        assert(TH_Tokenized::makeDataFromString(readableAnd)
+               == data_t({0x06, 0x00, 0xDE, 0x2A, 0x41, 0x40, 0x42, 0x2A}));
+    }
+
+    {
+        ScopedStderrCapture exhaustiveNamedEscapeStderr;
+        size_t checkedNamedTokenCount = 0;
+        for (const uint16_t token : forceable_named_legacy_tokens())
+        {
+            const data_t original = legacy_string_token_data(token);
+            const data_t rawBytes(original.begin() + 2, original.end());
+            const std::string readable = TH_Tokenized::makeStringFromData(rawBytes, {{"fromRawBytes", 1}});
+            assert(!contains_numeric_token_escape(readable));
+            assert(TH_Tokenized::makeDataFromString(readable) == original);
+            ++checkedNamedTokenCount;
+        }
+        assert(checkedNamedTokenCount > 500);
+    }
+
+    {
+        const std::string sourceWithNumericEscapes = R"TI(Disp "\xC2X"
+Disp "\x41\x40\x42")TI";
+        const std::string expectedReadable = R"TI(Disp "\sin(X"
+Disp "A\ and B")TI";
+        const std::string path = "/tmp/tivars_named_escape_preference.8xp";
+
+        TIVarFile program = TIVarFile::createNew("Program", "NAMED", "84+CE");
+        program.setContentFromString(sourceWithNumericEscapes);
+        const data_t originalRaw = program.getRawContent();
+        assert(program.getReadableContent() == expectedReadable);
+        assert(!contains_numeric_token_escape(program.getReadableContent()));
+        program.saveVarToFile(path);
+
+        TIVarFile reloaded = TIVarFile::loadFromFile(path);
+        assert(reloaded.getReadableContent() == expectedReadable);
+        assert(!contains_numeric_token_escape(reloaded.getReadableContent()));
+        assert(reloaded.getRawContent() == originalRaw);
+        assert_roundtrip_from_readable(reloaded);
+        assert(remove(path.c_str()) == 0);
     }
 
     {
@@ -1021,6 +1150,65 @@ int main(int argc, char** argv)
             expected = { 0, 3, 1 };
             assert(compare_token_posinfo(actual, expected) == true);
         }
+    }
+
+    {
+        const auto raw = [](const std::string& source)
+        {
+            return TH_Tokenized::makeDataFromString(source);
+        };
+        const auto hasForcedNamedToken = [](const std::string& source, const std::string& expectedText)
+        {
+            const auto scanned = TH_Tokenized::scanSourceTokens(source);
+            return std::any_of(scanned.begin(), scanned.end(), [&](const auto& item)
+            {
+                return item.matched && item.text == expectedText;
+            });
+        };
+
+        // Named escapes only change the ordinary-string min-munch context.
+        assert(raw(R"(sin(X)") == raw(R"(\sin(X)"));
+        assert(raw(R"(Disp "sin(X)") != raw(R"(Disp "\sin(X)"));
+        assert(hasForcedNamedToken(R"(Disp "\sin(X)", R"(\sin()"));
+        assert(!hasForcedNamedToken(R"(\sin(X)", R"(\sin()"));
+
+        // Evaluated and equation strings already use maximal munch; backslash
+        // keeps acting as a zero-width token boundary in those contexts.
+        assert(raw(R"TI(Send("sin(X"))TI") == raw(R"TI(Send("\sin(X"))TI"));
+        assert(raw(R"TI(expr("sin(X"))TI") == raw(R"TI(expr("\sin(X"))TI"));
+        assert(raw(R"TI("sin(X"→Y₁)TI") == raw(R"TI("\sin(X"→Y₁)TI"));
+        assert(raw(R"TI(String►Equ("sin(X",Y₁))TI") == raw(R"TI(String►Equ("\sin(X",Y₁))TI"));
+        assert(!hasForcedNamedToken(R"TI(Send("\sin(X"))TI", R"(\sin()"));
+        assert(!hasForcedNamedToken(R"TI("\sin(X"→Y₁)TI", R"(\sin()"));
+
+        // A separator before a structural token must still let that token
+        // update the quote/store state instead of consuming it early.
+        assert(raw(R"TI(Disp \"sin(X)TI") == raw(R"TI(Disp "sin(X)TI"));
+        assert(raw(R"TI(Disp "A\→sin(X)TI") == raw(R"TI(Disp "A→sin(X)TI"));
+        assert(raw(R"TI(Disp "A\->sin(X)TI") == raw(R"TI(Disp "A→sin(X)TI"));
+
+        // Readable token names may include their surrounding spaces. The
+        // first slash forces the complete " and " token in an ordinary
+        // string; the second slash is just a boundary before the quote.
+        const std::string forcedSpacedAnd = R"TI(Disp "A\ and \")TI";
+        const data_t expectedSpacedAnd = { 0x05, 0x00, 0xDE, 0x2A, 0x41, 0x40, 0x2A };
+        assert(raw(forcedSpacedAnd) == expectedSpacedAnd);
+        assert(hasForcedNamedToken(forcedSpacedAnd, R"(\ and )"));
+        assert(!hasForcedNamedToken(forcedSpacedAnd, R"(\")"));
+        for (const std::string& separatedAnd : {
+                 R"TI(A\ and B)TI", R"TI(A and \B)TI", R"TI(A\ and \B)TI" })
+        {
+            assert(raw(separatedAnd) == raw(R"TI(A and B)TI"));
+        }
+        assert(raw(R"TI(Disp "A\ and B")TI") == raw(R"TI(Disp "\x41\x40\x42")TI"));
+        assert(raw(R"TI(Send("A\ and \B"))TI") == raw(R"TI(Send("A and B"))TI"));
+        assert(raw(R"TI("A\ and \B"→Y₁)TI") == raw(R"TI("A and B"→Y₁)TI"));
+
+        // Existing raw/literal escape precedence remains unchanged.
+        assert(raw(R"TI(Disp "\xC2X)TI") == raw(R"TI(Disp "\sin(X)TI"));
+        assert(raw(R"(\\sin(X)") != raw(R"(\sin(X)"));
+        assert(raw(R"(sin(X\)") == raw(R"(sin(X)"));
+        assert(raw(R"(prgmABC\sin(X)") == raw("prgmABC␟sin(X"));
     }
 
     {
@@ -1464,6 +1652,8 @@ End)";
 
                 const std::string readable = equationStore.getReadableContent();
                 assert(readable.starts_with("\"sin(X→"));
+                assert(readable.find("\\sin(") == std::string::npos);
+                assert(!contains_numeric_token_escape(readable));
                 TIVarFile roundtripped = TIVarFile::createNew("Program", "EQROUND");
                 roundtripped.setContentFromString(readable);
                 assert(roundtripped.getRawContent() == equationStore.getRawContent());
@@ -1491,6 +1681,9 @@ End)";
         assert(stringToEquation.getRawContent() == data_t({
             0x0A, 0x00, 0xBB, 0x56, 0x2A, 0xC2, 0x58, 0x2A, 0x2B, 0x5E, 0x10, 0x11,
         }));
+        assert(stringToEquation.getReadableContent() == "String►Equ(\"sin(X\",Y₁)");
+        assert(stringToEquation.getReadableContent().find("\\sin(") == std::string::npos);
+        assert(!contains_numeric_token_escape(stringToEquation.getReadableContent()));
         assert_roundtrip_from_readable(stringToEquation);
 
         TIVarFile ordinaryString = TIVarFile::createNew("Program", "STRING");
@@ -1499,6 +1692,16 @@ End)";
             0x0C, 0x00, 0x2A, 0xBB, 0xC3, 0xBB, 0xB8, 0xBB, 0xBE, 0x10, 0x58, 0x04, 0xAA, 0x00,
         }));
         assert_roundtrip_from_readable(ordinaryString);
+
+        TIVarFile forcedTokenString = TIVarFile::createNew("Program", "FORCETOK");
+        forcedTokenString.setContentFromString(R"("\sin(X)");
+        assert(forcedTokenString.getRawContent() == data_t({0x03, 0x00, 0x2A, 0xC2, 0x58}));
+        assert(forcedTokenString.getReadableContent() == R"("\sin(X)");
+        assert_roundtrip_from_readable(forcedTokenString);
+
+        TIVarFile rawEscapedTokenString = TIVarFile::createNew("Program", "RAWTOK");
+        rawEscapedTokenString.setContentFromString(R"("\xC2X)");
+        assert(rawEscapedTokenString.getRawContent() == forcedTokenString.getRawContent());
     }
 
     {
