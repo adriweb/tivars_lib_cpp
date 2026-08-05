@@ -1083,14 +1083,19 @@ namespace tivars
     void TIVarFile::setContentFromString(const std::string& str, const options_t& options, uint16_t entryIdx)
     {
         auto& entry = this->entries[entryIdx];
-        options_t entryOptions = options;
-        entryOptions["_entryIdx"] = entryIdx;
-        data_t data = std::get<0>(entry._type.getHandlers())(str, entryOptions, this);
+        data_t data;
         if (this->evoFormat && is_evo_tokenized_entry(entry))
         {
-            data = legacy_tokenized_data_to_evo(data);
+            data = tokenize_evo_token_words(str, options);
         }
-        else if (this->evoFormat && is_legacy_numeric_entry(entry))
+        else
+        {
+            options_t entryOptions = options;
+            entryOptions["_entryIdx"] = entryIdx;
+            data = std::get<0>(entry._type.getHandlers())(str, entryOptions, this);
+        }
+
+        if (this->evoFormat && is_legacy_numeric_entry(entry))
         {
             const bool exactFraction = legacy_value_is_exact_fraction(data);
             data = legacy_value_to_evo_expression(data);
