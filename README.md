@@ -25,6 +25,8 @@ newPrgm.saveVarToFile("path/to/output/directory/", "myNewPrgrm");     // The ext
 
 Several optional parameters for the functions are available. For instance, French input/output for tokenized content can be selected with an options map such as `{ {"lang", TH_Tokenized::LANG_FR} }`, and pretty-printing can enable reindentation with `{ {"reindent", true} }`.
 
+Inside an ordinary TI-BASIC string, text is normally encoded character by character. Prefix a readable token name with `\` to force it to be encoded as one calculator token instead: `"sin(X` stores literal text, while `"\sin(X` stores the `sin(` token followed by `X`. This named form works for both legacy CE and Evo programs, including token names containing spaces such as `\ and \`; the trailing backslash remains a token boundary. Outside ordinary strings, `\` keeps its zero-width token-boundary meaning because normal code, equation strings, and evaluated `Send(`/`expr(` strings already use maximal munch. Raw `\xHH` and `\uHHHH` token escapes remain available when no unambiguous readable token name exists; write `\\` for a literal backslash token.
+
 _Note: The code throws exceptions for you to catch in case of trouble._
 
 #### Embedding in another C++ app
