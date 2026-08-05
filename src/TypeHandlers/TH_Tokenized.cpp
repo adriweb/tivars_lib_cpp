@@ -617,7 +617,7 @@ namespace tivars::TypeHandlers
             }
 
             const uint8_t first = data[pos];
-            if (is_in_vector(firstByteOfTwoByteTokens, first) && pos + 1 < end)
+            if (TH_Tokenized::isTwoByteTokenPrefix(first) && pos + 1 < end)
             {
                 tokenValue = static_cast<uint16_t>((first << 8) | data[pos + 1]);
                 consumedLen = 2;
@@ -1221,7 +1221,7 @@ namespace tivars::TypeHandlers
             uint8_t nextToken = (i < dataSize-1) ? data[i+1] : (uint8_t)-1;
             uint16_t bytesKey = currentToken;
             data_t currentRawBytes = { currentToken };
-            if (is_in_vector(firstByteOfTwoByteTokens, currentToken))
+            if (isTwoByteTokenPrefix(currentToken))
             {
                 if (nextToken == (uint8_t)-1)
                 {
@@ -1343,7 +1343,7 @@ namespace tivars::TypeHandlers
         uint16_t offset = 2;
         while (offset < dataSize) {
             const uint8_t firstByte = data[offset++];
-            if (is_in_vector(firstByteOfTwoByteTokens, firstByte)) {
+            if (isTwoByteTokenPrefix(firstByte)) {
                 if (offset >= dataSize) {
                     break;
                 }
@@ -1381,6 +1381,12 @@ namespace tivars::TypeHandlers
             version |= VER_83P_ALL;
         }
         return (TIVarFileMinVersionByte)version;
+    }
+
+    bool TH_Tokenized::isTwoByteTokenPrefix(uint8_t firstByte)
+    {
+        ensure_tokens_initialized();
+        return is_in_vector(firstByteOfTwoByteTokens, firstByte);
     }
 
     std::string TH_Tokenized::reindentCodeString(const std::string& str_orig, const options_t& options)
@@ -1499,7 +1505,7 @@ namespace tivars::TypeHandlers
         const uint8_t currentToken = data[0];
         const uint8_t nextToken = dataSize > 1 ? data[1] : (uint8_t)-1;
         uint16_t bytesKey = currentToken;
-        const bool is2ByteTok = is_in_vector(firstByteOfTwoByteTokens, currentToken);
+        const bool is2ByteTok = isTwoByteTokenPrefix(currentToken);
 
         if (incr) {
             *incr = is2ByteTok ? 2 : 1;
@@ -1531,7 +1537,7 @@ namespace tivars::TypeHandlers
     {
         ensure_tokens_initialized();
 
-        if (tokenBytes < 0xFF && is_in_vector(firstByteOfTwoByteTokens, (uint8_t)(tokenBytes & 0xFF)))
+        if (tokenBytes < 0xFF && isTwoByteTokenPrefix(static_cast<uint8_t>(tokenBytes & 0xFF)))
         {
             std::cerr << "[Warning] Encountered an unfinished two-byte token!" << std::endl;
             return "";
@@ -1586,7 +1592,7 @@ namespace tivars::TypeHandlers
             const uint8_t currentToken = data[i];
             uint8_t nextToken = (i < dataSize-1) ? data[i+1] : (uint8_t)-1;
             uint16_t bytesKey = currentToken;
-            const bool is2ByteTok = is_in_vector(firstByteOfTwoByteTokens, currentToken);
+            const bool is2ByteTok = isTwoByteTokenPrefix(currentToken);
             const uint16_t currIdx = i;
 
             if (is2ByteTok)
@@ -1720,6 +1726,7 @@ namespace tivars::TypeHandlers
         function("TH_Tokenized_getPosInfoAtOffsetInSourceString", &tivars::TypeHandlers::TH_Tokenized::getPosInfoAtOffsetInSourceString);
         function("TH_Tokenized_reindentCodeString", select_overload<std::string(const std::string&, const options_t&)>(&tivars::TypeHandlers::TH_Tokenized::reindentCodeString));
         function("TH_Tokenized_oneTokenBytesToString"       , &tivars::TypeHandlers::TH_Tokenized::oneTokenBytesToString);
+        function("TH_Tokenized_isTwoByteTokenPrefix"        , &tivars::TypeHandlers::TH_Tokenized::isTwoByteTokenPrefix);
         function("TH_Tokenized_scanSourceTokens"            , &tivars::TypeHandlers::TH_Tokenized::scanSourceTokens);
     }
 #endif

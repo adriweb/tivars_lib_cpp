@@ -262,6 +262,7 @@ namespace tivars::TypeHandlers
         enum indentchar : char { INDENT_CHAR_SPACE = ' ', INDENT_CHAR_TAB = '\t' };
         struct token_posinfo { uint16_t line; uint16_t column; uint8_t len; };
         struct token_scan_item { std::string text; uint16_t token; bool matched; };
+        static bool isTwoByteTokenPrefix(uint8_t firstByte);
         static std::string reindentCodeString(const std::string& str_orig, const options_t& options = options_t());
         static token_posinfo getPosInfoAtOffset(const data_t& data, uint16_t byteOffset, const options_t& options = options_t());
         static token_posinfo getPosInfoAtOffsetFromHexStr(const std::string& hexBytesStr, uint16_t byteOffset);

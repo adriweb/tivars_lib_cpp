@@ -893,6 +893,9 @@ Disp "A\ and B")TI";
             assert(detok_fr == R"(A et B)");
         }
 
+        assert(!TH_Tokenized::isTwoByteTokenPrefix(0x40));
+        assert(TH_Tokenized::isTwoByteTokenPrefix(0xBB));
+
         // all these are equivalent
         for (const auto& str : { R"(A \and B)", R"(A a\nd B)", R"(A an\d B)", R"(A and\ B)" })
         {
