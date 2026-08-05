@@ -1994,8 +1994,55 @@ Disp "A\ and B")TI";
             0x00, 0x00,
         };
         const std::string escapedFunctionString = EvoFormat::detokenize_evo_token_words(functionTokenInString);
-        assert(escapedFunctionString == R"("\xC2X)");
+        assert(escapedFunctionString == R"("\sin(X)");
+        assert(!contains_numeric_token_escape(escapedFunctionString));
         assert(EvoFormat::tokenize_evo_token_words(escapedFunctionString) == functionTokenInString);
+        {
+            ScopedStderrCapture stderrCapture;
+            assert(EvoFormat::tokenize_evo_token_words(R"("\xC2X)") == functionTokenInString);
+            const std::string warning = stderrCapture.str();
+            assert(warning.find("Legacy 8-bit token escape \\xC2 used while encoding Evo source") != std::string::npos);
+            assert(warning.find("legacy-to-Evo token mapping") != std::string::npos);
+        }
+        {
+            ScopedStderrCapture stderrCapture;
+            assert(EvoFormat::tokenize_evo_token_words(R"("\u00C2X)") == functionTokenInString);
+            assert(stderrCapture.str().find("Legacy 8-bit token escape") == std::string::npos);
+        }
+        {
+            ScopedStderrCapture stderrCapture;
+            (void) EvoFormat::tokenize_evo_token_words(R"(\\xC2)");
+            assert(stderrCapture.str().find("Legacy 8-bit token escape") == std::string::npos);
+        }
+
+        const auto evoRaw = [](const std::string& source)
+        {
+            return EvoFormat::tokenize_evo_token_words(source);
+        };
+        assert(evoRaw(R"(sin(X)") == evoRaw(R"(\sin(X)"));
+        assert(evoRaw(R"TI(Send("sin(X"))TI") == evoRaw(R"TI(Send("\sin(X"))TI"));
+        assert(evoRaw(R"TI(expr("sin(X"))TI") == evoRaw(R"TI(expr("\sin(X"))TI"));
+        assert(evoRaw(R"TI("sin(X"→Y₁)TI") == evoRaw(R"TI("\sin(X"→Y₁)TI"));
+        assert(evoRaw(R"TI(String►Equ("sin(X",Y₁))TI") == evoRaw(R"TI(String►Equ("\sin(X",Y₁))TI"));
+        assert(evoRaw(R"TI(Disp \"sin(X)TI") == evoRaw(R"TI(Disp "sin(X)TI"));
+        assert(evoRaw(R"TI(Disp "A\→sin(X)TI") == evoRaw(R"TI(Disp "A→sin(X)TI"));
+        assert(evoRaw(R"TI(Disp "A\->sin(X)TI") == evoRaw(R"TI(Disp "A→sin(X)TI"));
+        for (const std::string& separatedAnd : {
+                 R"TI(A\ and B)TI", R"TI(A and \B)TI", R"TI(A\ and \B)TI" })
+        {
+            assert(evoRaw(separatedAnd) == evoRaw(R"TI(A and B)TI"));
+        }
+        assert(evoRaw(R"TI(Disp "A\ and B")TI") == evoRaw(R"TI(Disp "\x41\x40\x42")TI"));
+        assert(evoRaw(R"TI(Send("A\ and \B"))TI") == evoRaw(R"TI(Send("A and B"))TI"));
+        assert(evoRaw(R"TI("A\ and \B"→Y₁)TI") == evoRaw(R"TI("A and B"→Y₁)TI"));
+        assert(evoRaw(R"TI(Disp "A\ and \")TI") == evoRaw(R"TI(Disp "\x41\x40")TI"));
+        assert(evoRaw(R"(\\sin(X)") != evoRaw(R"(\sin(X)"));
+        assert(evoRaw(R"(sin(X\)") == evoRaw(R"(sin(X)"));
+        assert(evoRaw(R"(prgmABC\sin(X)") == evoRaw("prgmABC␟sin(X"));
+        for (const std::string& separator : { std::string("␟"), std::string(" "), std::string("‌") })
+        {
+            assert(evoRaw(separator + "sin(X") == evoRaw("sin(X"));
+        }
 
         const data_t literalTextInString = {
             0x16, 0xE4, // "
@@ -2009,6 +2056,35 @@ Disp "A\ and B")TI";
         assert(EvoFormat::detokenize_evo_token_words(literalTextInString) == "\"sin(X");
         assert(EvoFormat::tokenize_evo_token_words("\"sin(X") == literalTextInString);
 
+        {
+            ScopedStderrCapture numericAndEscapeStderr;
+            const data_t spacedAndInString = EvoFormat::tokenize_evo_token_words(R"(Disp "\x41\x40\x42")");
+            const std::string readableAnd = EvoFormat::detokenize_evo_token_words(spacedAndInString);
+            assert(readableAnd == R"(Disp "A\ and B")");
+            assert(!contains_numeric_token_escape(readableAnd));
+            assert(EvoFormat::tokenize_evo_token_words(readableAnd) == spacedAndInString);
+        }
+
+        {
+            ScopedStderrCapture exhaustiveNamedEscapeStderr;
+            size_t checkedNamedEvoTokenCount = 0;
+            for (const uint16_t legacyToken : forceable_named_legacy_tokens())
+            {
+                const data_t legacyData = legacy_string_token_data(legacyToken);
+                const data_t evoData = EvoFormat::legacy_tokenized_data_to_evo(legacyData);
+                if (EvoFormat::evo_tokenized_data_to_legacy(evoData) != legacyData)
+                {
+                    continue;
+                }
+
+                const std::string readable = EvoFormat::detokenize_evo_token_words(evoData);
+                assert(!contains_numeric_token_escape(readable));
+                assert(EvoFormat::tokenize_evo_token_words(readable) == evoData);
+                ++checkedNamedEvoTokenCount;
+            }
+            assert(checkedNamedEvoTokenCount > 500);
+        }
+
         const data_t equationSource = EvoFormat::tokenize_evo_token_words("\"sin(X→Y₁");
         const std::string readableEquationSource = EvoFormat::detokenize_evo_token_words(equationSource);
         assert(readableEquationSource.find("sin(") != std::string::npos);
@@ -2018,6 +2094,34 @@ Disp "A\ and B")TI";
         const data_t unknownEvoWord = {0xFF, 0xE3, 0x00, 0x00};
         assert(EvoFormat::detokenize_evo_token_words(unknownEvoWord) == "\\uE3FF");
         assert(EvoFormat::tokenize_evo_token_words("\\uE3FF") == unknownEvoWord);
+
+        {
+            ScopedStderrCapture numericFileEscapeStderr;
+            const std::string sourceWithNumericEscapes = R"TI(Disp "\xC2X"
+Disp "\x41\x40\x42")TI";
+            const std::string expectedReadable = R"TI(Disp "\sin(X"
+Disp "A\ and B")TI";
+            const std::string path = "/tmp/tivars_named_escape_preference.8xp2";
+
+            TIVarFile program = TIVarFile::createNew("Program", "NAMED2", "84Evo");
+            program.setContentFromString(sourceWithNumericEscapes);
+            const data_t originalRaw = program.getRawContent();
+            const json programJSON = json::parse(program.getReadableContent());
+            assert(programJSON["code"] == expectedReadable);
+            assert(!contains_numeric_token_escape(programJSON["code"]));
+            program.saveVarToFile(path);
+
+            TIVarFile reloaded = TIVarFile::loadFromFile(path);
+            const json reloadedJSON = json::parse(reloaded.getReadableContent());
+            assert(reloadedJSON["code"] == expectedReadable);
+            assert(!contains_numeric_token_escape(reloadedJSON["code"]));
+            assert(reloaded.getRawContent() == originalRaw);
+
+            TIVarFile recreated = TIVarFile::createNew("Program", "NAMED3", "84Evo");
+            recreated.setContentFromString(reloadedJSON["code"]);
+            assert(recreated.getRawContent() == originalRaw);
+            assert(remove(path.c_str()) == 0);
+        }
 
         assert(EvoFormat::legacy_tokenized_data_to_evo({0x02, 0x00, 0xEF, 0x79}) == evo_token_data(0xE6AE));
         assert(EvoFormat::legacy_tokenized_data_to_evo(legacy_token_data(0xBBAF)) == evo_token_data(0xF003));
