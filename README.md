@@ -95,7 +95,7 @@ This repo ships a modern macOS Quick Look host app with embedded Preview and Thu
 Build it with:
 ```sh
 cmake -S . -B build
-cmake --build build --target tivars_quicklook_app
+cmake --build build --target tivars_quicklook
 ```
 
 That produces `build/TIVarsQuickLook.app`, containing:
@@ -111,7 +111,7 @@ qlmanage -r
 
 The CMake build ad hoc-signs the app and both extensions automatically when `codesign` is available.
 
-The Preview extension returns rich HTML previews for parsed variable/flash metadata and readable content when available. The Thumbnail extension renders custom badges/cards keyed off the detected TI file type.
+The Preview extension returns rich HTML previews for parsed legacy, Evo, and flash metadata and readable content when available. The Thumbnail extension renders custom badges/cards keyed off the detected TI file type. Evo's `8xn2` through `8xpy2` file extensions are registered alongside the pre-Evo formats.
 
 If macOS does not pick the extensions up immediately, useful diagnostics are:
 ```sh

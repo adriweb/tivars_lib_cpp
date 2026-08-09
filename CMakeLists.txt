@@ -155,20 +155,31 @@ if(APPLE)
             82u 8xu 8cu 8eu 8pu 8yu
             8xk 8ck 8ek
             8xq 8cq
+            8xn2 8xl2 8xp2 8xd2
+            8ci2 8ca2 8xm2 8xy2
+            8xv2 8xg2 8xs2 8ek2
+            8xw2 8xz2 8xt2 8xpy2
     )
 
     set(TIVARS_QUICKLOOK_EXTENSION_XML "")
     set(TIVARS_QUICKLOOK_IMPORTED_ALIAS_UTI_XML "")
-    set(TIVARS_QUICKLOOK_SUPPORTED_CONTENT_TYPE_XML "                <string>${TIVARS_QUICKLOOK_UTI}</string>\n")
+    set(TIVARS_QUICKLOOK_SUPPORTED_CONTENT_TYPE_XML
+            "                <string>${TIVARS_QUICKLOOK_UTI}</string>\n\
+                <string>org.revsoft.wabbitemu.group</string>\n\
+                <string>org.revsoft.wabbitemu.application</string>\n\
+                <string>org.revsoft.wabbitemu.program</string>\n\
+                <string>org.revsoft.wabbitemu.picture</string>\n")
     foreach(ext IN LISTS TIVARS_QUICKLOOK_EXTENSIONS)
         string(APPEND TIVARS_QUICKLOOK_EXTENSION_XML "                <string>${ext}</string>\n")
+        string(APPEND TIVARS_QUICKLOOK_SUPPORTED_CONTENT_TYPE_XML
+                "                <string>com.ti.et.core.datatypes.${ext}</string>\n")
         if(ext STREQUAL "8xp")
             set(EXTRA_UTTypeConformsTo "                <string>org.revsoft.wabbitemu.program</string>\n")
-        elseif(exp STREQUAL "8xg")
+        elseif(ext STREQUAL "8xg")
             set(EXTRA_UTTypeConformsTo "                <string>org.revsoft.wabbitemu.group</string>\n")
-        elseif(exp STREQUAL "8xi")
+        elseif(ext STREQUAL "8xi")
             set(EXTRA_UTTypeConformsTo "                <string>org.revsoft.wabbitemu.picture</string>\n")
-        elseif(exp STREQUAL "8xk")
+        elseif(ext STREQUAL "8xk")
             set(EXTRA_UTTypeConformsTo "                <string>org.revsoft.wabbitemu.application</string>\n")
         else()
             set(EXTRA_UTTypeConformsTo "")
