@@ -1045,7 +1045,7 @@ static bool evo_token_starts_evaluated_string(uint16_t evoToken)
         || evoToken == 0xE470;  // TOK_EXPR
 }
 
-static std::string evo_token_to_string(uint16_t token)
+static std::string evo_token_to_string(uint16_t token, const options_t& options = options_t())
 {
     if (token == 0x0000) return "";
     if (const auto it = evo_private_display_aliases().find(token); it != evo_private_display_aliases().end()) return it->second;
@@ -1074,7 +1074,7 @@ static std::string evo_token_to_string(uint16_t token)
     uint16_t legacyToken = 0;
     if (direct_legacy_token_for_evo(token, legacyToken))
     {
-        return TypeHandlers::TH_Tokenized::oneTokenBytesToString(legacyToken);
+        return TypeHandlers::TH_Tokenized::oneTokenBytesToString(legacyToken, options);
     }
 
     const char* name = evo_token_name(token);
@@ -1083,6 +1083,54 @@ static std::string evo_token_to_string(uint16_t token)
         return name;
     }
     return "\\u" + dechex(static_cast<uint8_t>(token >> 8)) + dechex(static_cast<uint8_t>(token & 0xFF));
+}
+
+std::string token_data_to_json(const data_t& data)
+{
+    if (data.size() % 2 != 0)
+    {
+        throw std::invalid_argument("Evo tokenized data has an odd byte count");
+    }
+
+    json tokens = json::array();
+    for (size_t pos = 0; pos < data.size(); pos += 2)
+    {
+        const uint16_t value = static_cast<uint16_t>(data[pos] | (data[pos + 1] << 8));
+        const bool lineBreak = value == 0xE41C;
+        uint16_t legacyValue = 0;
+        const bool hasLegacyEquivalent = direct_legacy_token_for_evo(value, legacyValue);
+        const json legacyBytes = hasLegacyEquivalent
+            ? json(legacyValue <= 0xFF
+                ? dechex(static_cast<uint8_t>(legacyValue))
+                : dechex(static_cast<uint8_t>(legacyValue >> 8))
+                    + dechex(static_cast<uint8_t>(legacyValue & 0xFF)))
+            : json(nullptr);
+        const auto displayString = [value, lineBreak](std::string text)
+        {
+            if (lineBreak) return std::string("↵");
+            if (value == 0) return std::string("EOS");
+            return text;
+        };
+
+        tokens.push_back({
+            {"offset", pos},
+            {"value", value},
+            {"bytes", dechex(data[pos]) + dechex(data[pos + 1])},
+            {"legacyBytes", legacyBytes},
+            {"en", displayString(evo_token_to_string(value, {{"lang", TypeHandlers::TH_Tokenized::LANG_EN}, {"prettify", 1}}))},
+            {"fr", displayString(evo_token_to_string(value, {{"lang", TypeHandlers::TH_Tokenized::LANG_FR}, {"prettify", 1}}))},
+            {"lineBreak", lineBreak},
+        });
+    }
+
+    return json{
+        {"metadata", {
+            {"format", "evo"},
+            {"payloadByteLength", data.size()},
+            {"tokenCount", tokens.size()},
+        }},
+        {"data", std::move(tokens)},
+    }.dump();
 }
 
 static std::string legacy_token_escape(uint16_t token)
@@ -3376,3 +3424,13 @@ void set_numeric_entry_type_from_payload(TIVarFile::var_entry_t& entry)
 }
 
 }
+
+#ifdef __EMSCRIPTEN__
+    #include <emscripten/bind.h>
+    using namespace emscripten;
+
+    EMSCRIPTEN_BINDINGS(_evoformat_token_inspection)
+    {
+        function("EvoFormat_tokenDataToJson", &tivars::EvoFormat::token_data_to_json);
+    }
+#endif
