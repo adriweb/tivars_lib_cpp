@@ -1393,14 +1393,29 @@ namespace tivars
         const auto& entry = entries[entryIdx];
         nlohmann::ordered_json inspection;
         std::string variableName;
-        const std::string& typeName = entry._type.getName();
-        if (typeName != "Program" && typeName != "ProtectedProgram"
-            && typeName != "Equation" && typeName != "SmartEquation" && typeName != "String")
+        if (evoFormat)
         {
-            throw std::invalid_argument("The variable entry is not tokenized");
+            if (entry.evoDataIsRawCBOR || !is_evo_tokenized_entry(entry))
+            {
+                throw std::invalid_argument("The Evo variable entry is not tokenized");
+            }
+            inspection = nlohmann::ordered_json::parse(token_data_to_json(entry.data));
+            variableName = decode_evo_name(entry.evoTypeID,
+                entry.evoNameBytes.empty()
+                    ? encode_evo_name(entry.evoTypeID, entry_name_to_string(entry._type, entry.varname))
+                    : entry.evoNameBytes);
         }
-        inspection = nlohmann::ordered_json::parse(TypeHandlers::TH_Tokenized::tokenDataToJson(entry.data));
-        variableName = entry_name_to_string(entry._type, entry.varname);
+        else
+        {
+            const std::string& typeName = entry._type.getName();
+            if (typeName != "Program" && typeName != "ProtectedProgram"
+                && typeName != "Equation" && typeName != "SmartEquation" && typeName != "String")
+            {
+                throw std::invalid_argument("The variable entry is not tokenized");
+            }
+            inspection = nlohmann::ordered_json::parse(TypeHandlers::TH_Tokenized::tokenDataToJson(entry.data));
+            variableName = entry_name_to_string(entry._type, entry.varname);
+        }
 
         auto& metadata = inspection["metadata"];
         metadata["variableName"] = variableName;

@@ -1098,6 +1098,32 @@ Disp "A\ and B")TI";
             assert(pretty_detok_en == R"(A and B)");
             assert(pretty_detok_fr == R"(A and B)");
         }
+        const data_t evoAndData = EvoFormat::legacy_tokenized_data_to_evo({0x01, 0x00, 0x40});
+        const uint16_t evoAndToken = static_cast<uint16_t>(evoAndData[0] | (evoAndData[1] << 8));
+
+        const json evoTokenJSON = json::parse(EvoFormat::token_data_to_json(evoAndData));
+        assert(evoTokenJSON["metadata"]["format"] == "evo");
+        assert(evoTokenJSON["data"][0]["value"] == evoAndToken);
+        assert(evoTokenJSON["data"][0]["bytes"] == dechex(evoAndData[0]) + dechex(evoAndData[1]));
+        assert(evoTokenJSON["data"][0]["legacyBytes"] == "40");
+        assert(evoTokenJSON["data"][0]["en"] == " and ");
+        assert(evoTokenJSON["data"][0]["fr"] == " et ");
+
+        const json evoTwoByteLegacyTokenJSON = json::parse(EvoFormat::token_data_to_json({0xE7, 0x00}));
+        assert(evoTwoByteLegacyTokenJSON["data"][0]["legacyBytes"] == "BB97");
+        const json evoOnlyTokenJSON = json::parse(EvoFormat::token_data_to_json({0xFF, 0xE3}));
+        assert(evoOnlyTokenJSON["data"][0]["legacyBytes"].is_null());
+
+        bool rejectedOddEvoTokenData = false;
+        try
+        {
+            (void)EvoFormat::token_data_to_json({0x40});
+        }
+        catch (const std::invalid_argument&)
+        {
+            rejectedOddEvoTokenData = true;
+        }
+        assert(rejectedOddEvoTokenData);
     }
 
     {
@@ -1585,6 +1611,10 @@ Disp "A\ and B")TI";
         assert(testPrgmQuotes.isEvoFormat());
         const json evoJSON = json::parse(testPrgmQuotes.getReadableContent());
         assert(evoJSON["code"] == "Pause \"2 SECS\",2");
+        const json evoTokenInspection = json::parse(testPrgmQuotes.getTokenDataJson());
+        assert(evoTokenInspection["metadata"]["format"] == "evo");
+        assert(evoTokenInspection["metadata"]["variableType"] == "Program");
+        assert(evoTokenInspection["data"].back()["en"] == "EOS");
 
         const std::string evoRoundtripPath = "/tmp/tivars_evo_roundtrip_quotes.8xp2";
         testPrgmQuotes.saveVarToFile(evoRoundtripPath);
