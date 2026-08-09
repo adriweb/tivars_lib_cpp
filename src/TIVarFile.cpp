@@ -22,6 +22,7 @@
 #include <unordered_set>
 
 #include "TIVarTypes.h"
+#include "json.hpp"
 
 namespace tivars
 {
@@ -925,6 +926,37 @@ namespace tivars
         return result.str();
     }
 
+    std::string TIVarFile::getTokenDataJson(uint16_t entryIdx) const
+    {
+        if (entryIdx >= entries.size())
+        {
+            throw std::out_of_range("Variable entry index is out of range");
+        }
+
+        const auto& entry = entries[entryIdx];
+        nlohmann::ordered_json inspection;
+        std::string variableName;
+        const std::string& typeName = entry._type.getName();
+        if (typeName != "Program" && typeName != "ProtectedProgram"
+            && typeName != "Equation" && typeName != "SmartEquation" && typeName != "String")
+        {
+            throw std::invalid_argument("The variable entry is not tokenized");
+        }
+        inspection = nlohmann::ordered_json::parse(TypeHandlers::TH_Tokenized::tokenDataToJson(entry.data));
+        variableName = entry_name_to_string(entry._type, entry.varname);
+
+        auto& metadata = inspection["metadata"];
+        metadata["variableName"] = variableName;
+        metadata["variableType"] = entry._type.getName();
+        metadata["calculatorModel"] = calcModel.getName();
+        return inspection.dump();
+    }
+
+    std::string TIVarFile::getTokenDataJson() const
+    {
+        return getTokenDataJson(0);
+    }
+
     std::string TIVarFile::getReadableContent(const options_t& options, uint16_t entryIdx) const
     {
         const auto& entry = this->entries[entryIdx];
@@ -1123,6 +1155,7 @@ namespace tivars
                     .function("isCorrupt"                , &tivars::TIVarFile::isCorrupt)
                     .function("getRawContent"            , select_overload<data_t(void)>(&tivars::TIVarFile::getRawContent))
                     .function("getRawContentHexStr"      , &tivars::TIVarFile::getRawContentHexStr)
+                    .function("getTokenDataJson"         , select_overload<std::string(void)const>(&tivars::TIVarFile::getTokenDataJson))
                     .function("getReadableContent"       , select_overload<std::string(const options_t&)const>(&tivars::TIVarFile::getReadableContent))
                     .function("getReadableContent"       , select_overload<std::string(void)const>(&tivars::TIVarFile::getReadableContent))
 

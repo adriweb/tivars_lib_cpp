@@ -896,6 +896,34 @@ Disp "A\ and B")TI";
         assert(!TH_Tokenized::isTwoByteTokenPrefix(0x40));
         assert(TH_Tokenized::isTwoByteTokenPrefix(0xBB));
 
+        const json legacyTokenJSON = json::parse(TH_Tokenized::tokenDataToJson({0x04, 0x00, 0x40, 0xBB, 0x97, 0x3F}));
+        assert(legacyTokenJSON["metadata"]["format"] == "legacy");
+        assert(legacyTokenJSON["metadata"]["payloadByteLength"] == 4);
+        assert(legacyTokenJSON["metadata"]["tokenCount"] == 3);
+        assert(legacyTokenJSON["data"][0]["bytes"] == "40");
+        assert(!legacyTokenJSON["data"][0].contains("legacyBytes"));
+        assert(legacyTokenJSON["data"][0]["en"] == " and ");
+        assert(legacyTokenJSON["data"][0]["fr"] == " et ");
+        assert(legacyTokenJSON["data"][1]["bytes"] == "BB97");
+        assert(legacyTokenJSON["data"][2]["en"] == "↵");
+        assert(legacyTokenJSON["data"][2]["lineBreak"] == true);
+
+        bool rejectedUnfinishedLegacyToken = false;
+        try
+        {
+            (void)TH_Tokenized::tokenDataToJson({0x01, 0x00, 0xBB});
+        }
+        catch (const std::invalid_argument&)
+        {
+            rejectedUnfinishedLegacyToken = true;
+        }
+        assert(rejectedUnfinishedLegacyToken);
+
+        const json fileTokenJSON = json::parse(testPrgm.getTokenDataJson());
+        assert(fileTokenJSON["metadata"]["variableName"] == "ASDF");
+        assert(fileTokenJSON["metadata"]["variableType"] == "Program");
+        assert(fileTokenJSON["metadata"]["calculatorModel"] == "84+CE");
+
         // all these are equivalent
         for (const auto& str : { R"(A \and B)", R"(A a\nd B)", R"(A an\d B)", R"(A and\ B)" })
         {
@@ -1357,11 +1385,22 @@ Disp "A\ and B")TI";
         assert(testAppVar.getReadableContent() == "ABCD1234C9C8C7C6");
         assert(testAppVar.getRawContent().size() == strlen("ABCD1234C9C8C7C6") / 2 + 2);
         testAppVar.saveVarToFile("testData", "testAVnew");
+        bool rejectedNonTokenized = false;
+        try
+        {
+            (void)testAppVar.getTokenDataJson();
+        }
+        catch (const std::invalid_argument&)
+        {
+            rejectedNonTokenized = true;
+        }
+        assert(rejectedNonTokenized);
     }
 
     {
         TIVarFile testString = TIVarFile::loadFromFile("testData/String.8xs");
         assert(testString.getReadableContent() == "Hello World");
+        assert(json::parse(testString.getTokenDataJson())["metadata"]["variableType"] == "String");
         assert_roundtrip_from_readable(testString);
     }
 

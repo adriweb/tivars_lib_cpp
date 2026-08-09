@@ -1559,6 +1559,66 @@ namespace tivars::TypeHandlers
         return tokStr;
     }
 
+    std::string TH_Tokenized::tokenDataToJson(const data_t& data)
+    {
+        ensure_tokens_initialized();
+        if (data.size() < 2)
+        {
+            throw std::invalid_argument("Tokenized data is missing its length word");
+        }
+
+        const size_t payloadByteLength = static_cast<size_t>(data[0] | (data[1] << 8));
+        if (payloadByteLength > data.size() - 2)
+        {
+            throw std::invalid_argument("Tokenized data length exceeds the available payload");
+        }
+
+        json tokens = json::array();
+        const size_t end = 2 + payloadByteLength;
+        for (size_t pos = 2; pos < end;)
+        {
+            const uint8_t first = data[pos];
+            const bool twoByte = isTwoByteTokenPrefix(first);
+            if (twoByte && pos + 1 >= end)
+            {
+                throw std::invalid_argument("Tokenized data ends with an unfinished two-byte token");
+            }
+
+            const size_t width = twoByte ? 2 : 1;
+            const uint16_t value = twoByte
+                ? static_cast<uint16_t>((first << 8) | data[pos + 1])
+                : first;
+            const data_t rawBytes(data.begin() + static_cast<ptrdiff_t>(pos),
+                                  data.begin() + static_cast<ptrdiff_t>(pos + width));
+            const bool lineBreak = value == 0x3F;
+            const auto displayString = [value, lineBreak](std::string text)
+            {
+                if (lineBreak) return std::string("↵");
+                if (value == 0) return std::string("EOS");
+                return text;
+            };
+
+            tokens.push_back({
+                {"offset", pos - 2},
+                {"value", value},
+                {"bytes", bytes_to_hex(rawBytes)},
+                {"en", displayString(oneTokenBytesToString(value, {{"lang", LANG_EN}, {"prettify", 1}}))},
+                {"fr", displayString(oneTokenBytesToString(value, {{"lang", LANG_FR}, {"prettify", 1}}))},
+                {"lineBreak", lineBreak},
+            });
+            pos += width;
+        }
+
+        return json{
+            {"metadata", {
+                {"format", "legacy"},
+                {"payloadByteLength", payloadByteLength},
+                {"tokenCount", tokens.size()},
+            }},
+            {"data", std::move(tokens)},
+        }.dump();
+    }
+
     TH_Tokenized::token_posinfo TH_Tokenized::getPosInfoAtOffset(const data_t& data, uint16_t byteOffset, const options_t& options)
     {
         ensure_tokens_initialized();
@@ -1737,6 +1797,7 @@ namespace tivars::TypeHandlers
         function("TH_Tokenized_oneTokenBytesToString", select_overload<std::string(uint16_t)>(&tivars::TypeHandlers::TH_Tokenized::oneTokenBytesToString));
         function("TH_Tokenized_oneTokenBytesToString", select_overload<std::string(uint16_t, const options_t&)>(&tivars::TypeHandlers::TH_Tokenized::oneTokenBytesToString));
         function("TH_Tokenized_isTwoByteTokenPrefix"        , &tivars::TypeHandlers::TH_Tokenized::isTwoByteTokenPrefix);
+        function("TH_Tokenized_tokenDataToJson"             , &tivars::TypeHandlers::TH_Tokenized::tokenDataToJson);
         function("TH_Tokenized_scanSourceTokens"            , &tivars::TypeHandlers::TH_Tokenized::scanSourceTokens);
     }
 #endif

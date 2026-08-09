@@ -94,6 +94,8 @@ namespace tivars
         data_t getRawContent();
 
         std::string getRawContentHexStr();
+        std::string getTokenDataJson(uint16_t entryIdx) const;
+        std::string getTokenDataJson() const;
 
         std::string getReadableContent(const options_t& options, uint16_t entryIdx) const;
         std::string getReadableContent(const options_t& options) const;

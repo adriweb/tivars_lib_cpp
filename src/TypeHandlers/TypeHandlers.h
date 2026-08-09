@@ -271,6 +271,7 @@ namespace tivars::TypeHandlers
         static std::string tokenToString(const data_t& data, int *incr, const options_t& options);
         static std::string oneTokenBytesToString(uint16_t tokenBytes);
         static std::string oneTokenBytesToString(uint16_t tokenBytes, const options_t& options);
+        static std::string tokenDataToJson(const data_t& data);
     };
 
     // Special temporary type that may appear as an equation, during basic program execution
