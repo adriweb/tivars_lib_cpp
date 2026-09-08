@@ -1930,16 +1930,18 @@ End)";
         TIVarFile pythonModule = TIVarFile::createNew("PythonModuleAppVar", "PYMOD", "83PCE");
         pythonModule.setContentFromString(R"({
     "typeName": "PythonModuleAppVar",
-    "version": 2,
     "menuDefinitions": "#MENULABEL Demo\n#MENUITEM sin|sin(\n",
-    "menuDefinitionsNullTerminated": true,
     "compiledDataHex": "4D500300"
 })");
         const json pythonModuleJSON = json::parse(pythonModule.getReadableContent());
         assert(pythonModuleJSON["typeName"] == "PythonModuleAppVar");
         assert(pythonModuleJSON["subtype"] == "PythonModule");
-        assert(pythonModuleJSON["version"] == 2);
+        assert(!pythonModuleJSON.contains("version"));
+        assert(pythonModuleJSON["metadataRecordCount"] == 1);
+        assert(pythonModuleJSON["metadataRecords"][0]["type"] == 2);
         assert(pythonModuleJSON["menuDefinitions"] == "#MENULABEL Demo\n#MENUITEM sin|sin(\n");
+        assert(pythonModuleJSON["menuDefinitionsNullTerminated"] == false);
+        assert(pythonModuleJSON["menuDefinitionsLength"] == pythonModuleJSON["menuDefinitions"].get<std::string>().size());
         assert(pythonModuleJSON["compiledDataHex"] == "4D500300");
         assert(pythonModule.getVarEntries()[0].version == VER_CE_PYTHONMOD);
         assert(TH_StructuredAppVar::getMinVersionFromData(pythonModule.getRawContent()) == VER_CE_PYTHONMOD);
@@ -1953,17 +1955,152 @@ End)";
     }
 
     {
+        const auto wrapModule = [](const data_t& payload)
+        {
+            data_t data = {static_cast<uint8_t>(payload.size()), static_cast<uint8_t>(payload.size() >> 8)};
+            data.insert(data.end(), payload.begin(), payload.end());
+            return data;
+        };
+        const auto assertModuleRoundtrip = [&](const data_t& payload)
+        {
+            const data_t data = wrapModule(payload);
+            json readable = json::parse(TH_StructuredAppVar::makeStringFromData(data));
+            readable.erase("rawDataHex");
+            assert(TH_StructuredAppVar::makeDataFromString(readable.dump()) == data);
+            return readable;
+        };
+
+        // Record lengths include the type byte; zero terminates the records before compiled data.
+        const data_t recordsPayload = {
+            'P', 'Y', 'M', 'P',
+            0x05, 0x01, 'm', '.', 'p', 'y',
+            0x04, 0x02, 'A', '\n', 0x00,
+            0x03, 0x7F, 0x00, 0xFF,
+            0x02, 0x01, 'z',
+            0x02, 0x02, 'B',
+            0x01, 0x02,
+            0x01, 0x01,
+            0x01, 0x00,
+            0x00, 0x4D, 0x50, 0x03, 0x00, 0xFF,
+        };
+        json recordsJSON = assertModuleRoundtrip(recordsPayload);
+        assert(!recordsJSON.contains("version"));
+        assert(recordsJSON["metadataRecordCount"] == 8);
+        assert(recordsJSON["metadataRecords"][0]["length"] == 5);
+        assert(recordsJSON["metadataRecords"][0]["name"] == "m.py");
+        assert(recordsJSON["metadataRecords"][1]["text"] == std::string("A\n\0", 3));
+        assert(recordsJSON["metadataRecords"][1]["length"] == 4);
+        assert(recordsJSON["metadataRecords"][2]["type"] == 0x7F);
+        assert(recordsJSON["metadataRecords"][2]["rawDataHex"] == "00FF");
+        assert(recordsJSON["metadataRecords"][5]["length"] == 1);
+        assert(recordsJSON["metadataRecords"][5]["text"] == "");
+        assert(recordsJSON["metadataRecords"][6]["name"] == "");
+        assert(recordsJSON["metadataRecords"][7]["type"] == 0);
+        assert(recordsJSON["filename"] == "m.py");
+        assert(recordsJSON["menuDefinitions"] == "A\n");
+        assert(recordsJSON["menuDefinitionsHex"] == "410A00");
+        assert(recordsJSON["menuDefinitionsLength"] == 3);
+        assert(recordsJSON["menuDefinitionsNullTerminated"] == true);
+        assert(recordsJSON["compiledDataHex"] == "4D500300FF");
+
+        // Explicit records take precedence over the top-level convenience fields.
+        recordsJSON["filename"] = "ignored.py";
+        recordsJSON["menuDefinitionsHex"] = "FF";
+        recordsJSON["menuDefinitions"] = "ignored";
+        assert(TH_StructuredAppVar::makeDataFromString(recordsJSON.dump()) == wrapModule(recordsPayload));
+        for (json& record : recordsJSON["metadataRecords"])
+        {
+            if (record["type"] == 1 || record["type"] == 2)
+            {
+                record.erase("rawDataHex");
+            }
+        }
+        assert(TH_StructuredAppVar::makeDataFromString(recordsJSON.dump()) == wrapModule(recordsPayload));
+
+        json convenienceJSON = {
+            {"typeName", "PythonModuleAppVar"}, {"filename", "m.py"},
+            {"menuDefinitions", "ABC"}, {"compiledDataHex", "4D500300"},
+        };
+        assert(TH_StructuredAppVar::makeDataFromString(convenienceJSON.dump()) == wrapModule({
+            'P', 'Y', 'M', 'P', 0x05, 0x01, 'm', '.', 'p', 'y',
+            0x04, 0x02, 'A', 'B', 'C', 0x00, 0x4D, 0x50, 0x03, 0x00,
+        }));
+        convenienceJSON["menuDefinitionsNullTerminated"] = true;
+        assert(TH_StructuredAppVar::makeDataFromString(convenienceJSON.dump()) == wrapModule({
+            'P', 'Y', 'M', 'P', 0x05, 0x01, 'm', '.', 'p', 'y',
+            0x05, 0x02, 'A', 'B', 'C', 0x00, 0x00, 0x4D, 0x50, 0x03, 0x00,
+        }));
+
+        const json emptyJSON = assertModuleRoundtrip({'P', 'Y', 'M', 'P', 0x00, 0x4D, 0x03, 0x02, 0x1F});
+        assert(emptyJSON["metadataRecordCount"] == 0);
+        assert(emptyJSON["metadataRecords"].empty());
+        assert(emptyJSON["compiledDataHex"] == "4D03021F");
+        assert(!emptyJSON.contains("menuDefinitions"));
+        assert(assertModuleRoundtrip({'P', 'Y', 'M', 'P', 0x00})["compiledDataHex"] == "");
+
+        // 128 menu bytes plus the record type need a two-byte ULEB128 length (129).
+        data_t longPayload = {'P', 'Y', 'M', 'P', 0x81, 0x01, 0x02};
+        longPayload.insert(longPayload.end(), 128, 'A');
+        longPayload.insert(longPayload.end(), {0x00, 0x4D, 0x50, 0x03, 0x00});
+        const json longJSON = assertModuleRoundtrip(longPayload);
+        assert(longJSON["metadataRecords"][0]["length"] == 129);
+        assert(longJSON["menuDefinitionsLength"] == 128);
+        assert(longJSON["menuDefinitions"] == std::string(128, 'A'));
+        assert(longJSON["menuDefinitionsNullTerminated"] == false);
+        assert(longJSON["compiledDataHex"] == "4D500300");
+
+        for (const data_t& invalidPayload : std::vector<data_t>{
+            {'P', 'Y', 'M', 'P'}, // Missing record-stream terminator.
+            {'P', 'Y', 'M', 'P', 0x80}, // Truncated ULEB128 length.
+            {'P', 'Y', 'M', 'P', 0x01}, // Missing record type.
+            {'P', 'Y', 'M', 'P', 0x03, 0x02, 'A'}, // Truncated record data.
+            {'P', 'Y', 'M', 'P', 0x01, 0x02}, // Complete record without terminator.
+            {'P', 'Y', 'M', 'P', 0xFF, 0xFF, 0xFF, 0xFF, 0x10}, // Length overflow.
+        })
+        {
+            bool rejected = false;
+            try
+            {
+                (void)TH_StructuredAppVar::makeStringFromData(wrapModule(invalidPayload));
+            }
+            catch (const std::invalid_argument&)
+            {
+                rejected = true;
+            }
+            assert(rejected);
+        }
+    }
+
+    {
         TIVarFile realPythonModule = TIVarFile::loadFromFile("testData/TISTEMFR.8xv");
         assert(realPythonModule.getVarEntries()[0]._type.getName() == "PythonModuleAppVar");
         assert(realPythonModule.getVarEntries()[0].version == VER_CE_PYTHONMOD);
         assert((realPythonModule.getCalcModel().getFlags() & hasPython) != 0);
         assert(realPythonModule.getCalcModel().supportsType(realPythonModule.getVarEntries()[0]._type));
 
-        const json realPythonModuleJSON = json::parse(realPythonModule.getReadableContent());
+        json realPythonModuleJSON = json::parse(realPythonModule.getReadableContent());
         assert(realPythonModuleJSON["typeName"] == "PythonModuleAppVar");
         assert(realPythonModuleJSON["subtype"] == "PythonModule");
+        assert(!realPythonModuleJSON.contains("version"));
+        assert(realPythonModuleJSON["metadataRecordCount"] == 1);
+        assert(realPythonModuleJSON["metadataRecords"][0]["length"] == 2276);
+        assert(realPythonModuleJSON["menuDefinitionsLength"] == 2275);
+        assert(realPythonModuleJSON["menuDefinitionsNullTerminated"] == false);
         assert(realPythonModuleJSON["menuDefinitions"].get<std::string>().find("MENULABEL") != std::string::npos);
+        assert(realPythonModuleJSON["compiledDataHex"].get<std::string>().size() == 52 * 2);
         assert_roundtrip_from_readable(realPythonModule);
+        realPythonModuleJSON.erase("rawDataHex");
+        assert(TH_StructuredAppVar::makeDataFromString(realPythonModuleJSON.dump()) == realPythonModule.getRawContent());
+
+        TIVarFile noMenuPythonModule = TIVarFile::loadFromFile("testData/MB_NEOPX.8xv");
+        json noMenuJSON = json::parse(noMenuPythonModule.getReadableContent());
+        assert(noMenuJSON["typeName"] == "PythonModuleAppVar");
+        assert(noMenuJSON["metadataRecordCount"] == 0);
+        assert(noMenuJSON["metadataRecords"].empty());
+        assert(noMenuJSON["compiledDataHex"].get<std::string>().starts_with("4D03021F"));
+        assert(noMenuJSON["compiledDataHex"].get<std::string>().size() == 2081 * 2);
+        noMenuJSON.erase("rawDataHex");
+        assert(TH_StructuredAppVar::makeDataFromString(noMenuJSON.dump()) == noMenuPythonModule.getRawContent());
     }
 
     {

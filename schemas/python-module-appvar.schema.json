@@ -1,11 +1,46 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PythonModuleAppVar",
+  "description": "PYMP contains the same metadata record stream as PYCD/PYSC: ULEB128 record lengths include the one-byte type (1 = filename, 2 = menu definitions). A zero-length record ends the stream, followed by compiledDataHex. rawDataHex takes precedence over structured fields; otherwise metadataRecords takes precedence over filename and menuDefinitions fields.",
   "type": "object",
   "definitions": {
     "hexString": {
       "type": "string",
       "pattern": "^[0-9A-Fa-f]*$"
+    },
+    "metadataRecord": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "rawDataHex": {
+          "$ref": "#/definitions/hexString"
+        },
+        "name": {
+          "type": "string",
+          "description": "Filename record data (type 1)."
+        },
+        "text": {
+          "type": "string",
+          "description": "Menu definitions record data (type 2)."
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1,
+          "readOnly": true,
+          "description": "Length of the type byte plus record data, excluding the ULEB128 length."
+        }
+      },
+      "required": ["type"],
+      "anyOf": [
+        { "required": ["rawDataHex"] },
+        { "required": ["name"] },
+        { "required": ["text"] }
+      ],
+      "additionalProperties": false
     }
   },
   "properties": {
@@ -18,13 +53,25 @@
     "magic": {
       "const": "PYMP"
     },
-    "version": {
+    "filename": {
+      "type": "string",
+      "description": "Filename from the first type 1 record."
+    },
+    "metadataRecordCount": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 255
+      "readOnly": true
+    },
+    "metadataRecords": {
+      "type": "array",
+      "description": "Ordered metadata records, preserving duplicates and unknown record types. Per-record rawDataHex takes precedence over name or text.",
+      "items": {
+        "$ref": "#/definitions/metadataRecord"
+      }
     },
     "menuDefinitions": {
-      "type": "string"
+      "type": "string",
+      "description": "Text from the first type 2 record, excluding an optional trailing NUL in its data."
     },
     "menuDefinitionsHex": {
       "$ref": "#/definitions/hexString"
@@ -32,10 +79,13 @@
     "menuDefinitionsLength": {
       "type": "integer",
       "minimum": 0,
-      "readOnly": true
+      "readOnly": true,
+      "description": "Menu record data length, excluding the record ID and stream terminator."
     },
     "menuDefinitionsNullTerminated": {
-      "type": "boolean"
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the menu record data itself ends in NUL. The separate zero-length stream terminator is not part of the menu."
     },
     "compiledDataHex": {
       "$ref": "#/definitions/hexString"

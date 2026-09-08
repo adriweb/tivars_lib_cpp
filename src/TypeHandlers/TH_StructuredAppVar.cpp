@@ -35,6 +35,8 @@ namespace tivars::TypeHandlers
         constexpr std::array<uint8_t, 4> NOTEFOLIO_MAGIC            = {0xF3, 0x47, 0xBF, 0xAF};
         constexpr size_t appVarSizePrefixByteCount = 2;
         constexpr size_t magicByteCount = 4;
+        constexpr uint8_t pythonRecordTypeFilename = 0x01;
+        constexpr uint8_t pythonRecordTypeMenuDefinitions = 0x02;
         constexpr uint8_t pythonImagePaletteMarker = 0x01;
         constexpr size_t studyCardsTitleCount = 4;
         constexpr size_t studyCardsSettingsNameByteCount = 9;
@@ -340,6 +342,10 @@ namespace tivars::TypeHandlers
                     throw std::invalid_argument("ULEB128 field is too large");
                 }
                 const uint8_t byte = read_u8(data, pos, "ULEB128 value");
+                if (shift == 28 && (byte & 0x70) != 0)
+                {
+                    throw std::invalid_argument("ULEB128 field is too large");
+                }
                 value |= static_cast<uint32_t>(byte & 0x7F) << shift;
                 if ((byte & 0x80) == 0)
                 {
@@ -362,6 +368,18 @@ namespace tivars::TypeHandlers
                 data.push_back(byte);
             }
             while (value != 0);
+        }
+
+        void append_python_metadata_record(data_t& payload, uint8_t type, const data_t& data)
+        {
+            if (data.size() >= 0xFFFF)
+            {
+                throw std::invalid_argument("Python metadata record is too large");
+            }
+            // PYMP, PYCD and PYSC lengths include the record ID, but not the ULEB128 length itself.
+            append_uleb128(payload, static_cast<uint32_t>(data.size() + 1));
+            payload.push_back(type);
+            vector_append(payload, data);
         }
 
         json split_lines_json(const std::string& text, char delim)
@@ -491,25 +509,65 @@ namespace tivars::TypeHandlers
                 {
                     payload.insert(payload.end(), PYTHON_MODULE_MAGIC, PYTHON_MODULE_MAGIC + magicByteCount);
 
-                    data_t menuData;
-                    if (j.contains("menuDefinitionsHex"))
+                    // An explicit record array preserves ordering, duplicates and unknown record IDs.
+                    if (j.contains("metadataRecords"))
                     {
-                        menuData = hex_string_to_bytes(j.at("menuDefinitionsHex").get<std::string>(), "menuDefinitionsHex");
+                        if (!j.at("metadataRecords").is_array())
+                        {
+                            throw std::invalid_argument("metadataRecords must be an array");
+                        }
+                        for (const json& record : j.at("metadataRecords"))
+                        {
+                            const json& type = record.at("type");
+                            if (!type.is_number_integer() || type < 0 || type > 255)
+                            {
+                                throw std::invalid_argument("Python metadata record type must be an integer between 0 and 255");
+                            }
+                            data_t recordData;
+                            if (record.contains("rawDataHex"))
+                            {
+                                recordData = hex_string_to_bytes(record.at("rawDataHex").get<std::string>(), "metadataRecords.rawDataHex");
+                            }
+                            else if (record.contains("name") || record.contains("text"))
+                            {
+                                const std::string text = record.at(record.contains("name") ? "name" : "text").get<std::string>();
+                                recordData.assign(text.begin(), text.end());
+                            }
+                            else
+                            {
+                                throw std::invalid_argument("metadataRecords entries need rawDataHex, name or text");
+                            }
+                            append_python_metadata_record(payload, type.get<uint8_t>(), recordData);
+                        }
                     }
                     else
                     {
-                        std::string menuDefinitions = j.contains("menuDefinitions") ? j.at("menuDefinitions").get<std::string>() : "";
-                        const bool nullTerminated = !j.contains("menuDefinitionsNullTerminated") || j.at("menuDefinitionsNullTerminated").get<bool>();
-                        menuData.assign(menuDefinitions.begin(), menuDefinitions.end());
-                        if (nullTerminated)
+                        if (j.contains("filename"))
                         {
-                            menuData.push_back('\0');
+                            const std::string filename = j.at("filename").get<std::string>();
+                            append_python_metadata_record(payload, pythonRecordTypeFilename, data_t(filename.begin(), filename.end()));
+                        }
+                        if (j.contains("menuDefinitionsHex") || j.contains("menuDefinitions"))
+                        {
+                            data_t menuData;
+                            if (j.contains("menuDefinitionsHex"))
+                            {
+                                menuData = hex_string_to_bytes(j.at("menuDefinitionsHex").get<std::string>(), "menuDefinitionsHex");
+                            }
+                            else
+                            {
+                                const std::string menuDefinitions = j.at("menuDefinitions").get<std::string>();
+                                menuData.assign(menuDefinitions.begin(), menuDefinitions.end());
+                                if (j.value("menuDefinitionsNullTerminated", false))
+                                {
+                                    menuData.push_back('\0');
+                                }
+                            }
+                            append_python_metadata_record(payload, pythonRecordTypeMenuDefinitions, menuData);
                         }
                     }
 
-                    append_uleb128(payload, static_cast<uint32_t>(menuData.size()));
-                    payload.push_back(static_cast<uint8_t>(j.at("version").get<int>()));
-                    vector_append(payload, menuData);
+                    payload.push_back(0x00); // Zero-length record terminates the metadata stream.
                     if (j.contains("compiledDataHex"))
                     {
                         vector_append(payload, hex_string_to_bytes(j.at("compiledDataHex").get<std::string>(), "compiledDataHex"));
@@ -793,36 +851,66 @@ namespace tivars::TypeHandlers
 
         json parse_python_module_appvar(const data_t& payload)
         {
-            size_t pos = magicByteCount;
-            const uint32_t menuLength = read_uleb128(payload, pos);
-            const uint8_t version = read_u8(payload, pos, "version");
-            if (pos + menuLength > payload.size())
-            {
-                throw std::invalid_argument("Invalid PythonModuleAppVar data length");
-            }
-
-            const data_t menuBytes(payload.begin() + static_cast<ptrdiff_t>(pos), payload.begin() + static_cast<ptrdiff_t>(pos + menuLength));
-            pos += menuLength;
-
-            std::string menuDefinitions(menuBytes.begin(), menuBytes.end());
-            const bool nullTerminated = !menuDefinitions.empty() && menuDefinitions.back() == '\0';
-            if (nullTerminated)
-            {
-                menuDefinitions.pop_back();
-            }
-
-            return json{
+            json out = {
                 {"typeName", "PythonModuleAppVar"},
                 {"subtype", "PythonModule"},
                 {"magic", PYTHON_MODULE_MAGIC},
-                {"version", version},
-                {"menuDefinitionsLength", menuLength},
-                {"menuDefinitionsNullTerminated", nullTerminated},
-                {"menuDefinitions", menuDefinitions},
-                {"menuDefinitionsHex", to_hex_string(menuBytes)},
-                {"compiledDataHex", to_hex_string(data_t(payload.begin() + static_cast<ptrdiff_t>(pos), payload.end()))},
-                {"rawDataHex", to_hex_string(payload)}
             };
+            json records = json::array();
+            size_t pos = magicByteCount;
+            while (true)
+            {
+                const uint32_t recordLength = read_uleb128(payload, pos);
+                if (recordLength == 0)
+                {
+                    break;
+                }
+                if (recordLength > payload.size() - pos)
+                {
+                    throw std::invalid_argument("Unexpected end of PythonModuleAppVar metadata record");
+                }
+
+                const uint8_t type = read_u8(payload, pos, "record type");
+                const data_t recordData(payload.begin() + static_cast<ptrdiff_t>(pos),
+                                        payload.begin() + static_cast<ptrdiff_t>(pos + recordLength - 1));
+                pos += recordLength - 1;
+                json record = {
+                    {"type", type},
+                    {"rawDataHex", to_hex_string(recordData)},
+                    {"length", recordLength},
+                };
+                if (type == pythonRecordTypeFilename)
+                {
+                    record["name"] = std::string(recordData.begin(), recordData.end());
+                    if (!out.contains("filename"))
+                    {
+                        out["filename"] = record["name"];
+                    }
+                }
+                else if (type == pythonRecordTypeMenuDefinitions)
+                {
+                    std::string menuDefinitions(recordData.begin(), recordData.end());
+                    record["text"] = menuDefinitions;
+                    if (!out.contains("menuDefinitions"))
+                    {
+                        const bool nullTerminated = !menuDefinitions.empty() && menuDefinitions.back() == '\0';
+                        if (nullTerminated)
+                        {
+                            menuDefinitions.pop_back();
+                        }
+                        out["menuDefinitionsLength"] = recordData.size();
+                        out["menuDefinitionsNullTerminated"] = nullTerminated;
+                        out["menuDefinitions"] = menuDefinitions;
+                        out["menuDefinitionsHex"] = record["rawDataHex"];
+                    }
+                }
+                records.push_back(record);
+            }
+            out["metadataRecordCount"] = records.size();
+            out["metadataRecords"] = records;
+            out["compiledDataHex"] = to_hex_string(payload, pos);
+            out["rawDataHex"] = to_hex_string(payload);
+            return out;
         }
 
         json parse_python_image_appvar(const data_t& payload)
