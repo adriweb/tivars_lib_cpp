@@ -2640,7 +2640,7 @@ Disp Str1
             assert(threw);
         };
 
-        const std::array<std::tuple<EvoFormat::EvoTypeID, std::string, std::string, std::string>, 16> expectedEvoTypes = {{
+        const std::array<std::tuple<EvoFormat::EvoTypeID, std::string, std::string, std::string>, 17> expectedEvoTypes = {{
             {EvoFormat::EvoTypeID::Real,           "Real",           "Real",           "8xn2"},
             {EvoFormat::EvoTypeID::List,           "RealList",       "List",           "8xl2"},
             {EvoFormat::EvoTypeID::Program,        "Program",        "Program",        "8xp2"},
@@ -2657,13 +2657,15 @@ Disp Str1
             {EvoFormat::EvoTypeID::RecallWindow,   "RecallWindow",   "RecallWindow",   "8xz2"},
             {EvoFormat::EvoTypeID::TableRange,     "TableRange",     "TableRange",     "8xt2"},
             {EvoFormat::EvoTypeID::PythonScript,   "PythonAppVar",   "PythonScript",   "8xpy2"},
+            {EvoFormat::EvoTypeID::PythonModule,   "PythonModule",   "PythonModule",   "8mp2"},
         }};
 
         for (uint8_t i = 0; i < expectedEvoTypes.size(); i++)
         {
             const auto& [evoTypeID, legacyTypeName, evoTypeName, extension] = expectedEvoTypes[i];
-            assert(EvoFormat::evo_type_id_value(evoTypeID) == i);
-            assert(EvoFormat::evo_type_id_from_value(i) == evoTypeID);
+            const uint8_t expectedID = i == 16 ? 18 : i;
+            assert(EvoFormat::evo_type_id_value(evoTypeID) == expectedID);
+            assert(EvoFormat::evo_type_id_from_value(expectedID) == evoTypeID);
             assert(EvoFormat::ti_type_name_from_evo_type(evoTypeID) == legacyTypeName);
             assert(EvoFormat::type_name_from_evo_type(evoTypeID) == evoTypeName);
             assert(EvoFormat::extension_from_evo_type(evoTypeID) == extension);
@@ -2700,6 +2702,7 @@ Disp Str1
             assert(EvoFormat::extension_from_ti_type_name(legacyTypeName) == EvoFormat::extension_from_evo_type(evoTypeID));
         }
 
+        assert_no_evo_type_mapping("");
         assert_no_evo_type_mapping("PythonModuleAppVar");
         assert_no_evo_type_mapping("PythonImageAppVar");
         assert_no_evo_type_mapping("StudyCardsAppVar");
@@ -4093,7 +4096,316 @@ End)";
         assert(compiledModuleJSON["python"]["name"] == "evozzz");
         assert(compiledModuleJSON["python"]["bodyHex"] == "4D05031F");
         assert(!compiledModuleJSON.contains("pythonParseError"));
+        assert(compiledModuleJSON["python"]["outerTrailerHex"] == "");
+        const std::string resavedModulePath = compiledModuleVar.saveVarToFile("/tmp", "tivars_compiled_resaved");
+        assert(read_binary_file(resavedModulePath) == compiledModuleFile); // omitted flags preserved
+        assert(remove(resavedModulePath.c_str()) == 0);
         assert(remove(compiledModulePath.c_str()) == 0);
+    }
+
+    {
+        // Both wrappers carry the same object, including menu and MPY bytes.
+        for (const std::string typeName : {"PythonModule", "8mp2"})
+        {
+            assert(!TIVarTypes::isValidName(typeName));
+            assert(!TIVarTypes::all().contains(typeName));
+            assert(TIVarTypes::fromName(typeName).getName() == "Unknown");
+            bool threw = false;
+            try { (void)TIVarType{typeName}; }
+            catch (const std::invalid_argument&) { threw = true; }
+            assert(threw);
+        }
+        assert(TIVarTypes::fromId(0x12).getName() == "ScreenImage");
+        assert(TIVarTypes::fromId(0x18).getName() == "RealFraction");
+        const auto moduleType = EvoFormat::type_from_evo_type(EvoFormat::EvoTypeID::PythonModule);
+        assert(moduleType.getName() == "PythonModule");
+        assert(moduleType.getId() == -1); // no CE type ID
+        assert(TIModel{"84Evo"}.supportsType(moduleType));
+        assert(!TIModel{"83PCE"}.supportsType(moduleType));
+        const auto snapshot = [](TIVarFile& file)
+        {
+            const uint16_t checksum = file.getInstanceChecksum();
+            const std::string path = "/tmp/tivars_evo_python_conversion_snapshot";
+            file.saveVarToFile(path);
+            const data_t packed = read_binary_file(path);
+            assert(remove(path.c_str()) == 0);
+            // Saving must not repair a stale conversion checksum.
+            assert(file.getInstanceChecksum() == checksum);
+            if (file.isEvoFormat())
+            {
+                assert(EvoFormat::is_evo_file_data(packed));
+                const data_t body(packed.begin(), packed.end() - 2);
+                assert(EvoFormat::evo_checksum(body) == checksum);
+                assert(packed[packed.size() - 2] == static_cast<uint8_t>(checksum >> 8));
+                assert(packed.back() == static_cast<uint8_t>(checksum));
+            }
+            return packed;
+        };
+        const auto assert_conversion_rejected = [&](TIVarFile& file, const std::string& format)
+        {
+            const data_t before = snapshot(file);
+            const std::string readable = file.getReadableContent();
+            const std::string model = file.getCalcModel().getName();
+            const auto entry = file.getVarEntries()[0];
+            const uint16_t checksum = file.getInstanceChecksum();
+            const bool evo = file.isEvoFormat();
+            bool threw = false;
+            try { file.convertToEvoPythonFormat(format); }
+            catch (const std::exception&) { threw = true; }
+            assert(threw);
+            assert(file.isEvoFormat() == evo && file.getCalcModel().getName() == model);
+            assert(file.getRawContent() == entry.data && file.getReadableContent() == readable);
+            assert(file.getInstanceChecksum() == checksum);
+            assert(file.getVarEntries()[0]._type.getId() == entry._type.getId());
+            assert(file.getVarEntries()[0]._type.getName() == entry._type.getName());
+            assert(file.getVarEntries()[0].typeID == entry.typeID);
+            assert(file.getVarEntries()[0].evoNameBytes == entry.evoNameBytes);
+            assert(snapshot(file) == before);
+        };
+        const data_t original = data_from_hex_string("1302D8201C0000000600000065766F7A7A7A00040000024D05031F00");
+        json description = {{"python", {{"compiledModule", true}, {"name", "evozzz"}, {"bodyHex", "4D05031F"}}}};
+        assert(EvoFormat::build_evo_python_module_payload(description.dump()) == original);
+        for (const bool withMenu : {false, true})
+        {
+            if (withMenu) description["python"]["menuDefinitionHex"] = "234D454E554C4142454C2044656D6F0A";
+            for (const bool modern : {false, true})
+            {
+                auto module = TIVarFile::createNew(modern ? moduleType : TIVarType{"PythonAppVar"}, "evozzz", "84Evo");
+                module.setContentFromString(description.dump());
+                const data_t payload = module.getRawContent();
+                const auto info = EvoFormat::parse_evo_python_script_payload(payload);
+                assert(info.compiledModule && info.name == "evozzz");
+                assert(info.body == data_t({0x4D, 5, 3, 31}));
+                assert(info.menuDefinition.empty() == !withMenu);
+                assert(info.trailer == data_t{0});
+                assert(info.outerTrailer.empty());
+                assert(payload.size() == info.dataLen);
+
+                const std::string path = module.saveVarToFile("/tmp", "tivars_evo_module");
+                assert(path.ends_with(modern ? ".8mp2" : ".8xpy2"));
+                const data_t packed = read_binary_file(path);
+                assert(EvoFormat::is_evo_file_data(packed));
+                auto loaded = TIVarFile::loadFromFile(path);
+                assert(!loaded.isCorrupt());
+                assert(loaded.getVarEntries()[0]._type.getName() == (modern ? "PythonModule" : "PythonAppVar"));
+                assert(loaded.getRawContent() == payload);
+                json readable = json::parse(loaded.getReadableContent());
+                assert(readable["type"] == (modern ? 18 : 15));
+                assert(readable["typeName"] == (modern ? "PythonModule" : "PythonScript"));
+                assert(readable["python"]["outerTrailerHex"] == "");
+                assert(readable["size"] == payload.size());
+                assert(!readable.contains("pythonParseError"));
+                if (modern) assert(readable["metaData"]["flags"] == 1);
+                loaded.setContentFromString(readable.dump());
+                assert(loaded.getRawContent() == payload);
+                readable.erase("rawDataHex");
+                loaded.setContentFromString(readable.dump());
+                assert(loaded.getRawContent() == payload);
+                assert(read_binary_file(loaded.saveVarToFile("/tmp", "tivars_evo_module")) == packed);
+                auto converted = TIVarFile::loadFromFile(path);
+                assert(remove(path.c_str()) == 0);
+
+                loaded.convertToEvoPythonFormat(modern ? "8mp2" : "8xpy2");
+                assert(snapshot(loaded) == packed); // same-format calls are strictly idempotent
+                for (const bool targetModern : {!modern, modern})
+                {
+                    data_t expectedName = converted.getVarEntries()[0].evoNameBytes;
+                    const bool terminated = expectedName.size() >= 2
+                        && expectedName[expectedName.size() - 2] == 0 && expectedName.back() == 0;
+                    if (targetModern && !terminated) expectedName.insert(expectedName.end(), {0, 0});
+                    if (!targetModern && terminated) expectedName.resize(expectedName.size() - 2);
+                    converted.convertToEvoPythonFormat(targetModern ? "8mp2" : "8xpy2");
+                    const data_t& expectedPayload = payload;
+                    assert(converted.getRawContent() == expectedPayload);
+                    const auto& entry = converted.getVarEntries()[0];
+                    assert(entry.evoTypeID == (targetModern ? EvoFormat::EvoTypeID::PythonModule : EvoFormat::EvoTypeID::PythonScript));
+                    assert(entry._type.getName() == (targetModern ? "PythonModule" : "PythonAppVar"));
+                    assert(entry._type.getId() == (targetModern ? -1 : 0x15));
+                    assert(entry.evoMetaVersion == 1);
+                    assert(entry.evoMetaFlags == (targetModern ? 1 : 0));
+                    assert(entry.evoMetaFlagsPresent == targetModern);
+                    assert(entry.evoNameBytes == expectedName);
+                    assert(entry.evoFields.at("size") == expectedPayload.size());
+                    const auto convertedInfo = EvoFormat::parse_evo_python_script_payload(expectedPayload);
+                    assert(convertedInfo.body == info.body && convertedInfo.menuDefinition == info.menuDefinition);
+                    const data_t convertedPacked = snapshot(converted);
+                    const std::string convertedPath = converted.saveVarToFile("/tmp", "tivars_evo_converted");
+                    assert(convertedPath.ends_with(targetModern ? ".8mp2" : ".8xpy2"));
+                    auto reloaded = TIVarFile::loadFromFile(convertedPath);
+                    assert(!reloaded.isCorrupt() && reloaded.getRawContent() == expectedPayload);
+                    assert(reloaded.getVarEntries()[0].evoNameBytes == expectedName);
+                    assert(reloaded.getVarEntries()[0].evoMetaFlagsPresent == targetModern);
+                    assert(remove(convertedPath.c_str()) == 0);
+                    converted.convertToEvoPythonFormat(targetModern ? "8mp2" : "8xpy2");
+                    assert(snapshot(converted) == convertedPacked);
+                    converted.convertToModel(TIModel{"84Evo"});
+                    assert(snapshot(converted) == convertedPacked);
+                }
+
+                bool threw = false;
+                try { loaded.convertToModel(TIModel{"83PCE"}); }
+                catch (const std::exception&) { threw = true; }
+                assert(threw);
+                assert(loaded.isEvoFormat() && loaded.getRawContent() == payload);
+            }
+        }
+
+        // Alternate name words and unknown object sections must survive without re-encoding.
+        const auto load_conversion_fixture = [](bool modern, const data_t& payload, const data_t& name)
+        {
+            data_t packed{0xBF};
+            EvoFormat::append_cbor_text(packed, "metaData");
+            packed.push_back(0xBF);
+            EvoFormat::append_cbor_key_uint(packed, "type", modern ? 18 : 15);
+            EvoFormat::append_cbor_key_uint(packed, "version", 7);
+            EvoFormat::append_cbor_key_uint(packed, "flags", 3);
+            EvoFormat::append_cbor_text(packed, "name");
+            EvoFormat::append_cbor_bytes(packed, name);
+            packed.push_back(0xFF);
+            EvoFormat::append_cbor_key_uint(packed, "version", 1);
+            EvoFormat::append_cbor_key_uint(packed, "size", payload.size());
+            EvoFormat::append_cbor_text(packed, "data");
+            EvoFormat::append_cbor_bytes(packed, payload);
+            packed.push_back(0xFF);
+            const uint16_t checksum = EvoFormat::evo_checksum(packed);
+            packed.push_back(static_cast<uint8_t>(checksum >> 8));
+            packed.push_back(static_cast<uint8_t>(checksum));
+            const std::string path = "/tmp/tivars_evo_python_conversion_fixture";
+            write_binary_file(path, packed);
+            auto file = TIVarFile::loadFromFile(path);
+            assert(!file.isCorrupt());
+            assert(remove(path.c_str()) == 0);
+            return file;
+        };
+        data_t extended = original;
+        extended.insert(extended.end(), {3, 0, 0, 0x7F, 0, 0x42, 0xFF, 0});
+        for (size_t i = 0; i < 4; ++i) extended[4 + i] = static_cast<uint8_t>(extended.size() >> (8 * i));
+        const data_t alternateName{0x41, 0, 0x5F, 0, 0x62, 0}; // A_b, not canonical token words
+        for (const bool modern : {false, true})
+        {
+            data_t payload = extended;
+            if (modern) payload.push_back(0xA5);
+            data_t name = alternateName;
+            if (modern) name.insert(name.end(), {0, 0, 0, 0}); // remove exactly one terminator
+            auto fixture = load_conversion_fixture(modern, payload, name);
+            const data_t before = snapshot(fixture);
+            fixture.convertToEvoPythonFormat(modern ? "8mp2" : "8xpy2");
+            assert(snapshot(fixture) == before); // noncanonical metadata is also left unchanged
+            fixture.convertToEvoPythonFormat(modern ? "8xpy2" : "8mp2");
+            assert(fixture.getRawContent() == payload);
+            if (modern) name.resize(name.size() - 2);
+            else name.insert(name.end(), {0, 0});
+            assert(fixture.getVarEntries()[0].evoNameBytes == name);
+            assert(fixture.getVarEntries()[0].evoMetaVersion == 1);
+            assert(fixture.getVarEntries()[0].evoMetaFlags == (modern ? 0 : 1));
+            assert(fixture.getVarEntries()[0].evoMetaFlagsPresent == !modern);
+            (void)snapshot(fixture);
+        }
+
+        auto validConversion = load_conversion_fixture(false, original, alternateName);
+        for (const std::string format : {"", ".8mp2", "8MP2", "8xv2"})
+        {
+            assert_conversion_rejected(validConversion, format);
+        }
+        for (const bool modern : {false, true})
+        {
+            for (const size_t offset : {size_t{0}, size_t{7}, size_t{18}, size_t{23}, size_t{24}, size_t{25}, size_t{26}})
+            {
+                data_t malformed = original;
+                malformed[offset] = offset == 24 ? 3 : offset == 25 ? 2 : offset == 26 ? 32 : 0xFF;
+                if (modern) malformed.push_back(0xA5);
+                auto fixture = load_conversion_fixture(modern, malformed, alternateName);
+                assert_conversion_rejected(fixture, "8xpy2");
+                assert_conversion_rejected(fixture, "8mp2");
+            }
+            auto source = load_conversion_fixture(modern, EvoFormat::build_evo_python_script_payload("print(42)\n", "SOURCE"), alternateName);
+            assert_conversion_rejected(source, "8xpy2");
+            assert_conversion_rejected(source, "8mp2");
+        }
+        auto appvar = TIVarFile::createNew("AppVar", "NOTMPY", "84Evo");
+        appvar.setContentFromData(original);
+        assert_conversion_rejected(appvar, "8xpy2");
+        assert_conversion_rejected(appvar, "8mp2");
+
+        // Storage tails are opaque, not a required A5 marker or alignment field.
+        // Cover all logical-size residues and both official-style and historical
+        // generated tails, including A5 after an already aligned object.
+        for (const bool withMenu : {false, true})
+        {
+            json varying = {{"python", {{"name", "evozzz"}, {"bodyHex", "4D05031F"}}}};
+            if (withMenu) varying["python"]["menuDefinitionHex"] = "234D454E554C4142454C2044656D6F0A";
+            for (size_t extra = 0; extra < 4; ++extra)
+            {
+                varying["python"]["bodyHex"] = "4D05031F" + std::string(extra * 2, '0');
+                const data_t object = EvoFormat::build_evo_python_module_payload(varying.dump());
+                const auto info = EvoFormat::parse_evo_python_script_payload(object);
+                assert(object.size() == info.dataLen && info.outerTrailer.empty());
+                for (const data_t& tail : {data_t{}, data_t{0xA5}, data_t{0xA6}, data_t{0},
+                                         data_t{0xFF, 0x42}, data_t{0, 0xA6, 0xFF}, data_t{1, 2, 3, 4, 5}})
+                {
+                    data_t payload = object;
+                    payload.insert(payload.end(), tail.begin(), tail.end());
+                    const json raw = {{"rawDataHex", data_to_hex_string(payload)}};
+                    assert(EvoFormat::build_evo_python_module_payload(raw.dump()) == payload);
+                    for (const bool modern : {false, true})
+                    {
+                        auto fixture = load_conversion_fixture(modern, payload, alternateName);
+                        assert(EvoFormat::parse_evo_python_script_payload(fixture.getRawContent()).outerTrailer == tail);
+                        const data_t before = snapshot(fixture);
+                        fixture.convertToEvoPythonFormat(modern ? "8mp2" : "8xpy2");
+                        assert(snapshot(fixture) == before);
+                        for (const bool targetModern : {!modern, modern})
+                        {
+                            fixture.convertToEvoPythonFormat(targetModern ? "8mp2" : "8xpy2");
+                            assert(fixture.getRawContent() == payload);
+                            assert(fixture.getVarEntries()[0].evoFields.at("size") == payload.size());
+                            (void)snapshot(fixture);
+                        }
+                    }
+                }
+            }
+        }
+        json raw = {{"rawDataHex", data_to_hex_string(original)}};
+
+        auto largeModule = TIVarFile::createNew(moduleType, "LARGEMPY", "84Evo");
+        description["python"]["bodyHex"] = "4D05031F" + std::string(70000 * 2, '0');
+        largeModule.setContentFromString(description.dump());
+        assert(json::parse(largeModule.getReadableContent())["name"] == "LARGEMPY");
+        assert(EvoFormat::parse_evo_python_script_payload(largeModule.getRawContent()).scriptLen == 70004);
+        const std::string largePath = largeModule.saveVarToFile("/tmp", "tivars_large_module");
+        assert(TIVarFile::loadFromFile(largePath).getRawContent() == largeModule.getRawContent());
+        assert(remove(largePath.c_str()) == 0);
+        const data_t largePayload = largeModule.getRawContent();
+        largeModule.convertToEvoPythonFormat("8xpy2");
+        assert(largeModule.getRawContent() == largePayload);
+        (void)snapshot(largeModule);
+        largeModule.convertToEvoPythonFormat("8mp2");
+        assert(largeModule.getRawContent() == largePayload);
+        (void)snapshot(largeModule);
+
+        for (const std::string badHeader : {"4D03021F", "4D05021F", "4D050320", "4D0503", "00000000"})
+        {
+            description["python"]["bodyHex"] = badHeader;
+            bool threw = false;
+            try { largeModule.setContentFromString(description.dump()); }
+            catch (const std::invalid_argument&) { threw = true; }
+            assert(threw);
+        }
+        raw["rawDataHex"] = data_to_hex_string(EvoFormat::build_evo_python_script_payload("print(42)\n", "SOURCE"));
+        bool threw = false;
+        try { largeModule.setContentFromString(raw.dump()); }
+        catch (const std::invalid_argument&) { threw = true; }
+        assert(threw);
+
+        auto ceModule = TIVarFile::createNew("PythonModuleAppVar", "CEMPY", "83PCE");
+        ceModule.setContentFromString(R"({"compiledDataHex":"4D03021F"})");
+        const data_t cePayload = ceModule.getRawContent();
+        assert_conversion_rejected(ceModule, "8xpy2");
+        assert_conversion_rejected(ceModule, "8mp2");
+        threw = false;
+        try { ceModule.convertToModel(TIModel{"84Evo"}); }
+        catch (const std::exception&) { threw = true; }
+        assert(threw && !ceModule.isEvoFormat() && ceModule.getRawContent() == cePayload);
     }
 
     {

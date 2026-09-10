@@ -592,7 +592,8 @@ namespace tivars
         {
             entry.evoTypeID = evo_type_from_type(type);
             entry.evoMetaVersion = 1;
-            entry.evoMetaFlags = (entry.evoTypeID == EvoTypeID::Image || entry.evoTypeID == EvoTypeID::Picture || entry.evoTypeID == EvoTypeID::PythonScript) ? 1 : 0;
+            entry.evoMetaFlags = (entry.evoTypeID == EvoTypeID::Image || entry.evoTypeID == EvoTypeID::Picture
+                || entry.evoTypeID == EvoTypeID::PythonScript || entry.evoTypeID == EvoTypeID::PythonModule) ? 1 : 0;
             entry.evoFields["version"] = 1;
         }
         entry.data_length2 = 0; // will have to be overwritten later
@@ -745,6 +746,7 @@ namespace tivars
         entry.evoTypeID = evoTypeID;
         entry.evoMetaVersion = static_cast<uint8_t>(read_uint_field(meta, "version", 1));
         entry.evoMetaFlags = static_cast<uint8_t>(read_uint_field(meta, "flags", 0));
+        entry.evoMetaFlagsPresent = meta.contains("flags");
         entry.evoNameBytes = nameBytes;
         entry.typeID = static_cast<uint8_t>(mappedType.getId());
         entry._type = mappedType;
@@ -1101,7 +1103,12 @@ namespace tivars
     {
         auto& entry = this->entries[entryIdx];
         data_t data;
-        if (this->evoFormat && entry.evoTypeID == EvoTypeID::PythonScript)
+        if (this->evoFormat && entry.evoTypeID == EvoTypeID::PythonModule)
+        {
+            const std::string displayName = entry_name_to_string(entry._type, entry.varname, sizeof(var_entry_t::varname));
+            data = build_evo_python_module_payload(str, displayName);
+        }
+        else if (this->evoFormat && entry.evoTypeID == EvoTypeID::PythonScript)
         {
             const std::string displayName = entry_name_to_string(entry._type, entry.varname, sizeof(var_entry_t::varname));
             data = build_evo_python_script_payload(str, displayName);
@@ -1332,6 +1339,56 @@ namespace tivars
         this->refreshMetadataFields();
     }
 
+    void TIVarFile::convertToEvoPythonFormat(const std::string& format)
+    {
+        if (format != "8xpy2" && format != "8mp2")
+        {
+            throw std::invalid_argument("Evo Python format must be 8xpy2 or 8mp2");
+        }
+        if (!this->evoFormat || this->entries.size() != 1)
+        {
+            throw std::invalid_argument("Python format conversion requires one Evo bytecode module");
+        }
+        const auto& entry = this->entries[0];
+        if (entry.evoDataIsRawCBOR || (entry.evoTypeID != EvoTypeID::PythonScript && entry.evoTypeID != EvoTypeID::PythonModule))
+        {
+            throw std::invalid_argument("Python format conversion requires an Evo Python variable");
+        }
+        const auto python = parse_evo_python_script_payload(entry.data);
+        if (!python.compiledModule || python.body.size() < 4
+            || python.body[0] != 'M' || python.body[1] != 5 || python.body[2] != 3 || python.body[3] > 31)
+        {
+            throw std::invalid_argument("Python format conversion requires MPY v5 bytecode, not source or CE bytecode");
+        }
+        const bool modern = (format == "8mp2");
+        const EvoTypeID targetType = modern ? EvoTypeID::PythonModule : EvoTypeID::PythonScript;
+        if (entry.evoTypeID == targetType)
+        {
+            return; // Preserve existing metadata conventions for same-format saves.
+        }
+
+        // Keep all data verbatim, including unknown/repeated sections and any
+        // opaque storage bytes after the object's declared length.
+        auto converted = entry;
+        if (converted.evoNameBytes.empty())
+        {
+            converted.evoNameBytes = encode_evo_name(targetType,
+                entry_name_to_string(entry._type, entry.varname, sizeof(var_entry_t::varname)));
+        }
+        auto& name = converted.evoNameBytes;
+        const bool terminated = (name.size() >= 2 && name[name.size() - 2] == 0 && name.back() == 0);
+        if (modern && !terminated) name.insert(name.end(), {0, 0});
+        else if (!modern && terminated) name.resize(name.size() - 2);
+        converted.evoTypeID = targetType;
+        set_entry_type(converted, type_from_evo_type(targetType));
+        converted.evoMetaVersion = 1;
+        converted.evoMetaFlags = modern ? 1 : 0;
+        converted.evoMetaFlagsPresent = modern;
+        converted.evoFields["version"] = 1;
+        this->entries[0] = std::move(converted);
+        this->refreshMetadataFields();
+    }
+
     void TIVarFile::setVarName(const std::string& name, uint16_t entryIdx)
     {
         this->entries[entryIdx].setVarName(name);
@@ -1540,7 +1597,10 @@ namespace tivars
         out.push_back(0xBF);
         append_cbor_key_uint(out, "type", evo_type_id_value(evoTypeID));
         append_cbor_key_uint(out, "version", entry.evoMetaVersion == 0 ? 1 : entry.evoMetaVersion);
-        append_cbor_key_uint(out, "flags", entry.evoMetaFlags);
+        if (entry.evoMetaFlagsPresent || entry.evoMetaFlags != 0)
+        {
+            append_cbor_key_uint(out, "flags", entry.evoMetaFlags);
+        }
         append_cbor_text(out, "name");
         append_cbor_bytes(out, nameBytes);
         out.push_back(0xFF);
@@ -1617,11 +1677,15 @@ namespace tivars
         {
             j["code"] = detokenize_evo_token_words(entry.data);
         }
-        if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::PythonScript)
+        if (!entry.evoDataIsRawCBOR && (entry.evoTypeID == EvoTypeID::PythonScript || entry.evoTypeID == EvoTypeID::PythonModule))
         {
             try
             {
                 const EvoPythonScriptInfo python = parse_evo_python_script_payload(entry.data);
+                if (entry.evoTypeID == EvoTypeID::PythonModule && !python.compiledModule)
+                {
+                    throw std::invalid_argument("Evo PythonModule contains a source object instead of bytecode");
+                }
                 j["python"] = {
                     {"scriptHeader", python.scriptHeader},
                     {"dataLen", python.dataLen},
@@ -1633,6 +1697,7 @@ namespace tivars
                     {"compiledModule", python.compiledModule},
                     {"menuDefinitionHex", bytes_to_hex_string(python.menuDefinition)},
                     {"trailerHex", bytes_to_hex_string(python.trailer)},
+                    {"outerTrailerHex", bytes_to_hex_string(python.outerTrailer)},
                     {"bodyHex", bytes_to_hex_string(python.body)},
                 };
                 if (python.bodyIsText)
@@ -1770,6 +1835,7 @@ namespace tivars
                     .function("isEvoFormat"              , &tivars::TIVarFile::isEvoFormat)
                     .function("convertToModel"           , select_overload<void(const std::string&)>(&tivars::TIVarFile::convertToModel))
                     .function("convertToModel"           , select_overload<void(const std::string&, bool)>(&tivars::TIVarFile::convertToModel))
+                    .function("convertToEvoPythonFormat" , &tivars::TIVarFile::convertToEvoPythonFormat)
                     .function("setVarName"               , select_overload<void(const std::string&)>(&tivars::TIVarFile::setVarName))
                     .function("setArchived"              , select_overload<void(bool)>(&tivars::TIVarFile::setArchived))
                     .function("isCorrupt"                , &tivars::TIVarFile::isCorrupt)

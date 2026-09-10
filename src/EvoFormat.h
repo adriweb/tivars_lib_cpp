@@ -31,6 +31,7 @@ namespace tivars::EvoFormat
         data_t menuDefinition;
         data_t body;
         data_t trailer;
+        data_t outerTrailer; // opaque stored bytes after dataLen; no required value or length
         std::string code;
         bool bodyIsText = false;
     };
@@ -70,6 +71,7 @@ namespace tivars::EvoFormat
     std::string bytes_to_hex_string(const data_t& data);
     EvoPythonScriptInfo parse_evo_python_script_payload(const data_t& data);
     data_t build_evo_python_script_payload(const std::string& source, std::string defaultName = "");
+    data_t build_evo_python_module_payload(const std::string& source, std::string defaultName = "");
     data_t legacy_python_appvar_to_evo_python_script(const data_t& legacyData, std::string defaultName = "");
     data_t evo_python_script_to_legacy_python_appvar(const data_t& evoData, std::string defaultName = "");
 

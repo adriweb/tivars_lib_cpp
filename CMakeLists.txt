@@ -158,7 +158,7 @@ if(APPLE)
             8xn2 8xl2 8xp2 8xd2
             8ci2 8ca2 8xm2 8xy2
             8xv2 8xg2 8xs2 8ek2
-            8xw2 8xz2 8xt2 8xpy2
+            8xw2 8xz2 8xt2 8xpy2 8mp2
     )
 
     set(TIVARS_QUICKLOOK_EXTENSION_XML "")

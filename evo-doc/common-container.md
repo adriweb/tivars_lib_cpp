@@ -77,10 +77,14 @@ image with `size = 33601` stores the body size as `19 83 41`, and its
 12  .8xw2  window settings
 13  .8xz2  user zoom / RclWindw
 14  .8xt2  table setup
-15  .8xpy2 Python source program or subtype-2 compiled MicroPython bytecode
-            module; `.py` source is converted by Connect Evo before transfer
+15  .8xpy2 Python source program; also subtype-2 compiled MicroPython modules
+            on OS 7.0 only. `.py` source is converted by Connect Evo.
 17          nested custom scalar entries inside settings files
+18  .8mp2  compiled MicroPython bytecode module on OS 7.1 and later
 ```
+
+See [Python module containers](8mp2-python-module.md) for the OS 7.0/7.1+
+wrapper differences. Source programs remain type 15 on both OS generations.
 
 ## Common `version` and `flags` fields
 
@@ -107,6 +111,7 @@ Observed `flags` values:
 ```text
 metaData.flags = 0  ordinary numeric/list/program/matrix/appvar/settings files
 metaData.flags = 1  image-like type 4 `.8ci2` and type 5 `.8ca2`
+                    and type 18 `.8mp2` bytecode modules
 metaData.flags = 4  equation sample `.8xy2`
 metaData.flags = 8  special graph/window coordinate variables (`X`, `Y`,
                     `XMIN`, `XMAX`, `YMIN`, `YMAX`)
@@ -125,6 +130,8 @@ See `evo-version-flags.md` for the detailed sample table.
 
 The `metaData.name` byte string is a sequence of 16-bit little-endian
 name tokens, usually terminated by `0000`.
+The known OS 7.0 bytecode `.8xpy2` files omit that terminator; their OS 7.1+
+`.8mp2` equivalents include it. Readers must accept both.
 
 Examples:
 

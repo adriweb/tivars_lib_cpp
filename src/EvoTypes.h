@@ -34,6 +34,7 @@ namespace tivars::EvoFormat
         RecallWindow = 13,
         TableRange = 14,
         PythonScript = 15,
+        PythonModule = 18,
     };
 
     constexpr uint8_t evo_type_id_value(EvoTypeID type)
@@ -54,7 +55,7 @@ namespace tivars::EvoFormat
         std::array<std::string_view, 9> legacyTypeAliases;
     };
 
-    inline constexpr std::array<EvoTypeInfo, evo_type_id_value(EvoTypeID::PythonScript) + 1> evoTypeInfos = {{
+    inline constexpr std::array<EvoTypeInfo, evo_type_id_value(EvoTypeID::PythonModule) + 1> evoTypeInfos = {{
         {"Real",           "Real",           "8xn2",  {"Complex", "RealFraction", "ExactComplexFrac", "ExactRealRadical", "ExactComplexRadical", "ExactComplexPi", "ExactComplexPiFrac", "ExactRealPi", "ExactRealPiFrac"}},
         {"RealList",       "List",           "8xl2",  {"ComplexList"}},
         {"Program",        "Program",        "8xp2",  {"ProtectedProgram"}},
@@ -71,12 +72,15 @@ namespace tivars::EvoFormat
         {"RecallWindow",   "RecallWindow",   "8xz2",  {}},
         {"TableRange",     "TableRange",     "8xt2",  {}},
         {"PythonAppVar",   "PythonScript",   "8xpy2", {}},
+        {}, // 16: no supported top-level variable type
+        {}, // 17: nested settings scalar, not a top-level variable
+        {"PythonModule", "PythonModule", "8mp2", {}},
     }};
 
     inline const EvoTypeInfo& evo_type_info(EvoTypeID evoTypeID)
     {
         const uint8_t value = evo_type_id_value(evoTypeID);
-        if (value >= evoTypeInfos.size())
+        if (value >= evoTypeInfos.size() || evoTypeInfos[value].typeName.empty())
         {
             throw std::invalid_argument("Unknown Evo type ID " + std::to_string(value));
         }
@@ -100,6 +104,10 @@ namespace tivars::EvoFormat
 
     inline bool evo_type_info_matches_ti_type_name(const EvoTypeInfo& info, std::string_view typeName)
     {
+        if (typeName.empty())
+        {
+            return false;
+        }
         if (typeName == info.legacyTypeName)
         {
             return true;
