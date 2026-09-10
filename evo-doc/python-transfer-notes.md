@@ -1,10 +1,10 @@
 # Python program transfer notes
 
-Connect Evo treats `.py` files as metadata type `15`, displayed as
+Connect Evo treats `.py` source files as metadata type `15`, displayed as
 `Python Program`. Unlike ordinary Evo CBOR variable files, a selected
 `.py` source file is directly converted at transfer time (both ways).
 
-A real type 15 file, which we could invent extension "8xpy2" for, exists though.
+A real type-15 container also exists; these tools use extension `.8xpy2`.
 `python3 evo_usb.py <script.py> [varname]` does not send the `.py` bytes
 directly. It converts the UTF-8 source into a type `15` Evo CBOR variable
 whose body `data` field is an AppVar-like payload containing the source.
@@ -105,6 +105,11 @@ persistent bytecode.
 
 ## Compiled MicroPython modules
 
+Bytecode uses two different external containers: type-15 `.8xpy2` on
+**OS 7.0.x**, and type-18 `.8mp2` on **OS 7.1 and later**, including later
+major versions. This does not change the source-program type or the MPY
+version. See [the module format reference](8mp2-python-module.md).
+
 TI-Python reports this implementation tuple on OS 7.0.0.3996:
 
 ```text
@@ -167,16 +172,35 @@ mpy-cross -mcache-lookup-bc -s test.py -o test.mpy test.py
 The `-mcache-lookup-bc` option is mandatory for TI-Python: without it the
 header is `4D 05 02 1F`, whose feature flags are rejected.
 
-### Direct transfer and validation
+### Direct transfer and validation on OS 7.0
 
 A subtype-2 object does not need to be installed through Group/Ungroup. An
 ordinary Evo CBOR file with `metaData.type = 15` and the raw module object in
 its `data` byte string was accepted by a direct Archive transfer. It was
 omitted from the USB directory and normal Python file manager, but remained
 visible in the OS memory menu. A normal 14-byte source program containing
-`import evoldr` imported and executed it.
+import for it did work fine without having to unarchive it.
 
-`tivars_lib_cpp` recognizes both subtype-1 source objects and subtype-2
-compiled modules. Its Evo file probe also accepts the omitted
-`metaData.flags` field emitted by the direct USB sender, defaulting it to zero.
+### OS 7.1 and later
 
+The old type-15 bytecode wrapper is rejected on OS 7.1 even though the MPY
+bytes are unchanged. Type 18 adds metadata `flags=1` and a `0000` token-name
+terminator. Update the container and checksum, not the payload or its length.
+No `A5` or alignment padding is required: TI_DRAW's extra stored byte is
+opaque data, already present in OS 7.0. Preserve any existing bytes after
+the internal object length when switching wrappers; new objects need none.
+See [the storage/import evidence](8mp2-python-module.md#stored-bytes-after-the-object-the-former-a5-assumption).
+
+TI Connect Evo 7.1 recognizes `.8mp2` as `Python MPY`.
+Sending a type-18 file to OS 7.0 returns `DP` (invalid data payload).
+
+Both bytecode formats belong in **Archive** and are run by importing the
+module. `evo_usb.py` and WebTILP select the compatible wrapper from the OS
+version and retain one opposite-wrapper retry on `DP` if needed. Neither
+source Python programs nor ordinary AppVars should be converted this way.
+
+`tivars_lib_cpp` recognizes both external types and both internal subtypes.
+Loading and saving preserves the wrapper type, name bytes, absent metadata
+flags, and the complete object including any outer trailer. New Evo
+`PythonModule` files use type 18. See the module reference for the
+structured JSON writer and how to select legacy output.

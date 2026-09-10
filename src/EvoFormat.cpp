@@ -348,7 +348,7 @@ bool is_evo_file_data(const data_t& fileData)
             return false;
         }
 
-        return typeIt->second.unsignedValue <= 17;
+        return typeIt->second.unsignedValue <= evo_type_id_value(EvoTypeID::PythonModule);
     }
     catch (const std::exception&)
     {
@@ -410,11 +410,23 @@ void append_cbor_bytes(data_t& out, const data_t& bytes)
         out.push_back(0x58);
         out.push_back(static_cast<uint8_t>(len));
     }
-    else
+    else if (len <= 0xFFFF)
     {
         out.push_back(0x59);
         out.push_back(static_cast<uint8_t>((len >> 8) & 0xFF));
         out.push_back(static_cast<uint8_t>(len & 0xFF));
+    }
+    else if (len <= 0xFFFFFFFFULL)
+    {
+        out.push_back(0x5A);
+        for (int shift = 24; shift >= 0; shift -= 8)
+        {
+            out.push_back(static_cast<uint8_t>(len >> shift));
+        }
+    }
+    else
+    {
+        throw std::invalid_argument("Evo CBOR byte string exceeds its 32-bit length");
     }
     out.insert(out.end(), bytes.begin(), bytes.end());
 }
@@ -639,11 +651,23 @@ data_t encode_evo_name(EvoTypeID evoTypeID, std::string displayName)
         return append_terminated();
     }
 
-    return encode_evo_custom_name(displayName, evoTypeID == EvoTypeID::AppVar || evoTypeID == EvoTypeID::PythonScript);
+    return encode_evo_custom_name(displayName, evoTypeID == EvoTypeID::AppVar
+        || evoTypeID == EvoTypeID::PythonScript || evoTypeID == EvoTypeID::PythonModule);
 }
 
 TIVarType type_from_evo_type(EvoTypeID evoTypeID)
 {
+    if (evoTypeID == EvoTypeID::PythonModule)
+    {
+        // Evo-only descriptor: no entry in the legacy TIVarTypes registry.
+        std::vector<std::string> extensions(9); // pre-Evo model slots
+        extensions.push_back(extension_from_evo_type(evoTypeID));
+        return {-1, type_name_from_evo_type(evoTypeID), extensions, {
+            &TypeHandlers::DummyHandler::makeDataFromString,
+            &TypeHandlers::DummyHandler::makeStringFromData,
+            &TypeHandlers::DummyHandler::getMinVersionFromData,
+        }};
+    }
     return TIVarType{std::string{ti_type_name_from_evo_type(evoTypeID)}};
 }
 
@@ -829,7 +853,61 @@ EvoPythonScriptInfo parse_evo_python_script_payload(const data_t& data)
     {
         throw std::invalid_argument("Invalid Evo Python object payload: missing name or executable section");
     }
+    info.outerTrailer.assign(data.begin() + info.dataLen, data.end());
     return info;
+}
+
+data_t build_evo_python_module_payload(const std::string& source, std::string defaultName)
+{
+    const json root = json::parse(source);
+    if (root.contains("rawDataHex"))
+    {
+        data_t raw = json_hex_bytes(root, "rawDataHex");
+        const auto info = parse_evo_python_script_payload(raw);
+        if (!info.compiledModule)
+        {
+            throw std::invalid_argument("Evo PythonModule requires a subtype-2 bytecode object, not Python source");
+        }
+        // Both wrappers carry the same payload. Preserve opaque storage bytes
+        // after dataLen too: they are not a type-18 marker or terminator.
+        return raw;
+    }
+
+    const json& python = root.contains("python") ? root.at("python") : root;
+    const std::string name = python.value("name", defaultName.empty() ? std::string{"module"} : defaultName);
+    const data_t body = json_hex_bytes(python, "bodyHex");
+    if (name.empty() || name.size() > 255 || name.find('\0') != std::string::npos)
+    {
+        throw std::invalid_argument("Invalid Evo PythonModule import name");
+    }
+    if (body.size() < 4 || body[0] != 'M' || body[1] != 5 || body[2] != 3 || body[3] > 31)
+    {
+        throw std::invalid_argument("Evo PythonModule requires MPY v5 bytecode with cache lookup and at most 31 small-int bits");
+    }
+
+    data_t payload;
+    append_le32(payload, evo_python_module_header);
+    append_le32(payload, 0); // filled after the sections
+    const auto append_section = [&](uint8_t kind, const data_t& bytes)
+    {
+        if (bytes.size() > 0xFFFFFF)
+        {
+            throw std::invalid_argument("Evo PythonModule section exceeds its 24-bit length");
+        }
+        append_le32(payload, static_cast<uint32_t>(bytes.size()) | (static_cast<uint32_t>(kind) << 24));
+        payload.insert(payload.end(), bytes.begin(), bytes.end());
+        payload.push_back(0);
+    };
+    append_section(0, data_t(name.begin(), name.end()));
+    if (python.contains("menuDefinitionHex"))
+    {
+        const data_t menu = json_hex_bytes(python, "menuDefinitionHex");
+        if (!menu.empty()) append_section(1, menu);
+    }
+    append_section(2, body);
+    const uint32_t size = static_cast<uint32_t>(payload.size());
+    for (unsigned int i = 0; i < 4; ++i) payload[4 + i] = static_cast<uint8_t>(size >> (8 * i));
+    return payload;
 }
 
 data_t build_evo_python_script_payload(const std::string& source, std::string defaultName)
@@ -854,6 +932,11 @@ data_t build_evo_python_script_payload(const std::string& source, std::string de
         if (root.contains("python") && root.at("python").is_object())
         {
             payloadJson = &root.at("python");
+        }
+
+        if (payloadJson->value("compiledModule", false))
+        {
+            return build_evo_python_module_payload(source, defaultName);
         }
 
         if (payloadJson->contains("name"))

@@ -9,6 +9,7 @@
 #include "../src/TIFlashFile.h"
 #include "../src/TIModels.h"
 #include "../src/TIVarTypes.h"
+#include "../src/EvoTypes.h"
 
 #include "cxxopts.hpp"
 
@@ -308,6 +309,19 @@ int main(int argc, char** argv)
                     file.setContentFromString(str.str(), contentOptions);
                 }
 
+                if (iformat == VARFILE && oformat == VARFILE && file.isEvoFormat()
+                    && file.getVarEntries().size() == 1)
+                {
+                    const string outputExtension = extensionOf(opath);
+                    const auto inputType = file.getVarEntries()[0].evoTypeID;
+                    // Only rewrap when the container type changes; .8xpy2 also holds source scripts.
+                    if ((outputExtension == "8mp2" && inputType == EvoFormat::EvoTypeID::PythonScript)
+                        || (outputExtension == "8xpy2" && inputType == EvoFormat::EvoTypeID::PythonModule))
+                    {
+                        file.convertToEvoPythonFormat(outputExtension);
+                    }
+                }
+
                 if (result.count("archive"))
                 {
                     file.setArchived(result["archive"].as<bool>());
@@ -446,14 +460,15 @@ bool isFlashExtension(const string& extension)
 bool isEvoVarExtension(const string& extension)
 {
     const string lowered = lowercase(extension);
-    if (!TIVarTypes::isValidName(lowered))
+    if (lowered.empty())
     {
         return false;
     }
 
-    const TIVarType type{lowered};
-    const auto& exts = type.getExts();
-    return exts.size() > 9 && lowercase(exts[9]) == lowered;
+    return std::any_of(EvoFormat::evoTypeInfos.begin(), EvoFormat::evoTypeInfos.end(), [&](const auto& info)
+    {
+        return info.extension == lowered;
+    });
 }
 
 bool isLegacyVarExtension(const string& extension)
@@ -517,6 +532,9 @@ enum FileType getType(const cxxopts::ParseResult& options, const string& filenam
 
     if (extension == "txt")
         return READABLE;
+
+    if (isEvoVarExtension(extension))
+        return VARFILE;
 
     for (const auto& type: TIVarTypes::all())
     {
