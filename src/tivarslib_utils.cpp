@@ -440,6 +440,7 @@ std::string entry_name_to_string(const TIVarType& type, const uint8_t* nameBytes
         return tiNameBodyString(nameBytes, asciiLen);
     };
     const auto hasTINameCharacters = [&]() {
+        if (type.getName() == "PythonModule") return true;
         switch (typeId)
         {
             case 0x05: // Program

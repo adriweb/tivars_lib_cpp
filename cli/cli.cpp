@@ -9,6 +9,7 @@
 #include "../src/TIFlashFile.h"
 #include "../src/TIModels.h"
 #include "../src/TIVarTypes.h"
+#include "../src/EvoTypes.h"
 
 #include "cxxopts.hpp"
 
@@ -46,6 +47,7 @@ int main(int argc, char** argv)
             ("a,archive", "Archive status", cxxopts::value<bool>())
             ("r,reindent", "Re-indent", cxxopts::value<bool>())
             ("smart", "Use compatibility rewrites when converting 84+CE programs to 84Evo", cxxopts::value<bool>())
+            ("python-format", "Rewrap an Evo bytecode module (8xpy2|8mp2)", cxxopts::value<string>())
             ("accessible", "Use accessible token names for non-US-keyboard display tokens", cxxopts::value<bool>())
             ("p,prettify", "Prettify (display-oriented, may not roundtrip)", cxxopts::value<bool>())
             ("s,detect_strings", "Detect strings", cxxopts::value<bool>())
@@ -79,6 +81,12 @@ int main(int argc, char** argv)
 
         enum FileType iformat = getType(result, ipath, "iformat");
         enum FileType oformat = getType(result, opath, "oformat");
+
+        if (result.count("python-format") && (iformat != VARFILE || oformat != VARFILE || isFlashExtension(extensionOf(ipath))))
+        {
+            cout << "--python-format requires an Evo Python variable input and a varfile output." << endl;
+            return 1;
+        }
 
         TIVarType varvarType;
 
@@ -308,6 +316,11 @@ int main(int argc, char** argv)
                     file.setContentFromString(str.str(), contentOptions);
                 }
 
+                if (result.count("python-format"))
+                {
+                    file.convertToEvoPythonFormat(result["python-format"].as<string>());
+                }
+
                 if (result.count("archive"))
                 {
                     file.setArchived(result["archive"].as<bool>());
@@ -446,14 +459,15 @@ bool isFlashExtension(const string& extension)
 bool isEvoVarExtension(const string& extension)
 {
     const string lowered = lowercase(extension);
-    if (!TIVarTypes::isValidName(lowered))
+    if (lowered.empty())
     {
         return false;
     }
 
-    const TIVarType type{lowered};
-    const auto& exts = type.getExts();
-    return exts.size() > 9 && lowercase(exts[9]) == lowered;
+    return std::any_of(EvoFormat::evoTypeInfos.begin(), EvoFormat::evoTypeInfos.end(), [&](const auto& info)
+    {
+        return info.extension == lowered;
+    });
 }
 
 bool isLegacyVarExtension(const string& extension)
@@ -517,6 +531,9 @@ enum FileType getType(const cxxopts::ParseResult& options, const string& filenam
 
     if (extension == "txt")
         return READABLE;
+
+    if (isEvoVarExtension(extension))
+        return VARFILE;
 
     for (const auto& type: TIVarTypes::all())
     {

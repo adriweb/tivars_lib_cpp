@@ -111,7 +111,7 @@ qlmanage -r
 
 The CMake build ad hoc-signs the app and both extensions automatically when `codesign` is available.
 
-The Preview extension returns rich HTML previews for parsed legacy, Evo, and flash metadata and readable content when available. The Thumbnail extension renders custom badges/cards keyed off the detected TI file type. Evo's `8xn2` through `8xpy2` file extensions are registered alongside the pre-Evo formats.
+The Preview extension returns rich HTML previews for parsed legacy, Evo, and flash metadata and readable content when available. The Thumbnail extension renders custom badges/cards keyed off the detected TI file type. Evo's `8xn2` through `8xpy2` file extensions, plus `8mp2` Python modules, are registered alongside the pre-Evo formats.
 
 If macOS does not pick the extensions up immediately, useful diagnostics are:
 ```sh
@@ -169,6 +169,13 @@ Special vartype naming rules are implemented for constrained names such as strin
 Picture/image support exposes metadata as JSON and supports `rawDataHex` import/export for exact roundtrips; raw pixel decoding/encoding is still not implemented.
 Flash file support exposes header/object metadata as JSON and supports JSON -> file reconstruction, including multi-header files.
 Structured AppVar support includes generic subtype detection from raw data / JSON for Python modules, Python images, StudyCards, StudyCards settings, CellSheet, CellSheet state, CabriJr, and Notefolio payloads.
+
+Evo MicroPython modules support both OS 7.0 type-15 `.8xpy2` and OS 7.1+
+type-18 `.8mp2` containers, including their menus. Loaded Evo `PythonModule`
+variables retain their format on save; they are not registered as legacy types.
+`convertToEvoPythonFormat()` and the CLI's `--python-format` switch convert
+between the two bytecode wrappers. Source Python programs remain type 15.
+See [the bytecode format and API examples](evo-doc/8mp2-python-module.md).
 JSON schemas for the JSON-compatible formats are available in `schemas/`.
 
 Big thanks to @LogicalJoe for his research in https://github.com/TI-Toolkit/tivars_hexfiend_templates/

@@ -31,19 +31,22 @@ incompatible-variable-version transfer error.
 ## Observed `flags` values by type
 
 ```text
-type  ext     meaning                  metaData.flags      body flags
-0     .8xn2   real/complex number      0, except 8 seen    0 or 6
-1     .8xl2   list                     0                  no body flags key
-2     .8xp2   TI-BASIC program         0                  no body flags key
-4     .8ci2   Pic                      1                  no body flags key
-5     .8ca2   Image/background         1                  no body flags key
-6     .8xm2   matrix                   0                  no body flags key
-7     .8xy2   equation                 4                  no body flags key
-8     .8xv2   AppVar                   0                  no body flags key
-12    .8xw2   Window settings          0                  top data is array
-13    .8xz2   RclWindw/user zoom       0                  top data is array
-14    .8xt2   Table setup              0                  top data is array
-17            nested scalar setting    0 or 8             0
+type  ext     meaning                       metaData.flags      body flags
+0     .8xn2   real/complex number           0, except 8 seen    0 or 6
+1     .8xl2   list                          0                   no body flags key
+2     .8xp2   TI-BASIC program              0                   no body flags key
+4     .8ci2   Pic                           1                   no body flags key
+5     .8ca2   Image/background              1                   no body flags key
+6     .8xm2   matrix                        0                   no body flags key
+7     .8xy2   equation                      4                   no body flags key
+8     .8xv2   AppVar                        0                   no body flags key
+12    .8xw2   Window settings               0                   top data is array
+13    .8xz2   RclWindw/user zoom            0                   top data is array
+14    .8xt2   Table setup                   0                   top data is array
+15    .8xpy2  Python source / OS 7.0 MPY    omitted or 0/1      no body flags key
+16    .8xn2   (unclear)
+17            (unclear)
+18    .8mp2   OS 7.1+ Python module         1                   no body flags key
 ```
 
 ## Body `flags = 6`
@@ -87,8 +90,23 @@ size             = 33601
 data marker      = 0x0B in generated files
 ```
 
-The exact semantic name for this bit is not proven, but it is clearly a
-variable-level image/Pic metadata flag rather than a pixel-data flag.
+The exact semantic name for this bit is not proven. It is variable-level
+metadata rather than a pixel-data flag: OS 7.1+ type-18 Python bytecode
+modules also use `metaData.flags = 1`. Do not treat it as an image-only bit
+or infer a RAM/Archive target from it.
+
+## Python bytecode wrappers
+
+Known OS 7.0 type-15 bytecode files omit `metaData.flags`; the library reports
+zero for a missing field and preserves its absence on load/save. The known
+OS 7.1+ type-18 `.8mp2` wrapper includes `flags = 1`. Both schema versions
+remain 1. The extra `A5` in TI_DRAW's stored Python payload is **not** this
+metadata field or a required type-18 marker; other official modules have no
+extra byte. New writers need no padding, and wrapper conversions preserve
+any existing outer bytes unchanged.
+
+See [Python module containers](8mp2-python-module.md) for the exact lengths,
+name terminator, and OS compatibility boundary.
 
 ## `metaData.flags = 4` for equations
 
@@ -200,7 +218,7 @@ For a writer:
 - emit `metaData.version = 1`;
 - emit body `version = 1` where the format uses scalar body fields;
 - emit `metaData.flags = 1` for type `4` and type `5` image-like
-  variables;
+  variables and type `18` Python modules;
 - emit body `flags = 6` for top-level exact-fraction `.8xn2` values;
 - emit trailing `06` flags for exact-fraction list and matrix elements;
 - preserve `metaData.flags = 8` for graph/window coordinate variables
