@@ -46,6 +46,7 @@ namespace tivars
             EvoFormat::EvoTypeID evoTypeID{0};
             uint8_t evoMetaVersion = 1;
             uint8_t evoMetaFlags = 0;
+            bool evoMetaFlagsPresent = true;
             std::map<std::string, uint64_t> evoFields;
             data_t evoNameBytes;
             bool evoDataIsRawCBOR = false;
@@ -96,6 +97,8 @@ namespace tivars
         void convertToModel(const TIModel& model, const options_t& options);
         void convertToModel(const std::string& model) { convertToModel(TIModel{model}); }
         void convertToModel(const std::string& model, bool smart) { convertToModel(TIModel{model}, {{"smart", smart ? 1 : 0}}); }
+        // Rewrap an Evo bytecode module as "8xpy2" (OS 7.0) or "8mp2" (OS 7.1+).
+        void convertToEvoPythonFormat(const std::string& format);
 
         void setVarName(const std::string& name, uint16_t entryIdx);
         void setVarName(const std::string& name);
