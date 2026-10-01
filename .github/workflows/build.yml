@@ -3,8 +3,22 @@ name: Build
 on:
   push:
     branches: [master,evo]
+    tags: ['v*']
   pull_request:
     branches: [master]
+  workflow_dispatch:
+    inputs:
+      sign_and_notarize:
+        description: 'Sign and notarize macOS downloads (master/evo only)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tivars-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -28,6 +42,140 @@ jobs:
         run: make -j4 CC=gcc-15 CXX=g++-15
       - name: Build
         if: startsWith(matrix.os, 'macos-26')
-        run: make -j4 CC=$(brew --prefix llvm@20)/bin/clang CXX=$(brew --prefix llvm@20)/bin/clang++
+        run: make -j4 CC="$(brew --prefix llvm@20)/bin/clang" CXX="$(brew --prefix llvm@20)/bin/clang++"
 
       - run: ./tivars_tests
+
+  distribution-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 -m unittest discover -s scripts/tests -v
+
+  binaries:
+    needs: [build, distribution-tests]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux
+            architecture: x86_64
+          - os: windows-2025
+            platform: windows
+            architecture: x86_64
+          - os: macos-15
+            platform: macos
+            architecture: universal
+    defaults:
+      run:
+        shell: bash
+    env:
+      SIGNED_BUILD: ${{ github.repository == 'adriweb/tivars_lib_cpp' && ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/evo') && inputs.sign_and_notarize)) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Validate signing request
+        env:
+          REQUESTED_SIGNING: ${{ github.event_name == 'workflow_dispatch' && inputs.sign_and_notarize }}
+        run: |
+          if [[ "$REQUESTED_SIGNING" == true && "$SIGNED_BUILD" != true ]]; then
+            echo 'Manual signing is allowed only on adriweb/tivars_lib_cpp master/evo.' >&2
+            exit 1
+          fi
+
+      - name: Install LLVM 19 and Ninja
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-19 lld-19 ninja-build
+          echo 'CC=clang-19' >> "$GITHUB_ENV"
+          echo 'CXX=clang++-19' >> "$GITHUB_ENV"
+
+      - name: Install macOS LLVM
+        if: matrix.platform == 'macos'
+        run: |
+          brew install llvm@20 ninja
+          echo "CC=$(brew --prefix llvm@20)/bin/clang" >> "$GITHUB_ENV"
+          echo "CXX=$(brew --prefix llvm@20)/bin/clang++" >> "$GITHUB_ENV"
+
+      - name: Set up Windows SDK and MSVC libraries for Clang
+        if: matrix.platform == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Select Windows Clang
+        if: matrix.platform == 'windows'
+        run: |
+          echo 'CC=clang' >> "$GITHUB_ENV"
+          echo 'CXX=clang++' >> "$GITHUB_ENV"
+          clang --version
+
+      - name: Configure distribution
+        run: |
+          options=()
+          if [[ '${{ matrix.platform }}' == macos ]]; then
+            options+=('-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64' -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 -DTIVARS_QUICKLOOK_CODESIGN_IDENTITY=-)
+          elif [[ '${{ matrix.platform }}' == windows ]]; then
+            options+=(-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
+          else
+            options+=('-DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld-19 -static-libstdc++ -static-libgcc')
+          fi
+          cmake -S . -B build/package -G Ninja -DCMAKE_BUILD_TYPE=Release "${options[@]}"
+
+      - name: Build CLI
+        run: cmake --build build/package --target tivars_lib_cpp_cli --parallel 4
+
+      - name: Test CLI conversions
+        env:
+          CLI_EXTENSION: ${{ matrix.platform == 'windows' && '.exe' || '' }}
+        run: TIVARS_CLI="$PWD/build/package/tivars_lib_cpp_cli$CLI_EXTENSION" bash scripts/cli_smoke_tests.sh
+
+      - name: Build universal Quick Look app and extensions
+        if: matrix.platform == 'macos'
+        run: |
+          cmake --build build/package --target tivars_quicklook --parallel 4
+          codesign --force --sign - build/package/tivars_lib_cpp_cli
+          python3 scripts/verify-macos-distribution.py build/package/tivars_lib_cpp_cli build/package/TIVarsQuickLook.app
+
+      - name: Sign and notarize macOS CLI and Quick Look
+        if: matrix.platform == 'macos' && env.SIGNED_BUILD == 'true'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          MACOS_KEYCHAIN_PWD: ${{ secrets.MACOS_KEYCHAIN_PWD }}
+          MACOS_CODESIGN_IDENT: ${{ secrets.MACOS_CODESIGN_IDENT }}
+          APPLE_NOTARIZATION_USERNAME: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
+          APPLE_NOTARIZATION_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
+          APPLE_NOTARIZATION_TEAMID: ${{ secrets.APPLE_NOTARIZATION_TEAMID }}
+        run: bash scripts/sign-and-notarize.sh build/package/tivars_lib_cpp_cli build/package/TIVarsQuickLook.app
+
+      - name: Package binaries and checksums
+        env:
+          PACKAGE_PLATFORM: ${{ matrix.platform }}
+          PACKAGE_ARCHITECTURE: ${{ matrix.architecture }}
+        run: |
+          label="development-${GITHUB_SHA:0:12}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            label="$GITHUB_REF_NAME"
+          fi
+          if [[ "$PACKAGE_PLATFORM" == macos && "$SIGNED_BUILD" == true ]]; then
+            label="$label-notarized"
+          fi
+          python scripts/package-binaries.py --platform "$PACKAGE_PLATFORM" --architecture "$PACKAGE_ARCHITECTURE" --label "$label"
+
+      - name: Upload CLI distribution (and Quick Look on macOS)
+        uses: actions/upload-artifact@v4
+        with:
+          name: tivars-${{ matrix.platform }}-${{ matrix.architecture }}-${{ github.sha }}
+          path: build/dist/
+          if-no-files-found: error
