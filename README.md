@@ -109,7 +109,7 @@ cp -R build/TIVarsQuickLook.app ~/Applications/
 qlmanage -r
 ```
 
-The CMake build ad hoc-signs the app and both extensions automatically when `codesign` is available.
+The CMake build signs the app and both extensions automatically with the configured `TIVARS_QUICKLOOK_CODESIGN_IDENTITY` (ad hoc in CI). For a local ad hoc build, pass `-DTIVARS_QUICKLOOK_CODESIGN_IDENTITY=-` to CMake.
 
 The Preview extension returns rich HTML previews for parsed legacy, Evo, and flash metadata and readable content when available. The Thumbnail extension renders custom badges/cards keyed off the detected TI file type. Evo's `8xn2` through `8xpy2` file extensions, plus `8mp2` Python modules, are registered alongside the pre-Evo formats.
 
@@ -117,6 +117,41 @@ If macOS does not pick the extensions up immediately, useful diagnostics are:
 ```sh
 pluginkit -m -A -D -p com.apple.quicklook.preview
 pluginkit -m -A -D -p com.apple.quicklook.thumbnail
+```
+
+### CI binary downloads and macOS signing
+
+The Build workflow uploads three distributions under the run's **Artifacts**:
+
+- Linux x86_64: `tivars_cli` in a `.tar.gz` (Ubuntu 24.04 / glibc 2.39 or newer).
+- Windows x86_64: `tivars_cli.exe` in a `.zip`, with the C/C++ runtime linked statically.
+- macOS universal (Intel and Apple Silicon, macOS 12+): `tivars_cli` and `TIVarsQuickLook.app` with both embedded extensions in a `.zip`.
+
+Each archive includes the license, third-party notices and this README, with a `SHA256SUMS` file alongside it. The CLI embeds its token table and needs no separate token XML download. Extract the archive before using it; on macOS, copy the app to `~/Applications` and launch it once to register Quick Look. The outer Actions artifact ZIP contains the distribution archive and checksums; the inner archive preserves executable permissions and macOS bundle metadata.
+
+Pushes and pull requests produce development downloads. A `v*` tag pushed to `adriweb/tivars_lib_cpp` automatically signs and notarizes the macOS CLI, app and both extensions. To test signing without a tag, run **Build** manually on `master` or `evo` and enable **sign_and_notarize**. This uploads artifacts without publishing a GitHub Release. Signed macOS archive names include `notarized`; a signing or notarization failure prevents their upload.
+
+Configure the same repository Actions secrets as Safari WebUSB / CEmu:
+
+| Secret | Value |
+| --- | --- |
+| `MACOS_CERTIFICATE` | Base64-encoded Developer ID Application `.p12`, including the private key |
+| `MACOS_CERTIFICATE_PWD` | Password used to export the `.p12` |
+| `MACOS_KEYCHAIN_PWD` | Password for the disposable CI keychain |
+| `MACOS_CODESIGN_IDENT` | Developer ID Application identity name or certificate SHA-1 |
+| `APPLE_NOTARIZATION_USERNAME` | Apple ID used for notarization |
+| `APPLE_NOTARIZATION_PASSWORD` | Apple ID app-specific password |
+| `APPLE_NOTARIZATION_TEAMID` | Ten-character Apple Developer team ID matching the signing certificate |
+
+Signing runs only for upstream version-tag pushes and explicitly requested upstream manual builds. Pull requests and forks never receive signing credentials. The temporary keychain is added to the search list for private-key lookup, then the original list is restored and the keychain deleted on exit. The script signs extensions before the containing app, keeps their sandbox entitlements, enables hardened runtime and secure timestamps, and submits the CLI and app together to `notarytool`.
+
+After Apple accepts the submission, the app's ticket is stapled and validated, and Gatekeeper must report **Notarized Developer ID**. Standalone CLI executables cannot be stapled; their ticket is verified online with `codesign --check-notarization`. Final packaging happens after these checks. Downloads are also checked for both macOS architectures and accidental dependencies on runner/Homebrew libraries.
+
+For a local release build with those variables already in the environment:
+
+```sh
+bash scripts/sign-and-notarize.sh build/package/tivars_lib_cpp_cli build/package/TIVarsQuickLook.app
+python3 scripts/package-binaries.py --platform macos --architecture universal --label local-notarized
 ```
 
 ### Automated fuzzing
