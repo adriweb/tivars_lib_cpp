@@ -59,23 +59,22 @@ bpp    = 4
 stride = 160 bytes per row
 ```
 
-img2calc generates type `4` `.8ci2` files with this layout:
+Generated type `4` `.8ci2` files use this layout:
 
 ```text
 size = 33441
 data = 0F followed by 33440 packed 4-bpp bytes
 ```
 
-For each output byte, img2calc writes the left pixel in the high nibble
+Each output byte stores the left pixel in the high nibble
 and the right pixel in the low nibble:
 
 ```text
 byte = (left_palette_index << 4) | right_palette_index
 ```
 
-For `.8ci2`, img2calc writes rows top-to-bottom: output byte 0 is the
-leftmost two pixels of display row 0. This differs from img2calc's
-`.8ca2` path, where it vertically flips while reading the RGB pixels, so
+For `.8ci2`, rows are stored top-to-bottom: output byte 0 is the
+leftmost two pixels of display row 0. This differs from `.8ca2`, where
 the stored RGB565 payload is bottom-to-top.
 
 The sample bytes are packed 4-bit color indices:

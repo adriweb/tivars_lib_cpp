@@ -112,6 +112,7 @@ Observed `flags` values:
 metaData.flags = 0  ordinary numeric/list/program/matrix/appvar/settings files
 metaData.flags = 1  image-like type 4 `.8ci2` and type 5 `.8ca2`
                     and type 18 `.8mp2` bytecode modules
+                    and some type 8 IM8C `.8xv2` image AppVars
 metaData.flags = 4  equation sample `.8xy2`
 metaData.flags = 8  special graph/window coordinate variables (`X`, `Y`,
                     `XMIN`, `XMAX`, `YMIN`, `YMAX`)
