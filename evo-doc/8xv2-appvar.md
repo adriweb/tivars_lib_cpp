@@ -25,6 +25,15 @@ corresponding app or system feature. Readers should treat the payload as
 opaque unless they implement the specific appvar subtype, and writers
 should preserve it byte-for-byte when round-tripping.
 
+## IM8C images and sprites
+
+See [Evo IM8C `.8xv2` images and sprites](8xv2-im8c-image.md) for
+the Python image subtype: raw indexed pixels (format 1), RLE (format 2),
+RGB565 palettes, and optional transparency. Its `data` begins with a
+two-byte little-endian payload length followed by `IM8C`. This subtype
+has been observed with `metaData.flags = 1`; the local raw-indexed
+fixture uses `0`. The Evo IM8C header differs from CE IM8C `.8xv`.
+
 ## `PolyCnfg.8xv2`
 
 Name:

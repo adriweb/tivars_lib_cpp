@@ -39,7 +39,7 @@ type  ext     meaning                       metaData.flags      body flags
 5     .8ca2   Image/background              1                   no body flags key
 6     .8xm2   matrix                        0                   no body flags key
 7     .8xy2   equation                      4                   no body flags key
-8     .8xv2   AppVar                        0                   no body flags key
+8     .8xv2   AppVar                        0 or 1              no body flags key
 12    .8xw2   Window settings               0                   top data is array
 13    .8xz2   RclWindw/user zoom            0                   top data is array
 14    .8xt2   Table setup                   0                   top data is array
@@ -92,7 +92,9 @@ data marker      = 0x0B in generated files
 
 The exact semantic name for this bit is not proven. It is variable-level
 metadata rather than a pixel-data flag: OS 7.1+ type-18 Python bytecode
-modules also use `metaData.flags = 1`. Do not treat it as an image-only bit
+modules also use `metaData.flags = 1`. Some type-8
+[IM8C image AppVars](8xv2-im8c-image.md) use `1`, while the local
+`TESTIM8C.8xv2` fixture uses `0`. Do not treat it as an image-only bit
 or infer a RAM/Archive target from it.
 
 ## Python bytecode wrappers

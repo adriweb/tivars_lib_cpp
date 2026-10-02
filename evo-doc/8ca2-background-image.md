@@ -93,6 +93,6 @@ Observed data markers:
 
 ```text
 0x0B  TI Connect Evo image import output
-0x16  calculator/exported samples and img2calc-generated output
+0x16  calculator/exported samples and generated output
 ```
 
