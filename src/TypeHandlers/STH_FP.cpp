@@ -10,6 +10,7 @@
 #include "TypeHandlers.h"
 
 #include <stdexcept>
+#include <limits>
 
 static bool parseSign(std::string::const_iterator &i, const std::string::const_iterator &e) {
     bool sign = false;
@@ -82,13 +83,21 @@ namespace tivars::TypeHandlers
                 do {
                     const char cdigit = *i++;
                     if (cdigit >= '0' && cdigit <= '9') {
+                        if (offset > (std::numeric_limits<int>::max() - (cdigit - '0')) / 10) {
+                            throw std::invalid_argument("Exponent out of range.");
+                        }
                         offset *= 10;
                         offset += cdigit - '0';
                     } else {
                         throw std::invalid_argument("Unexpected character.");
                     }
                 } while (i != e);
-                exponent = sign ? exponent - offset : exponent + offset;
+                const long long adjustedExponent = static_cast<long long>(exponent)
+                    + (sign ? -static_cast<long long>(offset) : offset);
+                if (adjustedExponent < 0x80 - 99 || adjustedExponent > 0x80 + 99) {
+                    throw std::invalid_argument("Exponent out of range.");
+                }
+                exponent = static_cast<int>(adjustedExponent);
             } else {
                 throw std::invalid_argument("Unexpected character.");
             }

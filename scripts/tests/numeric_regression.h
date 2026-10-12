@@ -66,6 +66,29 @@ namespace tivars::numeric_regression
         assert(TH_GenericReal::makeDataFromString(" π / 2 ", {{"_type", 0x21}})
             == TH_GenericReal::makeDataFromString("π/2", {{"_type", 0x21}}));
     }
+
+
+    inline void check_fp_exponent_regressions()
+    {
+        using namespace TypeHandlers;
+        const auto rejects = [](const std::string& input)
+        {
+            bool rejected = false;
+            try { (void)STH_FP::makeDataFromString(input); }
+            catch (const std::invalid_argument&) { rejected = true; }
+            assert(rejected);
+        };
+        assert(STH_FP::makeDataFromString("1e+99") == data_t({0x00, 0xE3, 0x10, 0, 0, 0, 0, 0, 0}));
+        assert(STH_FP::makeDataFromString("1e-99") == data_t({0x00, 0x1D, 0x10, 0, 0, 0, 0, 0, 0}));
+        assert(STH_FP::makeDataFromString("1e0001") == STH_FP::makeDataFromString("10"));
+        // An exponent may cancel a long significand rather than exceed the range.
+        assert(STH_FP::makeDataFromString("1" + std::string(100, '0') + "e-100")
+            == STH_FP::makeDataFromString("1"));
+        for (const auto* input : {"1e100", "1e-100", "1e2147483647", "1e-2147483647",
+                                 "1e2147483648", "1e4294967296", "1e4294967297",
+                                 "1e-4294967296", "1e999999999999999999999999"})
+            rejects(input);
+    }
 }
 
 #endif
