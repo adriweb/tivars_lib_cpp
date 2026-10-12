@@ -76,7 +76,6 @@ namespace tivars::TypeHandlers
             {
                 type = hasSlash ? 0x18 : 0x00;
             }
-            if (!detail::supportsNumericSubtype(type, _ctx)) type = 0x00;
         }
         if (!detail::supportsNumericSubtype(type, _ctx))
         {

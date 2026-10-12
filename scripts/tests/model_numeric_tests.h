@@ -17,7 +17,10 @@ namespace tivars::numeric_regression
             const auto before = file.getRawContent();
             bool rejected = false;
             try { file.setContentFromString(text); }
-            catch (const std::invalid_argument&) { rejected = true; }
+            catch (const std::invalid_argument& error)
+            {
+                rejected = std::string(error.what()).find("not supported by the target calculator") != std::string::npos;
+            }
             require(rejected && file.getRawContent() == before);
         };
 
@@ -75,6 +78,27 @@ namespace tivars::numeric_regression
         legacyComplex.setContentFromString("1+2i");
         rejects(legacyComplex, "1/2+2i");
         rejects(legacyComplex, "1+1/2i");
+
+        for (const auto* model : {"84+", "84+CSE"})
+        {
+            auto scalar = TIVarFile::createNew("Complex", "", TIModel{model});
+            scalar.setContentFromString("0.5+i");
+            rejects(scalar, "1/2+i");
+            rejects(scalar, "1+1/2i");
+            auto list = TIVarFile::createNew("ComplexList", "", TIModel{model});
+            list.setContentFromString("{0.5+i}");
+            rejects(list, "{1/2+i}");
+        }
+
+        // Invalid decimal syntax should still report a parsing error.
+        auto decimalList = TIVarFile::createNew("RealList", "", TIModel{"83"});
+        bool syntaxError = false;
+        try { decimalList.setContentFromString("{1abc}"); }
+        catch (const std::invalid_argument& error)
+        {
+            syntaxError = std::string(error.what()).find("Unexpected character") != std::string::npos;
+        }
+        require(syntaxError);
 
         // Unchanged integer text must not preserve an incompatible old subtype.
         auto converted = TIVarFile::createNew("RealList", "", TIModel{"83PCE"});

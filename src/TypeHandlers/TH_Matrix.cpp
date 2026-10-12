@@ -59,7 +59,7 @@ namespace tivars::TypeHandlers
 
         options_t memberOptions = options;
         memberOptions["_type"] = 0x00;
-        memberOptions["_autoType"] = detail::supportsNumericSubtype(0x18, _ctx);
+        memberOptions["_autoType"] = 1;
         const data_t* previous = nullptr;
         if (_ctx)
         {

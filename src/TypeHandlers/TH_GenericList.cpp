@@ -57,7 +57,7 @@ namespace tivars::TypeHandlers
         data[1] = (uint8_t) ((numCount >> 8) & 0xFF);
 
         options_t memberOptions = options;
-        memberOptions["_autoType"] = detail::supportsNumericSubtype(isRealList ? 0x18 : 0x1B, _ctx);
+        memberOptions["_autoType"] = 1;
         const auto stringHandler = isRealList ? &TH_GenericReal::makeStringFromData : &TH_GenericComplex::makeStringFromData;
         const data_t* previous = nullptr;
         if (_ctx)
