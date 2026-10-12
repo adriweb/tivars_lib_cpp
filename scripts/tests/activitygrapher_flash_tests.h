@@ -122,6 +122,18 @@ namespace activitygrapher_tests
         fresh.saveToFile(path);
         checks.require(TIFlashFile::loadFromFile(path).makeBinData() == fresh.makeBinData(), "new flash reload");
 
+        for (const std::string magic : {"CUSTOM!!", "", "**TIFL*", "**TIFL**extra"})
+        {
+            const auto before = fresh.makeBinData();
+            expect_error<std::invalid_argument>(checks, [&] {
+                fresh.setContentFromString(json{{"magic", magic}, {"name", "CHANGED"}}.dump());
+            }, "Invalid TI flash header magic");
+            checks.require(fresh.makeBinData() == before, "invalid JSON magic must not alter the header");
+        }
+        fresh.setContentFromString(json{{"magic", "**TIFL**"}}.dump());
+        fresh.saveToFile(path);
+        checks.require(TIFlashFile::loadFromFile(path).makeBinData() == fresh.makeBinData(), "valid JSON magic reload");
+
         fresh.addHeader(TIVarType{"FlashApp"}, "SECOND", TIModel{"84+"});
         checks.require(fresh.getHeaders()[1].calcData == data_t(eof.begin(), eof.end()), "added flash ASCII EOF");
         fresh.saveToFile(path);

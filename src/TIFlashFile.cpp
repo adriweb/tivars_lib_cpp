@@ -843,6 +843,12 @@ namespace tivars
             throw std::invalid_argument("Flash header JSON must be an object");
         }
 
+        // Reject an invalid signature before applying any of the JSON updates.
+        if (j.contains("magic") && j.at("magic").get<std::string>() != magicStr)
+        {
+            throw std::invalid_argument("Invalid TI flash header magic");
+        }
+
         if (j.contains("typeName"))
         {
             type = TIVarType{j.at("typeName").get<std::string>()};
