@@ -91,14 +91,26 @@ namespace tivars::TypeHandlers
 
     std::string STH_ExactFractionPi::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
-        (void)_ctx;
-
         if (data.size() != dataByteCount)
         {
             throw std::invalid_argument("Invalid data array. Needs to contain " + std::to_string(dataByteCount) + " bytes");
         }
 
-        return dec2frac(stod(STH_FP::makeStringFromData(data, options)), "π");
+        const std::string decimal = STH_FP::makeStringFromData(data, options, _ctx);
+        const std::string candidate = dec2frac(std::stod(decimal), "π", 1e-13);
+        if (candidate.find('/') != std::string::npos)
+        {
+            const data_t encoded = makeDataFromString(candidate, options, _ctx);
+            if ((encoded[0] & 0x80) == (data[0] & 0x80)
+                && std::equal(data.begin() + 1, data.end(), encoded.begin() + 1))
+            {
+                return candidate;
+            }
+        }
+        if (decimal == "0") return "0";
+        if (decimal == "1") return "π";
+        if (decimal == "-1") return "-π";
+        return decimal + "π";
     }
 
     TIVarFileMinVersionByte STH_ExactFractionPi::getMinVersionFromData(const data_t& data)

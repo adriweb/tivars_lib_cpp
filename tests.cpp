@@ -32,6 +32,7 @@
 #include "src/TypeHandlers/TypeHandlers.h"
 #include "src/tivarslib_utils.h"
 #include "src/json.hpp"
+#include "scripts/tests/numeric_regression.h"
 
 using namespace std;
 using namespace std::string_literals;
@@ -289,6 +290,8 @@ int main(int argc, char** argv)
     setlocale(LC_ALL, ".UTF-8");
 
     /* Tests */
+
+    tivars::numeric_regression::check_fraction_roundtrip_regressions();
 
     assert(TIVarType{"ExactRealPi"}.getId() == 32);
     assert(dec2frac(0.25) == "1/4");

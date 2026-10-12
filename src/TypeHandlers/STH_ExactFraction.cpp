@@ -67,14 +67,25 @@ namespace tivars::TypeHandlers
 
     std::string STH_ExactFraction::makeStringFromData(const data_t& data, const options_t& options, const TIVarFile* _ctx)
     {
-        (void)_ctx;
-
         if (data.size() != dataByteCount)
         {
             throw std::invalid_argument("Invalid data array. Needs to contain " + std::to_string(dataByteCount) + " bytes");
         }
 
-        return dec2frac(stod(STH_FP::makeStringFromData(data, options)));
+        const std::string decimal = STH_FP::makeStringFromData(data, options, _ctx);
+        // A fraction is only a readable representation of the stored decimal.
+        // Keep it only if parsing it reproduces every stored numeric digit.
+        const std::string candidate = dec2frac(std::stod(decimal), "", 1e-13);
+        if (candidate.find('/') != std::string::npos)
+        {
+            const data_t encoded = makeDataFromString(candidate, options, _ctx);
+            if ((encoded[0] & 0x80) == (data[0] & 0x80)
+                && std::equal(data.begin() + 1, data.end(), encoded.begin() + 1))
+            {
+                return candidate;
+            }
+        }
+        return decimal;
     }
 
     TIVarFileMinVersionByte STH_ExactFraction::getMinVersionFromData(const data_t& data)
