@@ -1824,7 +1824,7 @@ data_t legacy_value_to_evo_expression(const data_t& legacyValue)
 
 bool legacy_value_is_exact_fraction(const data_t& legacyValue)
 {
-    return !legacyValue.empty() && ((legacyValue[0] & 0x3F) == 0x18 || (legacyValue[0] & 0x1F) == 0x1B);
+    return !legacyValue.empty() && ((legacyValue[0] & 0x3F) == 0x18 || (legacyValue[0] & 0x3F) == 0x1B);
 }
 
 data_t legacy_list_to_evo(const data_t& legacyData, bool complexList, std::map<std::string, uint64_t>& fields)
