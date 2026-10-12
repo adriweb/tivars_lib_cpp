@@ -45,6 +45,27 @@ namespace tivars::numeric_regression
             assert(TH_GenericComplex::makeDataFromString(readable, options) == before);
         }
     }
+
+
+    inline void check_fraction_input_regressions()
+    {
+        using namespace TypeHandlers;
+        const auto rejects = [](const std::string& input, uint8_t type)
+        {
+            bool rejected = false;
+            try { (void)TH_GenericReal::makeDataFromString(input, {{"_type", type}}); }
+            catch (const std::invalid_argument&) { rejected = true; }
+            assert(rejected);
+        };
+        for (const auto* input : {"1x/2", "1/2foo", "1e2x/3", "1/2e2x", "1/2/3"})
+            rejects(input, 0x18);
+        for (const auto* input : {"1xπ/2", "π/2foo", "1e2xπ/3", "π/2e2x", "π/2/3"})
+            rejects(input, 0x21);
+        assert(TH_GenericReal::makeDataFromString(" 1 / 2 ", {{"_type", 0x18}})
+            == TH_GenericReal::makeDataFromString("1/2", {{"_type", 0x18}}));
+        assert(TH_GenericReal::makeDataFromString(" π / 2 ", {{"_type", 0x21}})
+            == TH_GenericReal::makeDataFromString("π/2", {{"_type", 0x21}}));
+    }
 }
 
 #endif

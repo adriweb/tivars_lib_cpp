@@ -41,8 +41,15 @@ namespace
             throw std::invalid_argument("Invalid fraction string");
         }
 
-        const long double numerator = std::stold(str.substr(0, slashPos));
-        const long double denominator = std::stold(str.substr(slashPos + 1));
+        const std::string numeratorText = str.substr(0, slashPos);
+        const std::string denominatorText = str.substr(slashPos + 1);
+        size_t numeratorChars = 0, denominatorChars = 0;
+        const long double numerator = std::stold(numeratorText, &numeratorChars);
+        const long double denominator = std::stold(denominatorText, &denominatorChars);
+        if (numeratorChars != numeratorText.size() || denominatorChars != denominatorText.size())
+        {
+            throw std::invalid_argument("Invalid fraction string");
+        }
         if (denominator == 0.0L)
         {
             throw std::invalid_argument("Fraction denominator must be nonzero");

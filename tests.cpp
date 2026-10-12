@@ -291,6 +291,8 @@ int main(int argc, char** argv)
 
     /* Tests */
 
+    tivars::numeric_regression::check_fraction_input_regressions();
+
     tivars::numeric_regression::check_fraction_roundtrip_regressions();
 
     assert(TIVarType{"ExactRealPi"}.getId() == 32);
