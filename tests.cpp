@@ -554,6 +554,7 @@ int main(int argc, char** argv)
     }
 
     {
+        assert(TIModels::fromName("82A").getMinVersion() == VER_84P_255MP);
         assert(TIModels::fromName("84+CE").getMinVersion() == VER_CE_ALL);
         assert(TIModels::fromName("84+CEPy").getMinVersion() == VER_CE_530);
         assert(TIModels::fromName("83PCE").getMinVersion() == VER_CE_ALL);

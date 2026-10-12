@@ -81,7 +81,7 @@ namespace tivars
         // In case of duplicate ProductID for a given orderID, we first insert the default model for that ProductID
         insertModel(0,  flags82,     "82",      "**TI82**", 0,      VER_NONE);
         insertModel(1,  flags83,     "83",      "**TI83**", 0,      VER_NONE);
-        insertModel(2,  flags82a,    "82A",     "**TI83F*", 0x0B,   VER_83P_ALL);
+        insertModel(2,  flags82a,    "82A",     "**TI83F*", 0x0B,   VER_84P_255MP);
         insertModel(3,  flags84p,    "84+T",    "**TI83F*", 0x1B,   VER_84P_255MP);
         insertModel(4,  flags83p,    "83+",     "**TI83F*", 0x04,   VER_83P_ALL);
         insertModel(4,  flags83p,    "82+",     "**TI83F*", 0x04,   VER_83P_116);

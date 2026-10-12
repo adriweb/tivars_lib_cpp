@@ -24,7 +24,7 @@ namespace tivars::numeric_regression
             require(rejected && file.getRawContent() == before);
         };
 
-        for (const auto* model : {"82", "83", "83+", "82A"})
+        for (const auto* model : {"82", "83", "83+"})
         {
             auto list = TIVarFile::createNew("RealList", "", TIModel{model});
             list.setContentFromString("{2}");
@@ -36,7 +36,7 @@ namespace tivars::numeric_regression
             rejects(matrix, "[[2pi]]");
         }
 
-        for (const auto* model : {"84+", "84+T", "84+CSE", "84+CE", "84+CEPy"})
+        for (const auto* model : {"82A", "84+", "84+T", "84+CSE", "84+CE", "84+CEPy"})
         {
             for (const auto* type : {"RealList", "Matrix"})
             {
