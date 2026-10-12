@@ -735,7 +735,7 @@ namespace tivars
         header.objectType = defaultObjectTypeFor(type);
         header.productId = static_cast<uint8_t>(model.getProductId());
         header.devices = {{defaultDeviceType, static_cast<uint8_t>(type.getId())}};
-        header.calcData = rawBinaryData ? data_t{} : parseHex("00000001FF");
+        header.calcData = rawBinaryData ? data_t{} : makeIntelData({flash_block_t{0, 0x01, {}}});
         headers.push_back(header);
     }
 
@@ -967,6 +967,12 @@ namespace tivars
 
     TIFlashFile::flash_header_t TIFlashFile::parseHeader(const data_t& bytes, size_t offset, size_t* nextOffset)
     {
+        ensure_bytes_available(bytes, offset, magicByteCount, "flash header magic");
+        if (!std::equal(magicStr, magicStr + magicByteCount, bytes.begin() + static_cast<ptrdiff_t>(offset)))
+        {
+            throw std::runtime_error("Invalid TI flash header magic");
+        }
+
         const size_t headerLength = nextHeaderLength(bytes, offset);
         if (nextOffset)
         {
@@ -1147,7 +1153,7 @@ namespace tivars
         while (start < data.size())
         {
             size_t end = start;
-            while (end < data.size() && !(data[end] == '\r' && end + 1 < data.size() && data[end + 1] == '\n'))
+            while (end < data.size() && data[end] != '\r' && data[end] != '\n')
             {
                 end++;
             }
@@ -1158,7 +1164,15 @@ namespace tivars
                 blocks.push_back(recordToBlock(record));
             }
 
-            start = (end + 1 < data.size()) ? end + 2 : data.size();
+            start = end;
+            if (start < data.size() && data[start] == '\r')
+            {
+                start++;
+            }
+            if (start < data.size() && data[start] == '\n')
+            {
+                start++;
+            }
         }
         return blocks;
     }
