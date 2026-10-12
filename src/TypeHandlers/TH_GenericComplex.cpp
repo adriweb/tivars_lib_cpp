@@ -28,14 +28,6 @@ namespace tivars::TypeHandlers
             MakeDataFn makeDataFromString;
         };
 
-        const std::array<MemberParser, 5> realMemberParsers = {{
-            {0x0C, &STH_FP::makeDataFromString},
-            {0x1B, &STH_ExactFraction::makeDataFromString},
-            {0x1D, &STH_ExactRadical::makeDataFromString},
-            {0x1E, &STH_ExactPi::makeDataFromString},
-            {0x1F, &STH_ExactFractionPi::makeDataFromString},
-        }};
-
         const std::unordered_map<uint8_t, MemberParser> imaginaryMemberParsers = {
             {0x0C, {0x0C, &STH_FP::makeDataFromString}},
             {0x1B, {0x1B, &STH_ExactFraction::makeDataFromString}},
@@ -125,19 +117,19 @@ namespace tivars::TypeHandlers
 
         uint8_t parseRealMember(const std::string& coeff, const options_t& options, const TIVarFile* _ctx, data_t& encodedData)
         {
-            for (const auto& [subtype, makeDataFromString] : realMemberParsers)
+            options_t memberOptions = options;
+            memberOptions["_type"] = 0x00;
+            memberOptions["_autoType"] = 1;
+            encodedData = TH_GenericReal::makeDataFromString(coeff, memberOptions, _ctx);
+            switch (encodedData[0] & 0x3F)
             {
-                try
-                {
-                    encodedData = makeDataFromString(coeff, options, _ctx);
-                    return subtype;
-                }
-                catch (const std::exception&)
-                {
-                }
+                case 0x00: return 0x0C;
+                case 0x18: return 0x1B;
+                case 0x1C: return 0x1D;
+                case 0x20: return 0x1E;
+                case 0x21: return 0x1F;
+                default: throw std::invalid_argument("Invalid real subtype in complex member");
             }
-
-            throw std::invalid_argument("Invalid input string. Needs to be a valid real subtype string");
         }
     }
 
@@ -174,8 +166,17 @@ namespace tivars::TypeHandlers
         }
 
         {
-            const auto& [subtype, makeDataFromString] = imaginaryMemberParsers.at(type);
-            data_t imagMemberData = makeDataFromString(imag, options, _ctx);
+            const auto& parser = imaginaryMemberParsers.at(type);
+            uint8_t subtype = parser.subtype;
+            data_t imagMemberData;
+            if (const auto autoType = options.find("_autoType"); autoType != options.end() && autoType->second)
+            {
+                subtype = parseRealMember(imag, options, _ctx, imagMemberData);
+            }
+            else
+            {
+                imagMemberData = parser.makeDataFromString(imag, options, _ctx);
+            }
             imagMemberData[0] = static_cast<uint8_t>((imagMemberData[0] & 0x80) | (subtype & 0x1F));
             data.insert(data.end(), imagMemberData.begin(), imagMemberData.end());
         }

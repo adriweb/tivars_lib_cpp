@@ -858,7 +858,9 @@ namespace tivars
     void TIVarFile::setContentFromString(const std::string& str, const options_t& options, uint16_t entryIdx)
     {
         auto& entry = this->entries[entryIdx];
-        entry.data = std::get<0>(entry._type.getHandlers())(str, options, this);
+        options_t entryOptions = options;
+        entryOptions["_entryIdx"] = entryIdx;
+        entry.data = std::get<0>(entry._type.getHandlers())(str, entryOptions, this);
         this->refreshMetadataFields();
     }
     void TIVarFile::setContentFromString(const std::string& str, const options_t& options)

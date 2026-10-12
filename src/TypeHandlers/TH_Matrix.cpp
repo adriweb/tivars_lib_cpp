@@ -16,9 +16,6 @@ namespace tivars::TypeHandlers
 
     data_t TH_Matrix::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
-        (void)options;
-        (void)_ctx;
-
         const std::string trimmed = trim(str);
         if (trimmed.length() < 5 || trimmed.substr(0, 2) != "[[" || trimmed.substr(trimmed.length()-2, 2) != "]]")
         {
@@ -45,10 +42,6 @@ namespace tivars::TypeHandlers
             for (auto& numStr : tmp)
             {
                 numStr = trim(numStr);
-                if (!is_numeric(numStr))
-                {
-                    throw std::invalid_argument("Invalid input string. Needs to be a valid matrix (real numbers inside)");
-                }
             }
             if (tmp.size() != colCount)
             {
@@ -64,11 +57,51 @@ namespace tivars::TypeHandlers
         data[0] = (uint8_t)(colCount & 0xFF);
         data[1] = (uint8_t)(rowCount & 0xFF);
 
+        options_t memberOptions = options;
+        memberOptions["_type"] = 0x00;
+        memberOptions["_autoType"] = 1;
+        const data_t* previous = nullptr;
+        if (_ctx)
+        {
+            const auto entryOption = options.find("_entryIdx");
+            const size_t entryIdx = entryOption == options.end() ? 0 : static_cast<size_t>(entryOption->second);
+            const auto& entries = _ctx->getVarEntries();
+            if (entryIdx < entries.size() && entries[entryIdx]._type.getName() == "Matrix")
+            {
+                const auto& oldData = entries[entryIdx].data;
+                if (oldData.size() == 2 + rowCount * colCount * TH_GenericReal::dataByteCount
+                    && oldData[0] == colCount && oldData[1] == rowCount)
+                {
+                    previous = &oldData;
+                }
+            }
+        }
+
         for (const std::vector<std::string>& row : matrix)
         {
             for (const auto& numStr : row)
             {
-                const auto& tmp = TH_GenericReal::makeDataFromString(numStr, { {"_type", 0x00} });
+                data_t tmp;
+                const size_t offset = data.size();
+                if (previous)
+                {
+                    const data_t oldMember(previous->begin() + offset, previous->begin() + offset + TH_GenericReal::dataByteCount);
+                    try
+                    {
+                        if (TH_GenericReal::makeStringFromData(oldMember, options, _ctx) == numStr)
+                        {
+                            tmp = oldMember;
+                        }
+                    }
+                    catch (const std::exception&)
+                    {
+                        // An unsupported old member must not prevent replacing it with valid text.
+                    }
+                }
+                if (tmp.empty())
+                {
+                    tmp = TH_GenericReal::makeDataFromString(numStr, memberOptions, _ctx);
+                }
                 data.insert(data.end(), tmp.begin(), tmp.end());
             }
         }

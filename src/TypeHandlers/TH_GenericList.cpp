@@ -13,7 +13,6 @@
 
 namespace tivars::TypeHandlers
 {
-    // TODO: also make it detect the type correctly...
     data_t TH_GenericList::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         const auto& typeIter = options.find("_type");
@@ -57,9 +56,49 @@ namespace tivars::TypeHandlers
         data[0] = (uint8_t) (numCount & 0xFF);
         data[1] = (uint8_t) ((numCount >> 8) & 0xFF);
 
+        options_t memberOptions = options;
+        memberOptions["_autoType"] = 1;
+        const auto stringHandler = isRealList ? &TH_GenericReal::makeStringFromData : &TH_GenericComplex::makeStringFromData;
+        const data_t* previous = nullptr;
+        if (_ctx)
+        {
+            const auto entryOption = options.find("_entryIdx");
+            const size_t entryIdx = entryOption == options.end() ? 0 : static_cast<size_t>(entryOption->second);
+            const auto& entries = _ctx->getVarEntries();
+            if (entryIdx < entries.size() && entries[entryIdx]._type.getName() == (isRealList ? "RealList" : "ComplexList"))
+            {
+                const auto& oldData = entries[entryIdx].data;
+                if (oldData.size() >= 2 && oldData.size() == 2 + (oldData[0] + (size_t(oldData[1]) << 8)) * valueByteCount)
+                {
+                    previous = &oldData;
+                }
+            }
+        }
+
         for (const auto& numStr : arr)
         {
-            const auto& tmp = handler(numStr, options, _ctx);
+            data_t tmp;
+            const size_t offset = data.size();
+            if (previous && offset + valueByteCount <= previous->size())
+            {
+                const data_t oldMember(previous->begin() + offset, previous->begin() + offset + valueByteCount);
+                // Text alone cannot identify an integer's exact subtype. Keep unchanged members verbatim.
+                try
+                {
+                    if (stringHandler(oldMember, options, _ctx) == numStr)
+                    {
+                        tmp = oldMember;
+                    }
+                }
+                catch (const std::exception&)
+                {
+                    // An unsupported old member must not prevent replacing it with valid text.
+                }
+            }
+            if (tmp.empty())
+            {
+                tmp = handler(numStr, memberOptions, _ctx);
+            }
             data.insert(data.end(), tmp.begin(), tmp.end());
         }
 

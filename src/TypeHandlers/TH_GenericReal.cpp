@@ -7,6 +7,8 @@
 
 #include "TypeHandlers.h"
 
+#include <algorithm>
+#include <cctype>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -21,7 +23,6 @@ namespace tivars::TypeHandlers
         { 0x21, SpecificHandlerTuple(STH_ExactFractionPi) },
     };
 
-    // TODO: guess, by parsing, the type instead of reading it from the options
     data_t TH_GenericReal::makeDataFromString(const std::string& str, const options_t& options, const TIVarFile* _ctx)
     {
         const auto& typeIter = options.find("_type");
@@ -29,7 +30,33 @@ namespace tivars::TypeHandlers
         {
             throw std::runtime_error("Needs _type in options for TH_GenericReal::makeDataFromString");
         }
-        const uint8_t type = (uint8_t)typeIter->second;
+        uint8_t type = (uint8_t)typeIter->second;
+        if (const auto autoType = options.find("_autoType"); autoType != options.end() && autoType->second)
+        {
+            std::string normalized = str;
+            std::erase_if(normalized, [](unsigned char ch) { return std::isspace(ch) != 0; });
+            const bool hasSlash = normalized.find('/') != std::string::npos;
+            const bool hasRadical = normalized.find("√") != std::string::npos || normalized.find("sqrt") != std::string::npos;
+            const bool hasPi = normalized.find("π") != std::string::npos || normalized.find("pi") != std::string::npos;
+            if (hasRadical && hasPi)
+            {
+                throw std::invalid_argument("Pi and radical factors cannot share an exact real member");
+            }
+            if (hasRadical)
+            {
+                type = 0x1C;
+            }
+            else if (hasPi)
+            {
+                // Exact pi-fraction output can use a decimal coefficient to retain every BCD digit.
+                const bool fractionalCoefficient = hasSlash || normalized.find_first_of(".eE") != std::string::npos;
+                type = fractionalCoefficient ? 0x21 : 0x20;
+            }
+            else
+            {
+                type = hasSlash ? 0x18 : 0x00;
+            }
+        }
         const auto& handlerIter = type2handlers.find(type);
         if (handlerIter == type2handlers.end())
         {
