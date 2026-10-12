@@ -57,7 +57,7 @@ namespace tivars::TypeHandlers
         data[1] = (uint8_t) ((numCount >> 8) & 0xFF);
 
         options_t memberOptions = options;
-        memberOptions["_autoType"] = 1;
+        memberOptions["_autoType"] = detail::supportsNumericSubtype(isRealList ? 0x18 : 0x1B, _ctx);
         const auto stringHandler = isRealList ? &TH_GenericReal::makeStringFromData : &TH_GenericComplex::makeStringFromData;
         const data_t* previous = nullptr;
         if (_ctx)
@@ -85,7 +85,9 @@ namespace tivars::TypeHandlers
                 // Text alone cannot identify an integer's exact subtype. Keep unchanged members verbatim.
                 try
                 {
-                    if (stringHandler(oldMember, options, _ctx) == numStr)
+                    const bool supported = detail::supportsNumericSubtype(oldMember[0] & (isRealList ? 0x3F : 0x1F), _ctx)
+                        && (isRealList || detail::supportsNumericSubtype(oldMember[9] & 0x1F, _ctx));
+                    if (supported && stringHandler(oldMember, options, _ctx) == numStr)
                     {
                         tmp = oldMember;
                     }

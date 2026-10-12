@@ -161,6 +161,10 @@ namespace tivars::TypeHandlers
         {
             data_t realMemberData;
             const auto& subtype = parseRealMember(real, options, _ctx, realMemberData);
+            if (!detail::supportsNumericSubtype(subtype, _ctx))
+            {
+                throw std::invalid_argument("Complex member subtype is not supported by the target calculator");
+            }
             realMemberData[0] = static_cast<uint8_t>((realMemberData[0] & 0x80) | (subtype & 0x1F));
             data.insert(data.end(), realMemberData.begin(), realMemberData.end());
         }
@@ -169,13 +173,19 @@ namespace tivars::TypeHandlers
             const auto& parser = imaginaryMemberParsers.at(type);
             uint8_t subtype = parser.subtype;
             data_t imagMemberData;
-            if (const auto autoType = options.find("_autoType"); autoType != options.end() && autoType->second)
+            const auto autoType = options.find("_autoType");
+            const bool inferType = autoType == options.end() ? type == 0x0C : autoType->second != 0;
+            if (inferType)
             {
                 subtype = parseRealMember(imag, options, _ctx, imagMemberData);
             }
             else
             {
                 imagMemberData = parser.makeDataFromString(imag, options, _ctx);
+            }
+            if (!detail::supportsNumericSubtype(subtype, _ctx))
+            {
+                throw std::invalid_argument("Complex member subtype is not supported by the target calculator");
             }
             imagMemberData[0] = static_cast<uint8_t>((imagMemberData[0] & 0x80) | (subtype & 0x1F));
             data.insert(data.end(), imagMemberData.begin(), imagMemberData.end());

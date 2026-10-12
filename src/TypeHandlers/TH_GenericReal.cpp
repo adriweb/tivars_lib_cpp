@@ -6,6 +6,8 @@
  */
 
 #include "TypeHandlers.h"
+#include "../TIVarFile.h"
+#include "../TIModels.h"
 
 #include <algorithm>
 #include <cctype>
@@ -14,6 +16,24 @@
 
 namespace tivars::TypeHandlers
 {
+    bool detail::supportsNumericSubtype(uint8_t subtype, const TIVarFile* context)
+    {
+        // Raw codecs have no target.
+        if (!context) return true;
+        const auto& model = context->getCalcModel();
+        const bool exactMath = (model.getFlags() & hasExactMath) != 0;
+        const auto version = model.getMinVersion();
+        switch (subtype)
+        {
+            case 0x00: case 0x0C: case 0x0E: return true;
+            // The model identifies the family; the emitted version byte marks the required OS.
+            case 0x18: return exactMath || (version >= VER_84P_ALL && version < VER_INVALID);
+            case 0x1B: return exactMath || (version >= VER_CE_ALL && version < VER_INVALID);
+            case 0x1C: case 0x1D: case 0x1E: case 0x1F: case 0x20: case 0x21: return exactMath;
+            default: return false;
+        }
+    }
+
     static const std::unordered_map<uint8_t, TypeHandlersTuple> type2handlers = {
         { 0x00, SpecificHandlerTuple(STH_FP) },
         { 0x0E, SpecificHandlerTuple(STH_FP) },
@@ -56,6 +76,11 @@ namespace tivars::TypeHandlers
             {
                 type = hasSlash ? 0x18 : 0x00;
             }
+            if (!detail::supportsNumericSubtype(type, _ctx)) type = 0x00;
+        }
+        if (!detail::supportsNumericSubtype(type, _ctx))
+        {
+            throw std::invalid_argument("Numeric subtype is not supported by the target calculator");
         }
         const auto& handlerIter = type2handlers.find(type);
         if (handlerIter == type2handlers.end())

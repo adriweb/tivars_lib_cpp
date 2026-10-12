@@ -53,6 +53,11 @@ namespace tivars
 
 namespace tivars::TypeHandlers
 {
+    namespace detail
+    {
+        bool supportsNumericSubtype(uint8_t subtype, const TIVarFile* context);
+    }
+
 #define th()    static data_t      makeDataFromString(const std::string& str, const options_t& options = options_t(), const TIVarFile* _ctx = nullptr); \
                 static std::string makeStringFromData(const data_t& data,     const options_t& options = options_t(), const TIVarFile* _ctx = nullptr); \
                 static TIVarFileMinVersionByte getMinVersionFromData(const data_t& data);

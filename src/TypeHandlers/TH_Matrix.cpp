@@ -59,7 +59,7 @@ namespace tivars::TypeHandlers
 
         options_t memberOptions = options;
         memberOptions["_type"] = 0x00;
-        memberOptions["_autoType"] = 1;
+        memberOptions["_autoType"] = detail::supportsNumericSubtype(0x18, _ctx);
         const data_t* previous = nullptr;
         if (_ctx)
         {
@@ -88,7 +88,8 @@ namespace tivars::TypeHandlers
                     const data_t oldMember(previous->begin() + offset, previous->begin() + offset + TH_GenericReal::dataByteCount);
                     try
                     {
-                        if (TH_GenericReal::makeStringFromData(oldMember, options, _ctx) == numStr)
+                        if (detail::supportsNumericSubtype(oldMember[0] & 0x3F, _ctx)
+                            && TH_GenericReal::makeStringFromData(oldMember, options, _ctx) == numStr)
                         {
                             tmp = oldMember;
                         }

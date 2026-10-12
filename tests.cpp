@@ -37,6 +37,7 @@
 #include "scripts/tests/activitygrapher_flash_tests.h"
 #include "scripts/tests/activitygrapher_metadata_tests.h"
 #include "scripts/tests/numeric_regression.h"
+#include "scripts/tests/model_numeric_tests.h"
 
 using namespace std;
 using namespace std::string_literals;
@@ -308,6 +309,7 @@ int main(int argc, char** argv)
     tivars::numeric_regression::check_fraction_input_regressions();
 
     tivars::numeric_regression::check_fraction_roundtrip_regressions();
+    tivars::numeric_regression::check_model_numeric_regressions();
 
     assert(TIVarType{"ExactRealPi"}.getId() == 32);
     assert(dec2frac(0.25) == "1/4");

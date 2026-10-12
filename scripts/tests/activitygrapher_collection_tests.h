@@ -32,7 +32,7 @@ namespace activitygrapher_tests
             require_collection(original.getRawContent() == raw, "Unchanged collection text must preserve payload bytes");
         }
 
-        auto list = TIVarFile::createNew("RealList");
+        auto list = TIVarFile::createNew("RealList", "", TIModel{"83PCE"});
         list.setContentFromString("{1/2,3π,π/2,(√(2)+0*√(1))/1,4}");
         auto raw = list.getRawContent();
         const std::vector<int> expectedTypes{0x18, 0x20, 0x21, 0x1C, 0x00};
@@ -41,7 +41,7 @@ namespace activitygrapher_tests
         list.setContentFromString(list.getReadableContent());
         require_collection(list.getRawContent() == raw, "Mixed exact list must round-trip");
 
-        auto complexList = TIVarFile::createNew("ComplexList");
+        auto complexList = TIVarFile::createNew("ComplexList", "", TIModel{"83PCE"});
         complexList.setContentFromString("{1+1/2i,3π+2i,1+(√(2)+0*√(1))/1i,1+π/2i}");
         raw = complexList.getRawContent();
         require_collection((raw[2 + 9] & 0x1F) == 0x1B, "Complex list must infer imaginary fraction type");
@@ -53,7 +53,7 @@ namespace activitygrapher_tests
 
         for (const std::string type : {"RealList", "Matrix"})
         {
-            auto fallback = TIVarFile::createNew(type);
+            auto fallback = TIVarFile::createNew(type, "", TIModel{"83PCE"});
             fallback.setContentFromString(type == "Matrix" ? "[[0.33333333333334π]]" : "{0.33333333333334π}");
             const auto expected = TH_GenericReal::makeDataFromString("0.33333333333334π", {{"_type", 0x21}});
             const auto actual = fallback.getRawContent();
@@ -69,7 +69,7 @@ namespace activitygrapher_tests
                 : TH_GenericReal::makeDataFromString("2", {{"_type", 0x18}});
             data_t data{1, uint8_t(type == "Matrix" ? 1 : 0)};
             data.insert(data.end(), member.begin(), member.end());
-            auto value = TIVarFile::createNew(type);
+            auto value = TIVarFile::createNew(type, "", TIModel{"83PCE"});
             value.setContentFromData(data);
             value.setContentFromString(value.getReadableContent());
             require_collection(value.getRawContent() == data, "Integer text must preserve existing exact member subtype");
@@ -82,7 +82,7 @@ namespace activitygrapher_tests
 
         for (const std::string type : {"RealList", "Matrix"})
         {
-            auto repair = TIVarFile::createNew(type);
+            auto repair = TIVarFile::createNew(type, "", TIModel{"83PCE"});
             data_t unsupported{1, uint8_t(type == "Matrix" ? 1 : 0), 0x19,0x80,0x20,0,0,0,0,0,0};
             repair.setContentFromData(unsupported);
             repair.setContentFromString(type == "Matrix" ? "[[3]]" : "{3}");
@@ -98,7 +98,7 @@ namespace activitygrapher_tests
             entry[6] = static_cast<uint8_t>(entries.empty() ? 0 : 1);
             entries.insert(entries.end(), entry.begin(), entry.end());
         }
-        data_t bytes{'*','*','T','I','8','3','F','*',0x1A,0x0A,0};
+        data_t bytes{'*','*','T','I','8','3','F','*',0x1A,0x0A,0x13};
         bytes.insert(bytes.end(), 42, 0);
         bytes.push_back(static_cast<uint8_t>(entries.size()));
         bytes.push_back(0);
