@@ -52,6 +52,7 @@ std::string rtrim(std::string s, const char* t = " \t\n\r\f\v");
 std::string trim(const std::string& s, const char* t = " \t\n\r\f\v");
 
 bool is_numeric(const std::string& str);
+bool is_decimal_numeric(const std::string& str);
 
 bool file_exists(const std::string& path);
 

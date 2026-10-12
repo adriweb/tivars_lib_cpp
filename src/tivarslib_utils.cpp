@@ -190,6 +190,28 @@ bool is_numeric(const std::string& str)
     return !*p;
 }
 
+bool is_decimal_numeric(const std::string& str)
+{
+    size_t pos = 0, digits = 0;
+    if (pos < str.size() && (str[pos] == '+' || str[pos] == '-')) ++pos;
+    while (pos < str.size() && str[pos] >= '0' && str[pos] <= '9') { ++pos; ++digits; }
+    if (pos < str.size() && str[pos] == '.')
+    {
+        ++pos;
+        while (pos < str.size() && str[pos] >= '0' && str[pos] <= '9') { ++pos; ++digits; }
+    }
+    if (!digits) return false;
+    if (pos < str.size() && (str[pos] == 'e' || str[pos] == 'E'))
+    {
+        ++pos;
+        if (pos < str.size() && (str[pos] == '+' || str[pos] == '-')) ++pos;
+        const size_t exponentStart = pos;
+        while (pos < str.size() && str[pos] >= '0' && str[pos] <= '9') ++pos;
+        if (pos == exponentStart) return false;
+    }
+    return pos == str.size();
+}
+
 bool file_exists(const std::string& path) {
     if (path.empty()) {
         return false;

@@ -67,6 +67,10 @@ namespace
 
         const std::string numeratorText = str.substr(0, slashPos);
         const std::string denominatorText = str.substr(slashPos + 1);
+        if (!tivars::is_decimal_numeric(numeratorText) || !tivars::is_decimal_numeric(denominatorText))
+        {
+            throw std::invalid_argument("Fraction components must be decimal numbers");
+        }
         size_t numeratorChars = 0, denominatorChars = 0;
         const long double numerator = std::stold(numeratorText, &numeratorChars);
         const long double denominator = std::stold(denominatorText, &denominatorChars);

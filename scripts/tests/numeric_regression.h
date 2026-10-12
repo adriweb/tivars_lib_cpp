@@ -57,10 +57,14 @@ namespace tivars::numeric_regression
             catch (const std::invalid_argument&) { rejected = true; }
             assert(rejected);
         };
-        for (const auto* input : {"1x/2", "1/2foo", "1e2x/3", "1/2e2x", "1/2/3"})
+        for (const auto* input : {"1x/2", "1/2foo", "1e2x/3", "1/2e2x", "1/2/3", "0x10/2", "0x1p4/2", "1/0x2", "1/inf", "nan/2", "1/-Infinity"})
             rejects(input, 0x18);
-        for (const auto* input : {"1xπ/2", "π/2foo", "1e2xπ/3", "π/2e2x", "π/2/3"})
+        for (const auto* input : {"1xπ/2", "π/2foo", "1e2xπ/3", "π/2e2x", "π/2/3", "0x10π/2", "0x1p4π/2", "π/0x2", "π/inf", "nanπ/2", "π/-Infinity"})
             rejects(input, 0x21);
+        assert(TH_GenericReal::makeDataFromString("+1.e2/-2.5e1", {{"_type", 0x18}})
+            == TH_GenericReal::makeDataFromString("-4", {{"_type", 0x18}}));
+        assert(TH_GenericReal::makeDataFromString(".5π/+2E0", {{"_type", 0x21}})
+            == TH_GenericReal::makeDataFromString("π/4", {{"_type", 0x21}}));
         assert(TH_GenericReal::makeDataFromString(" 1 / 2 ", {{"_type", 0x18}})
             == TH_GenericReal::makeDataFromString("1/2", {{"_type", 0x18}}));
         assert(TH_GenericReal::makeDataFromString(" π / 2 ", {{"_type", 0x21}})
