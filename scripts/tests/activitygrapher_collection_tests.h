@@ -8,6 +8,7 @@
 #include <iterator>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace activitygrapher_tests
@@ -21,6 +22,75 @@ namespace activitygrapher_tests
     {
         using namespace tivars;
         using namespace tivars::TypeHandlers;
+
+        // Bit 5 belongs to the six-bit numeric subtype, including complex members.
+        // CEmu / CE OS 5.6.1 rejects 0x2C in the first member of a complex value.
+        const data_t ordinaryComplex{0x0C,0x80,0x10,0,0,0,0,0,0,0x0C,0x80,0x20,0,0,0,0,0,0};
+        for (uint8_t realFlags : {0x00, 0x40, 0x80, 0xC0})
+        {
+            for (uint8_t imagFlags : {0x00, 0x40, 0x80, 0xC0})
+            {
+                auto member = ordinaryComplex;
+                member[0] |= realFlags;
+                member[9] |= imagFlags;
+                const std::string expected = std::string(realFlags & 0x80 ? "-1" : "1")
+                    + (imagFlags & 0x80 ? "-2i" : "+2i");
+                require_collection(TH_GenericComplex::makeStringFromData(member) == expected,
+                                   "Complex decoding must retain signs and ignore the graph flag");
+                require_collection(TH_GenericComplex::getMinVersionFromData(member) == VER_NONE,
+                                   "Sign and graph flags must not raise the complex version");
+            }
+        }
+
+        const std::vector<std::pair<uint8_t, std::string>> complexCases{
+            {0x0C, "1+2i"}, {0x1B, "1+1/2i"}, {0x1D, "1+(√(2)+0*√(1))/1i"},
+            {0x1E, "1+2πi"}, {0x1F, "1+π/2i"},
+        };
+        for (const auto& [subtype, text] : complexCases)
+        {
+            const auto canonical = TH_GenericComplex::makeDataFromString(text, {{"_type", subtype}});
+            require_collection(!TH_GenericComplex::makeStringFromData(canonical).empty(),
+                               "Canonical complex subtypes must still decode");
+            const auto version = subtype == 0x0C ? VER_NONE : subtype == 0x1B ? VER_CE_ALL : VER_CE_EXACTONLY;
+            require_collection(TH_GenericComplex::getMinVersionFromData(canonical) == version,
+                               "Canonical complex subtypes must keep their required versions");
+            for (size_t offset : {size_t(0), size_t(9)})
+            {
+                auto invalid = canonical;
+                invalid[offset] |= 0x20;
+                bool rejected = false;
+                try { (void)TH_GenericComplex::makeStringFromData(invalid); }
+                catch (const std::runtime_error&) { rejected = true; }
+                require_collection(rejected, "Bit 5 must not alias an unknown subtype to a valid complex member");
+                require_collection(TH_GenericComplex::getMinVersionFromData(invalid) == VER_INVALID,
+                                   "Unknown complex subtypes must not receive a compatible version");
+                data_t invalidList{1, 0};
+                invalidList.insert(invalidList.end(), invalid.begin(), invalid.end());
+                rejected = false;
+                try { (void)TH_GenericList::makeStringFromData(invalidList); }
+                catch (const std::runtime_error&) { rejected = true; }
+                require_collection(rejected, "Complex-list decoding must reject unknown member subtypes too");
+            }
+        }
+
+        for (const size_t offset : {size_t(0), size_t(9)})
+        {
+            data_t invalidList{1, 0};
+            invalidList.insert(invalidList.end(), ordinaryComplex.begin(), ordinaryComplex.end());
+            invalidList[offset + 2] |= 0x20;
+            auto repaired = TIVarFile::createNew("ComplexList", "", TIModel{"83PCE"});
+            repaired.setContentFromData(invalidList);
+            repaired.setContentFromString("{1+2i}");
+            data_t expected{1, 0};
+            expected.insert(expected.end(), ordinaryComplex.begin(), ordinaryComplex.end());
+            require_collection(repaired.getRawContent() == expected,
+                               "Collection edits must replace unknown complex subtypes instead of preserving them");
+        }
+
+        for (const data_t& malformed : {data_t{}, data_t(9), data_t(17), data_t(19)})
+            require_collection(TH_GenericComplex::getMinVersionFromData(malformed) == VER_INVALID,
+                               "Malformed complex payloads must not receive a compatible version");
+
         for (const std::string file : {"RealList.8xl", "ComplexList.8xl", "Matrix_3x3_standard.8xm", "Matrix_2x2_exact.8xm"})
         {
             auto original = TIVarFile::loadFromFile("testData/" + file);
@@ -44,10 +114,10 @@ namespace activitygrapher_tests
         auto complexList = TIVarFile::createNew("ComplexList", "", TIModel{"83PCE"});
         complexList.setContentFromString("{1+1/2i,3π+2i,1+(√(2)+0*√(1))/1i,1+π/2i}");
         raw = complexList.getRawContent();
-        require_collection((raw[2 + 9] & 0x1F) == 0x1B, "Complex list must infer imaginary fraction type");
-        require_collection((raw[2 + 18] & 0x1F) == 0x1E, "Complex list must infer real pi type");
-        require_collection((raw[2 + 36 + 9] & 0x1F) == 0x1D, "Complex list must infer imaginary radical type");
-        require_collection((raw[2 + 54 + 9] & 0x1F) == 0x1F, "Complex list must infer imaginary pi fraction type");
+        require_collection((raw[2 + 9] & 0x3F) == 0x1B, "Complex list must infer imaginary fraction type");
+        require_collection((raw[2 + 18] & 0x3F) == 0x1E, "Complex list must infer real pi type");
+        require_collection((raw[2 + 36 + 9] & 0x3F) == 0x1D, "Complex list must infer imaginary radical type");
+        require_collection((raw[2 + 54 + 9] & 0x3F) == 0x1F, "Complex list must infer imaginary pi fraction type");
         complexList.setContentFromString(complexList.getReadableContent());
         require_collection(complexList.getRawContent() == raw, "Mixed exact complex list must round-trip");
 

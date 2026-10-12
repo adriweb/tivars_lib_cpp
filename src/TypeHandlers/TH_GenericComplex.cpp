@@ -165,7 +165,7 @@ namespace tivars::TypeHandlers
             {
                 throw std::invalid_argument("Complex member subtype is not supported by the target calculator");
             }
-            realMemberData[0] = static_cast<uint8_t>((realMemberData[0] & 0x80) | (subtype & 0x1F));
+            realMemberData[0] = static_cast<uint8_t>((realMemberData[0] & 0x80) | (subtype & 0x3F));
             data.insert(data.end(), realMemberData.begin(), realMemberData.end());
         }
 
@@ -187,7 +187,7 @@ namespace tivars::TypeHandlers
             {
                 throw std::invalid_argument("Complex member subtype is not supported by the target calculator");
             }
-            imagMemberData[0] = static_cast<uint8_t>((imagMemberData[0] & 0x80) | (subtype & 0x1F));
+            imagMemberData[0] = static_cast<uint8_t>((imagMemberData[0] & 0x80) | (subtype & 0x3F));
             data.insert(data.end(), imagMemberData.begin(), imagMemberData.end());
         }
 
@@ -201,9 +201,9 @@ namespace tivars::TypeHandlers
             throw std::invalid_argument("Invalid data array. Needs to contain 18 bytes");
         }
 
-        // 0x1F because we discard the flag bits (see above)
-        const uint8_t typeR = (uint8_t)(data[0] & 0x1F);
-        const uint8_t typeI = (uint8_t)(data[bytesPerMember] & 0x1F);
+        // Only the sign and graph-use bits are flags; bit 5 belongs to the subtype.
+        const uint8_t typeR = static_cast<uint8_t>(data[0] & 0x3F);
+        const uint8_t typeI = static_cast<uint8_t>(data[bytesPerMember] & 0x3F);
 
         const auto& handlerRIter = type2handlers.find(typeR);
         if (handlerRIter == type2handlers.end())
@@ -244,7 +244,17 @@ namespace tivars::TypeHandlers
 
     TIVarFileMinVersionByte TH_GenericComplex::getMinVersionFromData(const data_t& data)
     {
-        const uint8_t maxInternalType = std::max<uint8_t>(static_cast<uint8_t>(data[0] & 0x1F), static_cast<uint8_t>(data[bytesPerMember] & 0x1F));
+        if (data.size() != dataByteCount)
+        {
+            return VER_INVALID;
+        }
+        const uint8_t typeR = static_cast<uint8_t>(data[0] & 0x3F);
+        const uint8_t typeI = static_cast<uint8_t>(data[bytesPerMember] & 0x3F);
+        if (!type2handlers.contains(typeR) || !type2handlers.contains(typeI))
+        {
+            return VER_INVALID;
+        }
+        const uint8_t maxInternalType = std::max(typeR, typeI);
         if (maxInternalType == 0x0C) { // Complex
             return VER_NONE;
         } else if (maxInternalType == 0x1B) { // Fraction

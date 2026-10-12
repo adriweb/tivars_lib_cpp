@@ -85,8 +85,8 @@ namespace tivars::TypeHandlers
                 // Text alone cannot identify an integer's exact subtype. Keep unchanged members verbatim.
                 try
                 {
-                    const bool supported = detail::supportsNumericSubtype(oldMember[0] & (isRealList ? 0x3F : 0x1F), _ctx)
-                        && (isRealList || detail::supportsNumericSubtype(oldMember[9] & 0x1F, _ctx));
+                    const bool supported = detail::supportsNumericSubtype(oldMember[0] & 0x3F, _ctx)
+                        && (isRealList || detail::supportsNumericSubtype(oldMember[9] & 0x3F, _ctx));
                     if (supported && stringHandler(oldMember, options, _ctx) == numStr)
                     {
                         tmp = oldMember;
