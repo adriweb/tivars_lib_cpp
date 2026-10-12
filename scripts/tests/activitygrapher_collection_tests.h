@@ -2,6 +2,7 @@
 #define ACTIVITYGRAPHER_COLLECTION_TESTS_H
 
 #include "../../src/TIVarFile.h"
+#include "../../src/EvoFormat.h"
 #include "../../src/TypeHandlers/TypeHandlers.h"
 #include <cstdio>
 #include <fstream>
@@ -90,6 +91,21 @@ namespace activitygrapher_tests
         for (const data_t& malformed : {data_t{}, data_t(9), data_t(17), data_t(19)})
             require_collection(TH_GenericComplex::getMinVersionFromData(malformed) == VER_INVALID,
                                "Malformed complex payloads must not receive a compatible version");
+
+        for (const auto& value : {TH_GenericReal::makeDataFromString("1/2", {{"_type", 0x18}}),
+                                 TH_GenericComplex::makeDataFromString("1/2+i", {{"_type", 0x0C}})})
+        {
+            for (uint8_t flags : {0x00, 0x40, 0x80, 0xC0})
+            {
+                auto flagged = value;
+                flagged[0] |= flags;
+                require_collection(EvoFormat::legacy_value_is_exact_fraction(flagged),
+                                   "Evo conversion must recognize fraction types with sign and graph flags");
+                flagged[0] |= 0x20;
+                require_collection(!EvoFormat::legacy_value_is_exact_fraction(flagged),
+                                   "Evo conversion must not alias unknown subtypes to exact fractions");
+            }
+        }
 
         for (const std::string file : {"RealList.8xl", "ComplexList.8xl", "Matrix_3x3_standard.8xm", "Matrix_2x2_exact.8xm"})
         {
