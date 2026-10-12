@@ -32,6 +32,7 @@
 #include "src/TypeHandlers/TypeHandlers.h"
 #include "src/tivarslib_utils.h"
 #include "src/json.hpp"
+#include "scripts/tests/activitygrapher_bounds_tests.h"
 #include "scripts/tests/activitygrapher_collection_tests.h"
 #include "scripts/tests/activitygrapher_flash_tests.h"
 #include "scripts/tests/activitygrapher_metadata_tests.h"
@@ -293,6 +294,8 @@ int main(int argc, char** argv)
     setlocale(LC_ALL, ".UTF-8");
 
     /* Tests */
+
+    activitygrapher_tests::test_activitygrapher_bounds();
 
     activitygrapher_tests::test_activitygrapher_collections();
 

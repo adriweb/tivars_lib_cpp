@@ -14,6 +14,7 @@
 #include "TIModels.h"
 
 #include <stdexcept>
+#include <limits>
 #include <numeric>
 #include <sstream>
 #include <cstring>
@@ -681,6 +682,41 @@ namespace tivars
      */
     void TIVarFile::refreshMetadataFields()
     {
+        const size_t maximumLength = std::numeric_limits<uint16_t>::max();
+        size_t totalLength = 0;
+        for (const auto& entry : this->entries)
+        {
+            size_t metadataLength;
+            size_t dataLength;
+            if (is_backup_entry(entry))
+            {
+                const auto backup = TypeHandlers::TH_Backup::parseInternal(entry.data);
+                if (backup.data1.size() > maximumLength || backup.data2.size() > maximumLength
+                 || backup.data3.size() > maximumLength || backup.data4.size() > maximumLength)
+                {
+                    throw std::length_error("Backup data exceeds the 16-bit file length limit");
+                }
+                metadataLength = backup.hasData4 ? TypeHandlers::TH_Backup::onFileMetaLength4 : TypeHandlers::TH_Backup::onFileMetaLength3;
+                dataLength = backup.data1.size() + backup.data2.size() + backup.data3.size() + backup.data4.size();
+            }
+            else
+            {
+                if (entry.data.size() > maximumLength)
+                {
+                    throw std::length_error("Variable data exceeds the 16-bit file length limit");
+                }
+                metadataLength = (this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength;
+                dataLength = entry.data.size();
+            }
+            const size_t entryLength = sizeof(var_entry_t::meta_length) + metadataLength
+                                     + sizeof(var_entry_t::data_length2) + dataLength;
+            if (entryLength > maximumLength - totalLength)
+            {
+                throw std::length_error("Variable entries exceed the 16-bit file length limit");
+            }
+            totalLength += entryLength;
+        }
+
         this->header.entries_len = 0;
         for (auto& entry : this->entries)
         {
@@ -844,8 +880,18 @@ namespace tivars
     {
         if (!data.empty())
         {
-            this->entries[entryIdx].data = data;
-            this->refreshMetadataFields();
+            auto& entry = this->entries[entryIdx];
+            const auto previousEntry = entry;
+            entry.data = data;
+            try
+            {
+                this->refreshMetadataFields();
+            }
+            catch (...)
+            {
+                entry = previousEntry;
+                throw;
+            }
         } else {
             throw std::runtime_error("[Error] No data given");
         }
@@ -860,8 +906,18 @@ namespace tivars
         auto& entry = this->entries[entryIdx];
         options_t entryOptions = options;
         entryOptions["_entryIdx"] = entryIdx;
-        entry.data = std::get<0>(entry._type.getHandlers())(str, entryOptions, this);
-        this->refreshMetadataFields();
+        const data_t data = std::get<0>(entry._type.getHandlers())(str, entryOptions, this);
+        const auto previousEntry = entry;
+        entry.data = data;
+        try
+        {
+            this->refreshMetadataFields();
+        }
+        catch (...)
+        {
+            entry = previousEntry;
+            throw;
+        }
     }
     void TIVarFile::setContentFromString(const std::string& str, const options_t& options)
     {
@@ -1087,16 +1143,16 @@ namespace tivars
 
     std::string TIVarFile::saveVarToFile(std::string path)
     {
+        this->refreshMetadataFields();
+        const data_t bin_data = make_bin_data();
+
         FILE* handle = fopen(path.c_str(), "wb");
         if (!handle)
         {
             throw std::runtime_error("Can't open the output file");
         }
 
-        this->refreshMetadataFields();
-
-        // Make and write file data
-        const data_t bin_data = make_bin_data();
+        // Write the validated file data.
         fwrite(&bin_data[0], sizeof(bin_data[0]), bin_data.size(), handle);
 
         // Write checksum
