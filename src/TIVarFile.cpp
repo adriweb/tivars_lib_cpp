@@ -702,6 +702,8 @@ namespace tivars
             }
             else
             {
+                // Normalize the declared metadata to the fields emitted by make_bin_data().
+                entry.meta_length = (this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength;
                 entry.data_length2 = entry.data_length = (uint16_t) entry.data.size();
                 this->header.entries_len += sizeof(var_entry_t::data_length) + sizeof(var_entry_t::data_length2) + entry.meta_length + entry.data_length;
                 entry.version = (this->calcModel.getFlags() & TIFeatureFlags::hasFlash) ? std::get<2>(entry._type.getHandlers())(entry.data) : VER_NONE;
