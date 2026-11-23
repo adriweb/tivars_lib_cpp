@@ -2736,6 +2736,265 @@ static std::vector<uint16_t> evo_words(const data_t& data)
     return words;
 }
 
+// An integer magnitude ends with its limb count. Read it from the end so a
+// limb with the same value as an expression tag is still treated as data.
+static std::string take_evo_magnitude(const std::vector<uint16_t>& words, size_t& cursor)
+{
+    if (cursor == 0)
+    {
+        throw std::invalid_argument("Missing Evo integer limb count");
+    }
+    const size_t count = words[--cursor];
+    if (count > cursor)
+    {
+        throw std::invalid_argument("Truncated Evo integer magnitude");
+    }
+
+    constexpr uint32_t decimalBase = 1000000000;
+    const size_t begin = cursor - count;
+    std::vector<uint32_t> digits{0};
+    while (cursor > begin)
+    {
+        uint64_t carry = words[--cursor];
+        for (uint32_t& digit : digits)
+        {
+            carry += static_cast<uint64_t>(digit) << 16;
+            digit = static_cast<uint32_t>(carry % decimalBase);
+            carry /= decimalBase;
+        }
+        if (carry != 0)
+        {
+            digits.push_back(static_cast<uint32_t>(carry));
+        }
+    }
+
+    std::string text = std::to_string(digits.back());
+    for (auto it = digits.rbegin() + 1; it != digits.rend(); ++it)
+    {
+        const std::string chunk = std::to_string(*it);
+        text.append(9 - chunk.size(), '0');
+        text += chunk;
+    }
+    return text;
+}
+
+static std::string evo_decimal_text(const data_t& data, size_t offset)
+{
+    std::string digits;
+    for (size_t i = 8; i > 0; --i)
+    {
+        const uint8_t byte = data[offset + i - 1];
+        if ((byte >> 4) > 9 || (byte & 0x0F) > 9)
+        {
+            throw std::invalid_argument("Invalid Evo decimal digit");
+        }
+        digits += static_cast<char>('0' + (byte >> 4));
+        digits += static_cast<char>('0' + (byte & 0x0F));
+    }
+
+    const size_t start = digits.find_first_not_of('0');
+    if (start == std::string::npos)
+    {
+        return "0";
+    }
+    digits = digits.substr(start, digits.find_last_not_of('0') - start + 1);
+    const int exponent = static_cast<int8_t>(data[offset + 9]);
+    if (exponent < -3 || exponent > 9)
+    {
+        if (digits.size() > 1) digits.insert(1, 1, '.');
+        digits += 'e';
+        digits += std::to_string(exponent);
+    }
+    else if (exponent < 0)
+    {
+        digits.insert(0, -exponent - 1, '0');
+        digits.insert(0, "0.");
+    }
+    else
+    {
+        const size_t point = exponent + 1;
+        if (point < digits.size()) digits.insert(point, 1, '.');
+        else digits.append(point - digits.size(), '0');
+    }
+    if (data[offset + 8] == 0xFF) digits.insert(digits.begin(), '-');
+    return digits;
+}
+
+std::string evo_scalar_to_readable(const data_t& evoData)
+{
+    if (evoData.empty() || evoData.size() % 2 != 0)
+    {
+        throw std::invalid_argument("Invalid Evo scalar size");
+    }
+    enum Precedence { Sum = 1, Product, Negation, Power, Atom };
+    struct Node
+    {
+        std::string text;
+        int operands = 0;
+        Precedence precedence = Atom;
+        size_t next = 0;
+    };
+    static constexpr std::pair<uint16_t, const char*> functions[] = {
+        {0x002F, "acosh"}, {0x0030, "asinh"}, {0x0031, "atanh"},
+        {0x0035, "cosh"}, {0x0036, "sinh"}, {0x0037, "tanh"},
+        {0x003B, "acos"}, {0x003C, "asin"}, {0x003D, "atan"},
+        {0x0044, "cos"}, {0x0045, "sin"}, {0x0046, "tan"}, {0x004B, "abs"},
+        {0x0051, "sqrt"}, {0x0052, "exp"}, {0x0053, "ln"}, {0x0054, "log"},
+    };
+
+    // First read tags backwards, skipping the payload of each numeric leaf.
+    const auto words = evo_words(evoData);
+    std::vector<Node> nodes;
+    size_t cursor = words.size();
+    while (cursor > 0)
+    {
+        const uint16_t tag = words[--cursor];
+        Node node;
+        switch (tag)
+        {
+            case 0x001F:
+            case 0x0020:
+                node.text = take_evo_magnitude(words, cursor);
+                if (tag == 0x0020 && node.text != "0") node.text.insert(node.text.begin(), '-');
+                break;
+            case 0x0021:
+            case 0x0022:
+            {
+                std::string numerator = take_evo_magnitude(words, cursor);
+                const std::string denominator = take_evo_magnitude(words, cursor);
+                if (denominator == "0")
+                {
+                    throw std::invalid_argument("Invalid Evo fraction denominator");
+                }
+                if (tag == 0x0022 && numerator != "0") numerator.insert(numerator.begin(), '-');
+                node = {numerator + '/' + denominator, 0, Product};
+                break;
+            }
+            case 0x0023:
+                if (cursor < 5) throw std::invalid_argument("Truncated Evo decimal");
+                cursor -= 5;
+                node.text = evo_decimal_text(evoData, cursor * 2);
+                break;
+            case 0x0024: node.text = "pi"; break;
+            case 0x0025: node.text = "e"; break;
+            case 0x0026: node.text = "i"; break;
+            case 0x007A: node = {"-", 1, Negation}; break;
+            case 0x008B: node = {"+", 2, Sum}; break;
+            case 0x008D: node = {"-", 2, Sum}; break;
+            case 0x008F: node = {"*", 2, Product}; break;
+            case 0x0093: node = {"^", 2, Power}; break;
+            default:
+            {
+                const auto function = std::ranges::find(functions, tag, &std::pair<uint16_t, const char*>::first);
+                if (function == std::end(functions))
+                {
+                    throw std::invalid_argument("Unsupported Evo scalar tag: " + dechex(tag >> 8) + dechex(tag & 0xFF));
+                }
+                node = {function->second, 1, Atom};
+                break;
+            }
+        }
+        if (node.operands == 0 && node.precedence == Atom && node.text.front() == '-')
+        {
+            node.precedence = Negation;
+        }
+        nodes.push_back(std::move(node));
+    }
+
+    // Record the end of each subtree to locate the operands in the reverse
+    // order. Power stores its exponent before its base, unlike the other
+    // binary operators.
+    for (size_t i = nodes.size(); i > 0; --i)
+    {
+        Node& node = nodes[i - 1];
+        node.next = i;
+        for (int operand = 0; operand < node.operands; ++operand)
+        {
+            if (node.next == nodes.size())
+            {
+                throw std::invalid_argument("Missing Evo scalar operand");
+            }
+            node.next = nodes[node.next].next;
+        }
+        if (node.text == "*" && nodes[i].text == "i")
+        {
+            const Node& coefficient = nodes[nodes[i].next];
+            if (coefficient.operands == 0 && std::isdigit(static_cast<unsigned char>(coefficient.text.back())))
+            {
+                node.text.clear();
+                node.precedence = coefficient.text.front() == '-' ? Negation : Atom;
+            }
+        }
+    }
+    if (nodes.front().next != nodes.size())
+    {
+        throw std::invalid_argument("Extra data in Evo scalar");
+    }
+
+    // Render with an explicit stack so nested expressions don't use the C++ stack.
+    struct Part
+    {
+        const Node* node = nullptr;
+        std::string_view text{};
+        int minPrecedence = 0;
+    };
+    std::vector<Part> pending{{nodes.data(), {}, 0}};
+    std::string result;
+    while (!pending.empty())
+    {
+        const Part part = pending.back();
+        pending.pop_back();
+        if (part.node == nullptr)
+        {
+            result += part.text;
+            continue;
+        }
+
+        const Node& node = *part.node;
+        if (node.precedence < part.minPrecedence)
+        {
+            result += '(';
+            pending.push_back({nullptr, ")"});
+        }
+        if (node.operands == 0)
+        {
+            result += node.text;
+        }
+        else if (node.operands == 1)
+        {
+            result += node.text;
+            if (node.precedence == Negation)
+            {
+                pending.push_back({&node + 1, {}, Negation + 1});
+            }
+            else
+            {
+                result += '(';
+                pending.push_back({nullptr, ")"});
+                pending.push_back({&node + 1});
+            }
+        }
+        else
+        {
+            const Node* right = &node + 1;
+            const Node* left = nodes.data() + right->next;
+            if (node.precedence == Power) std::swap(left, right);
+            if (node.text.empty())
+            {
+                pending.push_back({right});
+                if (left->text != "1") pending.push_back({left, {}, Negation});
+            }
+            else
+            {
+                pending.push_back({right, {}, node.precedence + 1});
+                pending.push_back({nullptr, node.text});
+                pending.push_back({left, {}, node.precedence + (node.precedence == Power)});
+            }
+        }
+    }
+    return result;
+}
+
 static uint8_t real_equivalent_subtype(uint8_t subtype)
 {
     switch (subtype)
@@ -2829,9 +3088,13 @@ static uint64_t parse_evo_integer_limbs(const std::vector<uint16_t>& words, size
     uint64_t value = 0;
     for (size_t i = 0; i < limbCount; i++)
     {
-        if (i >= 4 && words[begin + i] != 0)
+        if (i >= 4)
         {
-            throw std::runtime_error("Evo integer is too large to convert");
+            if (words[begin + i] != 0)
+            {
+                throw std::runtime_error("Evo integer is too large to convert");
+            }
+            continue;
         }
         value |= static_cast<uint64_t>(words[begin + i]) << (16 * i);
     }

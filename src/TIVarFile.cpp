@@ -95,9 +95,8 @@ namespace tivars
             }
             else if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::Real)
             {
-                size_t offset = 0;
-                legacyEntry.data = evo_scalar_to_legacy_value(entry.data, offset);
-                set_numeric_entry_type_from_payload(legacyEntry);
+                content = evo_scalar_to_readable(entry.data);
+                return true;
             }
             else if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::List)
             {
@@ -1338,7 +1337,12 @@ namespace tivars
                     else if (entry.evoTypeID == EvoTypeID::Real)
                     {
                         size_t offset = 0;
-                        entry.data = evo_scalar_to_legacy_value(entry.data, offset);
+                        data_t legacy = evo_scalar_to_legacy_value(entry.data, offset);
+                        if (offset != entry.data.size())
+                        {
+                            throw std::runtime_error("Evo scalar expression cannot be converted to a legacy number");
+                        }
+                        entry.data = std::move(legacy);
                         set_numeric_entry_type_from_payload(entry);
                     }
                     else if (entry.evoTypeID == EvoTypeID::List)

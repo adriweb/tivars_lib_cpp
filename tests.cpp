@@ -2778,6 +2778,59 @@ Disp Str1
         assert_evo_to_legacy_readable(evoSamples + "A.8xn2", "4-2i");
         assert_evo_to_legacy_readable(evoSamples + "more/L.8xn2", "1.5");
         assert_evo_to_legacy_readable(evoSamples + "more/S.8xn2", "1/3");
+        for (const auto& [sample, version, flags, expected] : std::array{
+            std::tuple{"pi-7.0", 1, 0x02, "pi"},
+            std::tuple{"pi-7.1", 2, 0x20, "pi"},
+            std::tuple{"ti84evo-7.0-integer", 1, 0x00, "256"},
+            std::tuple{"ti84evo-7.1-integer", 2, 0x00, "256"},
+            std::tuple{"complex-7.1", 2, 0x20, "1/3+sqrt(2)*i"},
+            std::tuple{"power-7.1", 2, 0x20, "2^(1/3)"},
+        })
+        {
+            const std::string inputPath = evoSamples + "exact/" + sample + ".8xn2";
+            auto file = TIVarFile::loadFromFile(inputPath);
+            const json readable = json::parse(file.getReadableContent());
+            assert(readable["version"] == version && readable["flags"] == flags);
+            assert(readable["readableContent"] == expected);
+            assert(readable["metaData"]["version"] == 1);
+
+            const std::string saved = file.saveVarToFile("/tmp", "tivars_evo_exact_scalar");
+            assert(read_binary_file(saved) == read_binary_file(inputPath));
+            assert(remove(saved.c_str()) == 0);
+        }
+        {
+            auto scalar = TIVarFile::createNew("Real", "X", "84Evo");
+            for (const auto& [hex, expected] : std::array{
+                std::pair{"200001001F00", "32"}, // Limb value also used as a tag.
+                std::pair{"0000000000000000010005001F00", "18446744073709551616"},
+                std::pair{"2500", "e"},
+                std::pair{"2600", "i"},
+                std::pair{"020001001F005300", "ln(2)"},
+                std::pair{"0300010002000100210026008F00", "(2/3)i"},
+                std::pair{"563412907856341201002300", "1.234567890123456"},
+                std::pair{"0000000062914715FF002300006766666666666601FF230026008F008B00",
+                          "-1.5479162+0.66666666666667i"},
+                std::pair{"030001001F0026008F007A00", "-3i"},
+                std::pair{"020001001F00030001001F008B00040001001F008F00", "(2+3)*4"},
+            })
+            {
+                scalar.setContentFromData(data_from_hex_string(hex));
+                assert(json::parse(scalar.getReadableContent())["readableContent"] == expected);
+            }
+            for (const char* hex : {"240000", "01001F00", "5100", "24002500", "020001001F00FFFF",
+                                    "0000050001002100"})
+            {
+                scalar.setContentFromData(data_from_hex_string(hex));
+                assert(!json::parse(scalar.getReadableContent()).contains("readableContent"));
+            }
+
+            const data_t logarithm = data_from_hex_string("020001001F005300");
+            scalar.setContentFromData(logarithm);
+            bool rejected = false;
+            try { scalar.convertToModel(TIModel{"84+CE"}); }
+            catch (const std::runtime_error&) { rejected = true; }
+            assert(rejected && scalar.isEvoFormat() && scalar.getRawContent() == logarithm);
+        }
         assert_evo_to_legacy_readable(evoSamples + "more/D.8xm2", "[[1,2][3,4]]");
         if (file_exists(evoSamples + "F.8xm2"))
         {

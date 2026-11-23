@@ -82,6 +82,7 @@ namespace tivars::EvoFormat
     data_t evo_tokenized_data_to_legacy(const data_t& evoData);
     data_t legacy_tokenized_data_to_evo(const data_t& legacyData, bool smartConversion = false);
 
+    std::string evo_scalar_to_readable(const data_t& evoData);
     data_t evo_scalar_to_legacy_value(const data_t& evoData, size_t& offset);
     data_t legacy_value_to_evo_expression(const data_t& legacyValue);
     bool legacy_value_is_exact_fraction(const data_t& legacyValue);
