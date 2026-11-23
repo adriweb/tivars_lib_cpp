@@ -66,7 +66,7 @@ image with `size = 33601` stores the body size as `19 83 41`, and its
 ## Metadata `type` values seen
 
 ```text
-0   .8xn2  real number
+0   .8xn2  real or complex scalar number
 1   .8xl2  list
 2   .8xp2  TI-BASIC program
 4   .8ci2  Pic / graph picture
@@ -98,8 +98,11 @@ version            payload schema version
 flags              payload-specific flags, when present
 ```
 
-All parsed sample files use `metaData.version = 1` and body
-`version = 1` where the body version field exists.
+The parsed samples use `metaData.version = 1`. Most use body `version = 1`
+where that field exists. The tested 7.1 builds for TI-83 Evo, TI-84 Evo,
+TI-84 Evo-T, and TI-84 Evo-S export type-0 `.8xn2` numbers with body
+`version = 2`. See [scalar numbers](8xn2-number.md) for the tested builds
+and flags.
 
 Settings containers (`.8xw2`, `.8xz2`, and `.8xt2`) do not have a
 top-level body `version` in the current samples; their top-level `data`
@@ -119,6 +122,7 @@ metaData.flags = 8  special graph/window coordinate variables (`X`, `Y`,
 
 body flags = 0      ordinary scalar payload
 body flags = 6      top-level exact fraction `.8xn2`
+body flags = 2, 32  selected exact expressions in `.8xn2`
 ```
 
 Lists and matrices do not use a body `flags` key for exact-fraction

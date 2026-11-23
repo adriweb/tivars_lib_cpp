@@ -1,6 +1,11 @@
-# `.8xn2` real numbers
+# `.8xn2` scalar numbers
 
-Sample files: the original top-level `.8xn2` files plus the controlled number samples.
+Samples include real and complex numbers, plus exact-expression exports from
+TI-83 Evo OS 7.0.0.3996 and 7.1.0.4421.
+
+For evaluator behavior and the distinction between exact runtime objects and
+confirmed transfer-file encodings, see
+[`ti83-exact-math-engine.md`](ti83-exact-math-engine.md).
 
 Metadata:
 
@@ -24,23 +29,70 @@ those variables.
 Body fields:
 
 ```text
-version   = 1
-flags     = scalar display/type flags; 6 marks exact fractions
+version   = scalar payload version
+flags     = scalar display/type flags
 arraylen  = number of 16-bit words in data
 size      = byte length of data; equals arraylen * 2
 data      = custom scalar payload, little-endian 16-bit words
 ```
 
-The scalar payload format is postfix-tagged. From the number, list, and
-matrix samples:
+## Observed body versions and flags
+
+Fresh type-0 `.8xn2` exports from the tested 7.0 builds have body
+`version = 1`. The tested 7.1 builds export body `version = 2`.
+The metadata version is `1` in every sample.
+
+| Model | Body version on OS 7.0.0.3996 | Tested 7.1 build | Body version on 7.1 |
+| --- | --- | --- | --- |
+| TI-83 Evo | `1` | 7.1.0.4421 | `2` |
+| TI-84 Evo | `1` | 7.1.0.4421 | `2` |
+| TI-84 Evo-T | `1` | 7.1.0.4421 | `2` |
+| TI-84 Evo-S | — | 7.1.0.4404 | `2` |
+
+The TI-84 checks covered `256`, `1.5`, and the result of `sqrt(8)`.
+For each value, the TI-84 models produced byte-identical exports within the
+tested release. The [paired integer fixtures](../testData/evo/exact/)
+represent the TI-84 exports for both releases.
+
+The paired TI-83 Evo exact-expression exports show these body flags.
+
+| Exported value | 7.0 body flags | 7.1 body flags |
+| --- | --- | --- |
+| `1/3` entered with the fraction template | `0x06` | `0x06` |
+| `pi`, `2*sqrt(2)` | `0x02` | `0x20` |
+
+All three TI-83 Evo pairs have identical payload words. The TI-83 Evo on
+7.1 also imported the 7.0 files. When it re-exported them, it wrote body
+version `2` and a new checksum, preserving the imported flags and payload
+words. Readers should preserve the stored version and flags when saving a file.
+
+## Scalar expressions
+
+The scalar payload is a postfix expression. A numeric leaf ends with its tag.
+An operator follows its operands. The documented tags include the following.
 
 ```text
-Last word 001F  positive exact integer
-Last word 0020  negative exact integer
-Last word 0021  exact fraction
-Last word 0022  negative exact fraction
-Last word 0023  decimal / approximate value
+001F  positive exact integer
+0020  negative exact integer
+0021  positive exact fraction
+0022  negative exact fraction
+0023  decimal / approximate value
+0024  pi leaf
+0025  e leaf
+0026  i leaf
+0051  square root
+0053  natural logarithm
+007A  unary negation
+008B  addition
+008D  subtraction
+008F  multiplication
+0093  power
 ```
+
+For addition, subtraction, and multiplication, the left operand comes first.
+Power stores the exponent first, followed by the base. Read the payload from
+the end to locate each tag. Integer limbs and decimal data can contain the
+same word values as tags.
 
 ## Exact integers
 
@@ -162,7 +214,7 @@ J = 1.6379784E66:
 
 ## Exact fractions
 
-Top-level exact fraction variables have body `flags = 6`. Their payload
+The sampled top-level exact fraction variables have body `flags = 6`. Their payload
 stores denominator magnitude, denominator limb count, numerator
 magnitude, numerator limb count, then a signed fraction tag:
 
@@ -186,10 +238,34 @@ T = -2/5:
   data  = 0005 0001 0002 0001 0022
 ```
 
+## Exact expression exports
+
+The following are complete payloads in 16-bit word order from TI-83 Evo
+OS 7.1.0.4421. All use body version `2`. The constants `pi` and `e`
+each occupy one word. A function such as `sqrt` or `ln` follows its argument.
+
+| Stored value | Body flags | Data words |
+| --- | --- | --- |
+| `pi` | `0x20` | `0024` |
+| `e` | `0x20` | `0025` |
+| `i` | `0x00` | `0026` |
+| `2*sqrt(2)` | `0x20` | `0002 0001 001F 0002 0001 001F 0051 008F` |
+| `ln(2)` | `0x20` | `0002 0001 001F 0053` |
+| `2^(1/3)` | `0x20` | `0003 0001 0001 0001 0021 0002 0001 001F 0093` |
+| `(2/3)i` | `0x02` | `0003 0001 0002 0001 0021 0026 008F` |
+| `1/3+sqrt(2)*i` | `0x20` | `0003 0001 0001 0001 0021 0002 0001 001F 0051 0026 008F 008B` |
+
+The [test fixtures](../testData/evo/exact/) include paired `pi` exports and
+the 7.1 exact power and complex examples.
+
+`getReadableContent()` renders supported expressions in `readableContent`
+and exposes the original bytes in `rawDataHex`. For an unrecognized
+expression, the JSON still includes the metadata and raw bytes.
+
 ## Complex values
 
-Complex samples look like expression fragments built from the scalar
-payloads above and short suffix markers.
+Complex payloads combine real and imaginary terms using the same postfix
+operators as other scalar expressions.
 
 Observed pure imaginary forms:
 
@@ -242,21 +318,26 @@ The list sample `L4.8xl2` also contains `-4+2i`:
 0004 0001 0020 0002 0001 001F 0026 008F 008B
 ```
 
-Observed suffix meanings:
+The expressions above follow these patterns.
 
 ```text
-0026 008F       positive pure imaginary suffix
-0026 008F 007A  negative pure imaginary suffix
-0026 008F 008B  rectangular real + imag*i suffix
-0026 008F 008D  rectangular real - imag*i suffix
+scalar 0026 008F             scalar * i
+scalar 0026 008F 007A        -(scalar * i)
+real scalar 0026 008F 008B   real + scalar * i
+real scalar 0026 008F 008D   real - scalar * i
 ```
 
-For rectangular values, the imaginary scalar payload stores the
-magnitude; the plus/minus relationship between real and imaginary parts
-is carried by the final `008B` or `008D` suffix. The real part keeps its
-own scalar sign tag. In `Z.8xn2`, the typed exact fraction `(2/3)i` was
-stored inside the complex number as the decimal approximation
-`0.66666666666667i`, not as an exact-fraction payload.
+`0026` is the `i` leaf, `008F` multiplies the preceding two nodes, `007A`
+negates the preceding node, and `008B` / `008D` add or subtract the preceding
+two nodes. For rectangular values, the imaginary scalar payload stores the
+magnitude; the relationship between the real and imaginary parts is carried
+by the final addition or subtraction operator. The real part keeps its own
+scalar sign tag.
+
+Entering the mixed expression `-1.5479162+(2/3)i` on OS 7.1 reproduces
+the `Z.8xn2` payload word for word, with decimal leaves for both components.
+Entering the exact fraction template `(2/3)i` by itself preserves the
+fraction leaf, as shown above.
 
 Implementation note: nested custom scalar entries inside `.8xw2`,
 `.8xz2`, and `.8xt2` use the same `version`, `flags`, `arraylen`,

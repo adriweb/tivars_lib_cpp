@@ -17,22 +17,18 @@ map with the variable type and tokenized name. Body `version` and body
 
 ## Observed `version` values
 
-All currently parsed Evo variable files use version `1`:
-
-```text
-metaData.version = 1
-body version     = 1, where a body version field exists
-```
-
-No sample currently proves another version value. Writers should emit
-`1`. Readers should preserve the value, because the calculator has an
-incompatible-variable-version transfer error.
+All observed files use `metaData.version = 1`. Most sampled formats use
+body version `1` where that field exists. The tested 7.1 builds for TI-83
+Evo, TI-84 Evo, TI-84 Evo-T, and TI-84 Evo-S export type-0 `.8xn2`
+numbers with body version `2`. Preserve the stored version and flags
+when resaving a file. See [scalar numbers](8xn2-number.md) for the
+paired 7.0 and 7.1 exports and TI-83 Evo import behavior.
 
 ## Observed `flags` values by type
 
 ```text
 type  ext     meaning                       metaData.flags      body flags
-0     .8xn2   real/complex number           0, except 8 seen    0 or 6
+0     .8xn2   real/complex number           0, except 8 seen    0, 2, 6, 32
 1     .8xl2   list                          0                   no body flags key
 2     .8xp2   TI-BASIC program              0                   no body flags key
 4     .8ci2   Pic                           1                   no body flags key
@@ -218,7 +214,8 @@ For a reader:
 For a writer:
 
 - emit `metaData.version = 1`;
-- emit body `version = 1` where the format uses scalar body fields;
+- preserve body `version` when resaving a file. The sampled 7.0 scalar
+  files use version `1` and the sampled 7.1 exports use version `2`;
 - emit `metaData.flags = 1` for type `4` and type `5` image-like
   variables and type `18` Python modules;
 - emit body `flags = 6` for top-level exact-fraction `.8xn2` values;
