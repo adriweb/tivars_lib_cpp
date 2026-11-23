@@ -814,7 +814,9 @@ EvoPythonScriptInfo parse_evo_python_script_payload(const data_t& data)
         const uint8_t sectionKind = data[offset + 3];
         const size_t sectionData = offset + 4;
         const size_t sectionEnd = sectionData + sectionLen;
-        if (sectionEnd >= info.dataLen || data[sectionEnd] != 0)
+        // Some source objects end their executable section with LF.
+        const bool allowsLineFeed = !info.compiledModule && !foundBody && sectionKind == 2 && sectionEnd + 1 == info.dataLen;
+        if (sectionEnd >= info.dataLen || (data[sectionEnd] != 0 && !(allowsLineFeed && data[sectionEnd] == '\n')))
         {
             throw std::invalid_argument("Invalid Evo Python object payload: bad section length or terminator");
         }
@@ -840,7 +842,7 @@ EvoPythonScriptInfo parse_evo_python_script_payload(const data_t& data)
             info.scriptType = sectionKind;
             info.body.assign(data.begin() + static_cast<ptrdiff_t>(sectionData),
                              data.begin() + static_cast<ptrdiff_t>(sectionEnd));
-            info.trailer = {0x00};
+            info.trailer = {data[sectionEnd]};
             info.code = printable_ascii_string(data, sectionData, sectionLen);
             info.bodyIsText = !info.code.empty();
             foundBody = true;

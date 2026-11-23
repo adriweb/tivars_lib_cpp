@@ -4077,6 +4077,18 @@ End)";
         assert(helloEvoPythonJSON["python"]["trailerHex"] == "00");
         assert(helloEvoPythonJSON["python"]["code"].get<std::string>().rfind("# Version 2 EN\r\n", 0) == 0);
 
+        // A.8xpy2 has one LF inside the object and another after dataLen.
+        const json sourceWithLineFeed = {{"rawDataHex", "13010000270000000100000041001400000266726F6D2073636961707020696D706F7274202A0A0A"}};
+        auto evoPythonWithLineFeed = TIVarFile::createNew("PythonAppVar", "A", "84Evo");
+        evoPythonWithLineFeed.setContentFromString(sourceWithLineFeed.dump());
+        const json sourceWithLineFeedJSON = json::parse(evoPythonWithLineFeed.getReadableContent());
+        assert(sourceWithLineFeedJSON["rawDataHex"] == sourceWithLineFeed["rawDataHex"]);
+        assert(sourceWithLineFeedJSON["python"]["code"] == "from sciapp import *");
+        assert(sourceWithLineFeedJSON["python"]["dataLen"] == 39);
+        assert(sourceWithLineFeedJSON["python"]["scriptLen"] == 20);
+        assert(sourceWithLineFeedJSON["python"]["trailerHex"] == "0A");
+        assert(sourceWithLineFeedJSON["python"]["outerTrailerHex"] == "0A");
+
         const data_t compiledModulePayload = data_from_hex_string("1302D8201C0000000600000065766F7A7A7A00040000024D05031F00");
         const auto compiledModule = EvoFormat::parse_evo_python_script_payload(compiledModulePayload);
         assert(compiledModule.scriptHeader == 0x20D80213);

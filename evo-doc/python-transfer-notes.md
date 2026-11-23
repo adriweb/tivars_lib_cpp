@@ -103,6 +103,12 @@ Kind `0` is the ASCII object/import name. Kind `2` is the executable body. The
 object subtype decides whether kind `2` contains UTF-8 source or MicroPython
 persistent bytecode.
 
+Some source objects use `0A` (LF) in place of the final kind-2 section's `00`.
+In `A.8xpy2`, the declared source contains 20 bytes (`from sciapp import *`).
+The first LF is the last byte within the declared 39-byte object, and a
+second LF follows it in the 40-byte CBOR byte string. Both bytes are outside
+the declared source.
+
 ## Compiled MicroPython modules
 
 Bytecode uses two different external containers: type-15 `.8xpy2` on
