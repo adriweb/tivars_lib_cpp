@@ -66,7 +66,7 @@ image with `size = 33601` stores the body size as `19 83 41`, and its
 ## Metadata `type` values seen
 
 ```text
-0   .8xn2  real or complex scalar number
+0   .8xn2  Number (real or complex scalar)
 1   .8xl2  list
 2   .8xp2  TI-BASIC program
 4   .8ci2  Pic / graph picture

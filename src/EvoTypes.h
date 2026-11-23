@@ -18,7 +18,8 @@ namespace tivars::EvoFormat
 {
     enum class EvoTypeID : uint8_t
     {
-        Real = 0,
+        Number = 0,
+        Real = Number, // Compatibility alias for the original Evo name.
         List = 1,
         Program = 2,
         GraphDataBase = 3,
@@ -56,7 +57,7 @@ namespace tivars::EvoFormat
     };
 
     inline constexpr std::array<EvoTypeInfo, evo_type_id_value(EvoTypeID::PythonModule) + 1> evoTypeInfos = {{
-        {"Real",           "Real",           "8xn2",  {"Complex", "RealFraction", "ExactComplexFrac", "ExactRealRadical", "ExactComplexRadical", "ExactComplexPi", "ExactComplexPiFrac", "ExactRealPi", "ExactRealPiFrac"}},
+        {"Real",           "Number",         "8xn2",  {"Complex", "RealFraction", "ExactComplexFrac", "ExactRealRadical", "ExactComplexRadical", "ExactComplexPi", "ExactComplexPiFrac", "ExactRealPi", "ExactRealPiFrac"}},
         {"RealList",       "List",           "8xl2",  {"ComplexList"}},
         {"Program",        "Program",        "8xp2",  {"ProtectedProgram"}},
         {"GraphDataBase",  "GraphDataBase",  "8xd2",  {}},

@@ -28,7 +28,7 @@ paired 7.0 and 7.1 exports and TI-83 Evo import behavior.
 
 ```text
 type  ext     meaning                       metaData.flags      body flags
-0     .8xn2   real/complex number           0, except 8 seen    0, 2, 6, 32
+0     .8xn2   Number (real or complex)      0, except 8 seen    0, 2, 6, 32
 1     .8xl2   list                          0                   no body flags key
 2     .8xp2   TI-BASIC program              0                   no body flags key
 4     .8ci2   Pic                           1                   no body flags key

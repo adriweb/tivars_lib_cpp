@@ -2640,8 +2640,8 @@ Disp Str1
 
         assert(data_to_hex_string(EvoFormat::encode_evo_name(EvoFormat::EvoTypeID::Program, "PAUSE")) == "0FE800E814E812E804E80000");
         assert(EvoFormat::decode_evo_name(EvoFormat::EvoTypeID::Program, data_from_hex_string("0FE800E814E812E804E80000")) == "PAUSE");
-        assert(data_to_hex_string(EvoFormat::encode_evo_name(EvoFormat::EvoTypeID::Real, "a?θ")) == "00E800E41AE80000");
-        assert(EvoFormat::decode_evo_name(EvoFormat::EvoTypeID::Real, data_from_hex_string("00E800E41AE80000")) == "A_θ");
+        assert(data_to_hex_string(EvoFormat::encode_evo_name(EvoFormat::EvoTypeID::Number, "a?θ")) == "00E800E41AE80000");
+        assert(EvoFormat::decode_evo_name(EvoFormat::EvoTypeID::Number, data_from_hex_string("00E800E41AE80000")) == "A_θ");
         assert(data_to_hex_string(EvoFormat::encode_evo_name(EvoFormat::EvoTypeID::AppVar, "py_file1")) == "7000790000E4660069006C00650002E40000");
         assert(EvoFormat::decode_evo_name(EvoFormat::EvoTypeID::AppVar, data_from_hex_string("7000790000E4660069006C00650002E40000")) == "py_file1");
     }
@@ -2662,8 +2662,9 @@ Disp Str1
             assert(threw);
         };
 
+        static_assert(EvoFormat::EvoTypeID::Real == EvoFormat::EvoTypeID::Number);
         const std::array<std::tuple<EvoFormat::EvoTypeID, std::string, std::string, std::string>, 17> expectedEvoTypes = {{
-            {EvoFormat::EvoTypeID::Real,           "Real",           "Real",           "8xn2"},
+            {EvoFormat::EvoTypeID::Number,         "Real",           "Number",         "8xn2"},
             {EvoFormat::EvoTypeID::List,           "RealList",       "List",           "8xl2"},
             {EvoFormat::EvoTypeID::Program,        "Program",        "Program",        "8xp2"},
             {EvoFormat::EvoTypeID::GraphDataBase,  "GraphDataBase",  "GraphDataBase",  "8xd2"},
@@ -2702,15 +2703,15 @@ Disp Str1
         }
 
         const std::array<std::pair<std::string, EvoFormat::EvoTypeID>, 14> expectedEvoAliases = {{
-            {"Complex",              EvoFormat::EvoTypeID::Real},
-            {"RealFraction",         EvoFormat::EvoTypeID::Real},
-            {"ExactComplexFrac",     EvoFormat::EvoTypeID::Real},
-            {"ExactRealRadical",     EvoFormat::EvoTypeID::Real},
-            {"ExactComplexRadical",  EvoFormat::EvoTypeID::Real},
-            {"ExactComplexPi",       EvoFormat::EvoTypeID::Real},
-            {"ExactComplexPiFrac",   EvoFormat::EvoTypeID::Real},
-            {"ExactRealPi",          EvoFormat::EvoTypeID::Real},
-            {"ExactRealPiFrac",      EvoFormat::EvoTypeID::Real},
+            {"Complex",              EvoFormat::EvoTypeID::Number},
+            {"RealFraction",         EvoFormat::EvoTypeID::Number},
+            {"ExactComplexFrac",     EvoFormat::EvoTypeID::Number},
+            {"ExactRealRadical",     EvoFormat::EvoTypeID::Number},
+            {"ExactComplexRadical",  EvoFormat::EvoTypeID::Number},
+            {"ExactComplexPi",       EvoFormat::EvoTypeID::Number},
+            {"ExactComplexPiFrac",   EvoFormat::EvoTypeID::Number},
+            {"ExactRealPi",          EvoFormat::EvoTypeID::Number},
+            {"ExactRealPiFrac",      EvoFormat::EvoTypeID::Number},
             {"ComplexList",          EvoFormat::EvoTypeID::List},
             {"ProtectedProgram",     EvoFormat::EvoTypeID::Program},
             {"SmartEquation",        EvoFormat::EvoTypeID::Equation},
@@ -2790,6 +2791,8 @@ Disp Str1
             const std::string inputPath = evoSamples + "exact/" + sample + ".8xn2";
             auto file = TIVarFile::loadFromFile(inputPath);
             const json readable = json::parse(file.getReadableContent());
+            assert(file.getVarEntries().front().evoTypeID == EvoFormat::EvoTypeID::Number);
+            assert(readable["type"] == 0 && readable["typeName"] == "Number");
             assert(readable["version"] == version && readable["flags"] == flags);
             assert(readable["readableContent"] == expected);
             assert(readable["metaData"]["version"] == 1);

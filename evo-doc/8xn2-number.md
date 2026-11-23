@@ -1,7 +1,10 @@
-# `.8xn2` scalar numbers
+# `.8xn2` Number variables
 
 Samples include real and complex numbers, plus exact-expression exports from
 TI-83 Evo OS 7.0.0.3996 and 7.1.0.4421.
+
+Evo type `0` is `Number`. The library uses `"typeName": "Number"` in its
+readable JSON. Legacy types such as `Real` and `Complex` map to this Evo type.
 
 For evaluator behavior and the distinction between exact runtime objects and
 confirmed transfer-file encodings, see

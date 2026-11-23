@@ -43,7 +43,7 @@ namespace tivars
             uint16_t data_length2 = 0; // same as data_length
             data_t data;
             /**********/
-            EvoFormat::EvoTypeID evoTypeID{0};
+            EvoFormat::EvoTypeID evoTypeID = EvoFormat::EvoTypeID::Number;
             uint8_t evoMetaVersion = 1;
             uint8_t evoMetaFlags = 0;
             bool evoMetaFlagsPresent = true;

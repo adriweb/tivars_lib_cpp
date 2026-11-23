@@ -93,7 +93,7 @@ namespace tivars
             {
                 legacyEntry.data = evo_tokenized_data_to_legacy(entry.data);
             }
-            else if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::Real)
+            else if (!entry.evoDataIsRawCBOR && entry.evoTypeID == EvoTypeID::Number)
             {
                 content = evo_scalar_to_readable(entry.data);
                 return true;
@@ -1334,7 +1334,7 @@ namespace tivars
                     {
                         entry.data = evo_tokenized_data_to_legacy(entry.data);
                     }
-                    else if (entry.evoTypeID == EvoTypeID::Real)
+                    else if (entry.evoTypeID == EvoTypeID::Number)
                     {
                         size_t offset = 0;
                         data_t legacy = evo_scalar_to_legacy_value(entry.data, offset);
@@ -1406,7 +1406,7 @@ namespace tivars
                     entry.evoNameBytes.clear();
                     entry.evoDataIsRawCBOR = false;
                     entry.meta_length = (model.getFlags() & TIFeatureFlags::hasFlash) ? varEntryNewLength : varEntryOldLength;
-                    entry.evoTypeID = EvoTypeID::Real;
+                    entry.evoTypeID = EvoTypeID::Number;
                     entry.evoMetaVersion = 1;
                     entry.evoMetaFlags = 0;
                 }
